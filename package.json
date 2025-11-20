@@ -19,13 +19,17 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@jest/test-sequencer": "^29.7.0",
     "jest": "^29.7.0"
   },
   "jest": {
     "testEnvironment": "node",
     "transform": {},
-    "moduleFileExtensions": ["js"],
-    "testMatch": ["**/tests/**/*.test.js"]
+    "moduleFileExtensions": [
+      "js"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
   }
 }
-
