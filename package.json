@@ -1,0 +1,24 @@
+{
+  "name": "rpg-game",
+  "version": "1.0.0",
+  "description": "텍스트 기반 RPG 게임 - CLI에서 시작하여 웹으로 확장",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "keywords": [
+    "rpg",
+    "game",
+    "cli",
+    "javascript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
+
