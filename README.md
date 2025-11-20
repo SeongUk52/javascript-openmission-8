@@ -163,6 +163,33 @@ src/
 
 ---
 
+## 🌿 브랜치 전략 (Git Flow)
+
+### 브랜치 종류
+- `main`: 프로덕션 버전 (안정적인 배포 버전)
+- `develop`: 개발 브랜치 (통합 개발 환경)
+- `feature/기능명`: 기능 개발 (예: `feature/physics-engine`)
+- `release/버전`: 릴리즈 준비 (예: `release/v1.0.0`)
+- `hotfix/버그명`: 긴급 버그 수정 (예: `hotfix/collision-bug`)
+
+### 워크플로우
+1. **기능 개발**
+   - `develop`에서 `feature/기능명` 브랜치 생성
+   - 개발 완료 후 `develop`으로 머지
+   
+2. **릴리즈 준비**
+   - `develop`에서 `release/버전` 브랜치 생성
+   - 버그 수정 및 테스트
+   - 완료 후 `main`과 `develop` 모두에 머지
+   
+3. **긴급 수정**
+   - `main`에서 `hotfix/버그명` 브랜치 생성
+   - 수정 완료 후 `main`과 `develop` 모두에 머지
+
+4. **커밋 메시지**: Conventional Commits 형식 사용
+
+---
+
 ## 🚀 다음 단계
 1. 물리엔진 기본 구조 설계
 2. 벡터 클래스부터 구현 시작
