@@ -1,4 +1,5 @@
 import { Vector } from './Vector.js';
+import { Torque } from './Torque.js';
 
 /**
  * 물리 객체 클래스
@@ -101,12 +102,7 @@ export class Body {
    * @param {Vector} point 힘을 적용할 위치 (월드 좌표)
    */
   applyForceAtPoint(force, point) {
-    this.applyForce(force);
-    
-    // 토크 계산: τ = r × F (외적)
-    const r = Vector.subtract(point, this.position);
-    const torque = r.cross(force);
-    this.torque += torque;
+    Torque.applyForceAtPoint(this, force, point);
   }
 
   /**
@@ -114,7 +110,7 @@ export class Body {
    * @param {number} torque 적용할 토크
    */
   applyTorque(torque) {
-    this.torque += torque;
+    Torque.applyTorque(this, torque);
   }
 
   /**
@@ -155,21 +151,10 @@ export class Body {
     // 위치 업데이트: x = x₀ + v * t
     this.position.add(Vector.multiply(this.velocity, deltaTime));
     
-    // 각가속도 = 토크 / 관성 모멘트
-    if (this.invInertia > 0 && !isNaN(this.invInertia)) {
-      this.angularAcceleration = this.torque * this.invInertia;
-      // 각속도 업데이트
-      this.angularVelocity += this.angularAcceleration * deltaTime;
-    } else {
-      this.angularAcceleration = 0;
-    }
+    Torque.updateAngularMotion(this, deltaTime);
     
-    // 각도 업데이트
-    this.angle += this.angularVelocity * deltaTime;
-    
-    // 힘과 토크 초기화 (다음 프레임을 위해)
+    // 힘 초기화 (다음 프레임을 위해)
     this.force = new Vector(0, 0);
-    this.torque = 0;
     
     // 마찰 적용
     this.applyFriction(deltaTime);
