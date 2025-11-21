@@ -56,11 +56,15 @@
 src/
 ├── domain/              # 도메인 모델 (Model Layer)
 │   ├── Vector.js       # 2D 벡터 도메인 모델
-│   └── Body.js         # 물리 객체 도메인 모델
+│   ├── Body.js         # 물리 객체 도메인 모델
+│   ├── Block.js        # 게임 블록 도메인 모델
+│   ├── Tower.js        # 타워 도메인 모델
+│   └── GameState.js    # 게임 상태 도메인 모델
 │
 ├── service/             # 서비스 레이어 (Business Logic)
 │   ├── PhysicsService.js    # 물리 시뮬레이션 서비스
-│   └── GravityService.js   # 중력 서비스
+│   ├── GravityService.js   # 중력 서비스
+│   └── ScoreService.js     # 점수 계산 서비스
 │
 ├── util/                # 유틸리티 레이어
 │   ├── CollisionUtil.js    # 충돌 감지/해결 유틸
@@ -75,14 +79,6 @@ src/
 │   ├── Animation.js       # 애니메이션 처리
 │   └── UI.js              # UI 요소 (점수, 버튼 등)
 │
-├── game/                # 게임 도메인 로직
-│   ├── model/           # 게임 모델
-│   │   ├── Block.js     # 블록 모델
-│   │   ├── Tower.js     # 타워 모델
-│   │   └── GameState.js # 게임 상태 모델
-│   └── service/         # 게임 서비스
-│       └── ScoreService.js # 점수 계산 서비스
-│
 └── web/                 # 웹 진입점
     ├── index.html
     └── main.js
@@ -93,10 +89,14 @@ src/
 #### Domain Layer (도메인 모델)
 - **Vector**: 순수 데이터 구조, 벡터 연산
 - **Body**: 물리 객체의 상태와 기본 동작
+- **Block**: 게임 블록 도메인 모델 (Body 확장)
+- **Tower**: 타워 도메인 모델 (블록 컬렉션 관리)
+- **GameState**: 게임 상태 도메인 모델 (점수, 라운드, 게임 오버 등)
 
 #### Service Layer (서비스)
 - **PhysicsService**: 물리 시뮬레이션의 비즈니스 로직
 - **GravityService**: 중력 시스템 관리
+- **ScoreService**: 점수 계산 및 관리 비즈니스 로직
 
 #### Util Layer (유틸리티)
 - **CollisionUtil**: 순수 함수 형태의 충돌 계산
@@ -116,6 +116,11 @@ src/
 3. **단일 책임**: 각 클래스는 하나의 책임만 가짐
 4. **테스트 가능성**: 각 레이어를 독립적으로 테스트 가능
 5. **확장 가능**: 새로운 기능 추가 시 기존 레이어에 영향 최소화
+
+### Repository 패턴
+- **사용하지 않음**: 이 프로젝트는 데이터베이스가 없는 인메모리 게임이므로 Repository 패턴은 과함
+- **상태 관리**: 게임 상태는 `GameState` 도메인 모델로 관리하고, Controller나 Service에서 직접 접근
+- **단순성**: 불필요한 추상화를 피하고 명확한 구조 유지
 
 ---
 
