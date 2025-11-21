@@ -1,9 +1,9 @@
-import { Vector } from './Vector.js';
+import { Vector } from '../domain/Vector.js';
 
 /**
  * 토크 및 회전 모션을 계산하는 유틸리티
  */
-export class Torque {
+export class TorqueUtil {
   /**
    * 힘이 특정 지점에 가해졌을 때 토크 계산
    * τ = r × F (2D에서는 스칼라)
@@ -26,8 +26,8 @@ export class Torque {
     if (body.isStatic) return;
 
     const radiusVector = Vector.subtract(point, body.position);
-    const torque = Torque.computeTorque(radiusVector, force);
-    Torque.applyTorque(body, torque);
+    const torque = TorqueUtil.computeTorque(radiusVector, force);
+    TorqueUtil.applyTorque(body, torque);
   }
 
   /**

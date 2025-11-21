@@ -49,42 +49,73 @@
 
 ---
 
-## 🏗️ 아키텍처 설계
+## 🏗️ 아키텍처 설계 (레이어드 아키텍처 + MVC)
 
 ### 계층 구조
 ```
 src/
-├── physics/              # 물리엔진 (순수 JS, 플랫폼 독립적)
-│   ├── Vector.js        # 2D 벡터 연산
-│   ├── Body.js          # 물리 객체 (질량, 속도, 위치)
-│   ├── Collision.js     # 충돌 감지/처리
-│   ├── Gravity.js       # 중력 시스템
-│   ├── Torque.js        # 회전/토크 계산
-│   └── PhysicsEngine.js # 메인 엔진
+├── domain/              # 도메인 모델 (Model Layer)
+│   ├── Vector.js       # 2D 벡터 도메인 모델
+│   └── Body.js         # 물리 객체 도메인 모델
 │
-├── game/                # 게임 로직
-│   ├── Block.js         # 블록 객체
-│   ├── Tower.js         # 타워 관리
-│   ├── GameState.js     # 게임 상태
-│   └── ScoreSystem.js   # 점수 계산
+├── service/             # 서비스 레이어 (Business Logic)
+│   ├── PhysicsService.js    # 물리 시뮬레이션 서비스
+│   └── GravityService.js   # 중력 서비스
 │
-├── renderer/           # 렌더링 레이어
+├── util/                # 유틸리티 레이어
+│   ├── CollisionUtil.js    # 충돌 감지/해결 유틸
+│   ├── TorqueUtil.js       # 토크 계산 유틸
+│   └── BalanceUtil.js      # 균형 판정 유틸
+│
+├── controller/           # 컨트롤러 레이어 (Controller)
+│   └── GameController.js  # 게임 컨트롤러 (입력 처리, 게임 루프)
+│
+├── view/                # 뷰 레이어 (View)
 │   ├── CanvasRenderer.js  # Canvas 렌더링
 │   ├── Animation.js       # 애니메이션 처리
 │   └── UI.js              # UI 요소 (점수, 버튼 등)
 │
-├── web/                # 웹 진입점
-│   ├── index.html
-│   └── main.js
+├── game/                # 게임 도메인 로직
+│   ├── model/           # 게임 모델
+│   │   ├── Block.js     # 블록 모델
+│   │   ├── Tower.js     # 타워 모델
+│   │   └── GameState.js # 게임 상태 모델
+│   └── service/         # 게임 서비스
+│       └── ScoreService.js # 점수 계산 서비스
 │
-└── index.js            # 개발용 테스트 진입점
+└── web/                 # 웹 진입점
+    ├── index.html
+    └── main.js
 ```
 
+### 레이어별 책임
+
+#### Domain Layer (도메인 모델)
+- **Vector**: 순수 데이터 구조, 벡터 연산
+- **Body**: 물리 객체의 상태와 기본 동작
+
+#### Service Layer (서비스)
+- **PhysicsService**: 물리 시뮬레이션의 비즈니스 로직
+- **GravityService**: 중력 시스템 관리
+
+#### Util Layer (유틸리티)
+- **CollisionUtil**: 순수 함수 형태의 충돌 계산
+- **TorqueUtil**: 토크 계산 유틸리티
+- **BalanceUtil**: 균형 판정 유틸리티
+
+#### Controller Layer (컨트롤러)
+- **GameController**: 사용자 입력 처리, 게임 루프 관리, 서비스 조율
+
+#### View Layer (뷰)
+- **CanvasRenderer**: 물리 상태를 시각화
+- **UI**: 사용자 인터페이스
+
 ### 핵심 원칙
-1. **물리엔진 완전 분리**: 게임 로직과 독립적으로 동작
-2. **렌더링 분리**: 물리 계산과 렌더링 완전 분리
-3. **확장 가능**: 새로운 물리 요소 추가 용이
-4. **성능 최적화**: 60fps 유지
+1. **레이어 분리**: 각 레이어는 명확한 책임을 가짐
+2. **의존성 방향**: 상위 레이어가 하위 레이어에만 의존 (Domain ← Service ← Controller ← View)
+3. **단일 책임**: 각 클래스는 하나의 책임만 가짐
+4. **테스트 가능성**: 각 레이어를 독립적으로 테스트 가능
+5. **확장 가능**: 새로운 기능 추가 시 기존 레이어에 영향 최소화
 
 ---
 
@@ -193,16 +224,21 @@ src/
 ## 📊 진행 상황
 
 ### 완료된 작업
+- ✅ **레이어드 아키텍처**: Domain, Service, Util 레이어로 구조화
+  - Domain: Vector, Body (도메인 모델)
+  - Service: PhysicsService, GravityService (비즈니스 로직)
+  - Util: CollisionUtil, TorqueUtil, BalanceUtil (유틸리티)
 - ✅ **Vector 클래스**: 2D 벡터 연산 (덧셈, 뺄셈, 내적, 외적, 회전 등)
 - ✅ **Body 클래스**: 물리 객체 (위치, 속도, 질량, 관성 모멘트, 토크 등)
-- ✅ **Gravity 시스템**: 중력 힘 적용 및 설정
-- ✅ **Collision 시스템**: AABB 충돌 감지 및 해결 (위치 보정, 임펄스 적용)
-- ✅ **Torque 시스템**: 토크 계산/적용, 각운동 업데이트, 각속도 제한
-- ✅ **Balance 시스템**: 지지 영역 기반 안정성 판정, 허용 오프셋 계산
-- ✅ **PhysicsEngine**: 모든 물리 시스템 통합, Body 관리, 이벤트 콜백
+- ✅ **GravityService**: 중력 힘 적용 및 설정
+- ✅ **CollisionUtil**: AABB 충돌 감지 및 해결 (위치 보정, 임펄스 적용)
+- ✅ **TorqueUtil**: 토크 계산/적용, 각운동 업데이트, 각속도 제한
+- ✅ **BalanceUtil**: 지지 영역 기반 안정성 판정, 허용 오프셋 계산
+- ✅ **PhysicsService**: 모든 물리 시스템 통합, Body 관리, 이벤트 콜백
 - ✅ **테스트**: 총 94개 테스트 케이스 통과
 
 ### 다음 단계
-1. 게임 로직 구현 (블록, 타워)
-2. Canvas 렌더링 시스템
-3. 게임 루프 및 입력 처리
+1. Controller 레이어 구현 (GameController)
+2. 게임 로직 구현 (블록, 타워)
+3. Canvas 렌더링 시스템 (View 레이어)
+4. 게임 루프 및 입력 처리

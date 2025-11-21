@@ -1,5 +1,5 @@
-import { Body } from '../src/physics/Body.js';
-import { Vector } from '../src/physics/Vector.js';
+import { Body } from '../src/domain/Body.js';
+import { Vector } from '../src/domain/Vector.js';
 
 describe('Body', () => {
   describe('생성자', () => {

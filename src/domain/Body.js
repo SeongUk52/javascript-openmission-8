@@ -1,5 +1,5 @@
 import { Vector } from './Vector.js';
-import { Torque } from './Torque.js';
+import { TorqueUtil } from '../util/TorqueUtil.js';
 
 /**
  * 물리 객체 클래스
@@ -102,7 +102,7 @@ export class Body {
    * @param {Vector} point 힘을 적용할 위치 (월드 좌표)
    */
   applyForceAtPoint(force, point) {
-    Torque.applyForceAtPoint(this, force, point);
+    TorqueUtil.applyForceAtPoint(this, force, point);
   }
 
   /**
@@ -110,7 +110,7 @@ export class Body {
    * @param {number} torque 적용할 토크
    */
   applyTorque(torque) {
-    Torque.applyTorque(this, torque);
+    TorqueUtil.applyTorque(this, torque);
   }
 
   /**
@@ -151,7 +151,7 @@ export class Body {
     // 위치 업데이트: x = x₀ + v * t
     this.position.add(Vector.multiply(this.velocity, deltaTime));
     
-    Torque.updateAngularMotion(this, deltaTime);
+    TorqueUtil.updateAngularMotion(this, deltaTime);
     
     // 힘 초기화 (다음 프레임을 위해)
     this.force = new Vector(0, 0);

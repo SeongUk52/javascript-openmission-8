@@ -1,10 +1,10 @@
-import { Vector } from './Vector.js';
+import { Vector } from '../domain/Vector.js';
 
 /**
- * 중력 시스템
+ * 중력 서비스
  * 모든 물리 객체에 중력을 적용한다.
  */
-export class Gravity {
+export class GravityService {
   constructor(options = {}) {
     // 중력 가속도 (기본값: 9.8 m/s², 게임에서는 보통 더 크게 설정)
     this.gravity = options.gravity !== undefined ? options.gravity : 9.8;

@@ -1,9 +1,9 @@
-import { Vector } from './Vector.js';
+import { Vector } from '../domain/Vector.js';
 
 /**
  * 균형 판정 유틸리티
  */
-export class Balance {
+export class BalanceUtil {
   /**
    * Body의 지지 영역(AABB 기반)을 얻는다.
    * @param {Body} body
@@ -24,7 +24,7 @@ export class Balance {
    * @returns {{stable: boolean, offset: number, centerOfMass: Vector, supportBounds: {min: Vector, max: Vector}}}
    */
   static evaluate(body, options = {}) {
-    const supportBounds = options.supportBounds || Balance.getDefaultSupportBounds(body);
+    const supportBounds = options.supportBounds || BalanceUtil.getDefaultSupportBounds(body);
     const tolerance = options.tolerance ?? 0;
     const com = body.getCenterOfMass();
 
@@ -59,6 +59,6 @@ export class Balance {
    * @returns {boolean}
    */
   static willTopple(body, options = {}) {
-    return !Balance.evaluate(body, options).stable;
+    return !BalanceUtil.evaluate(body, options).stable;
   }
 }

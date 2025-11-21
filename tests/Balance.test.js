@@ -1,8 +1,8 @@
-import { Balance } from '../src/physics/Balance.js';
-import { Body } from '../src/physics/Body.js';
-import { Vector } from '../src/physics/Vector.js';
+import { BalanceUtil } from '../src/util/BalanceUtil.js';
+import { Body } from '../src/domain/Body.js';
+import { Vector } from '../src/domain/Vector.js';
 
-describe('Balance', () => {
+describe('BalanceUtil', () => {
   const createBody = (overrides = {}) =>
     new Body({
       mass: 2,
@@ -16,7 +16,7 @@ describe('Balance', () => {
 
   test('지지 영역 내에서 안정적이다', () => {
     const body = createBody();
-    const result = Balance.evaluate(body);
+      const result = BalanceUtil.evaluate(body);
     expect(result.stable).toBe(true);
     expect(result.offset).toBe(0);
   });
@@ -27,7 +27,7 @@ describe('Balance', () => {
       min: new Vector(-1, 0),
       max: new Vector(1, 0),
     };
-    const result = Balance.evaluate(body, { supportBounds });
+    const result = BalanceUtil.evaluate(body, { supportBounds });
     expect(result.stable).toBe(false);
     expect(result.offset).toBeGreaterThan(0);
   });
@@ -38,7 +38,7 @@ describe('Balance', () => {
       min: new Vector(12, 0),
       max: new Vector(14, 0),
     };
-    const result = Balance.evaluate(body, { supportBounds });
+    const result = BalanceUtil.evaluate(body, { supportBounds });
     expect(result.stable).toBe(true);
   });
 
@@ -48,7 +48,7 @@ describe('Balance', () => {
       min: new Vector(-1, 0),
       max: new Vector(1, 0),
     };
-    const result = Balance.evaluate(body, { supportBounds: support, tolerance: 1.5 });
+    const result = BalanceUtil.evaluate(body, { supportBounds: support, tolerance: 1.5 });
     expect(result.stable).toBe(true);
   });
 
@@ -58,7 +58,7 @@ describe('Balance', () => {
       min: new Vector(-0.5, 0),
       max: new Vector(0.5, 0),
     };
-    const topple = Balance.willTopple(body, { supportBounds });
+      const topple = BalanceUtil.willTopple(body, { supportBounds });
     expect(topple).toBe(true);
   });
 });

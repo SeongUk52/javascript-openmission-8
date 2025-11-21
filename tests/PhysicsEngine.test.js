@@ -1,25 +1,25 @@
-import { PhysicsEngine } from '../src/physics/PhysicsEngine.js';
-import { Body } from '../src/physics/Body.js';
-import { Gravity } from '../src/physics/Gravity.js';
-import { Vector } from '../src/physics/Vector.js';
+import { PhysicsService } from '../src/service/PhysicsService.js';
+import { Body } from '../src/domain/Body.js';
+import { GravityService } from '../src/service/GravityService.js';
+import { Vector } from '../src/domain/Vector.js';
 
-describe('PhysicsEngine', () => {
+describe('PhysicsService', () => {
   let engine;
 
   beforeEach(() => {
-    engine = new PhysicsEngine();
+    engine = new PhysicsService();
   });
 
   describe('생성자', () => {
     test('기본 설정으로 엔진을 생성한다', () => {
       expect(engine.bodies).toEqual([]);
-      expect(engine.gravity).toBeInstanceOf(Gravity);
+      expect(engine.gravity).toBeInstanceOf(GravityService);
       expect(engine.timeStep).toBe(1 / 60);
     });
 
     test('옵션으로 설정을 변경할 수 있다', () => {
-      const customGravity = new Gravity({ gravity: 20 });
-      const engine2 = new PhysicsEngine({
+      const customGravity = new GravityService({ gravity: 20 });
+      const engine2 = new PhysicsService({
         gravity: customGravity,
         timeStep: 1 / 30,
       });
@@ -93,7 +93,7 @@ describe('PhysicsEngine', () => {
       const onCollision = (bodyA, bodyB) => {
         collisionCalled = true;
       };
-      const engine2 = new PhysicsEngine({ onCollision });
+      const engine2 = new PhysicsService({ onCollision });
       
       const bodyA = new Body({
         position: new Vector(0, 0),
@@ -118,7 +118,7 @@ describe('PhysicsEngine', () => {
       const onTopple = (body, result) => {
         toppleCalled = true;
       };
-      const engine2 = new PhysicsEngine({ onTopple });
+      const engine2 = new PhysicsService({ onTopple });
       
       const body = new Body({
         position: new Vector(0, 0),

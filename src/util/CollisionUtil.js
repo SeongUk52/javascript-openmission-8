@@ -1,10 +1,10 @@
-import { Vector } from './Vector.js';
+import { Vector } from '../domain/Vector.js';
 
 /**
  * 충돌 감지 및 해결 유틸리티
  * 현재는 AABB(축 정렬 경계 박스) 기반 충돌만 지원한다.
  */
-export class Collision {
+export class CollisionUtil {
   /**
    * 두 Body의 AABB가 충돌하는지 확인
    * @param {Body} bodyA
@@ -31,7 +31,7 @@ export class Collision {
    * @returns {{collided: boolean, normal?: Vector, penetration?: number}}
    */
   static getCollisionManifold(bodyA, bodyB) {
-    if (!Collision.isAABBColliding(bodyA, bodyB)) {
+    if (!CollisionUtil.isAABBColliding(bodyA, bodyB)) {
       return { collided: false };
     }
 
@@ -56,11 +56,11 @@ export class Collision {
    * @param {Body} bodyB
    */
   static resolveCollision(bodyA, bodyB) {
-    const manifold = Collision.getCollisionManifold(bodyA, bodyB);
+    const manifold = CollisionUtil.getCollisionManifold(bodyA, bodyB);
     if (!manifold.collided) return;
 
-    Collision._positionalCorrection(bodyA, bodyB, manifold.normal, manifold.penetration);
-    Collision._applyImpulse(bodyA, bodyB, manifold.normal);
+    CollisionUtil._positionalCorrection(bodyA, bodyB, manifold.normal, manifold.penetration);
+    CollisionUtil._applyImpulse(bodyA, bodyB, manifold.normal);
   }
 
   /**

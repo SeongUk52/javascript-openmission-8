@@ -1,20 +1,20 @@
-import { Body } from './Body.js';
-import { Gravity } from './Gravity.js';
-import { Collision } from './Collision.js';
-import { Torque } from './Torque.js';
-import { Balance } from './Balance.js';
+import { Body } from '../domain/Body.js';
+import { GravityService } from './GravityService.js';
+import { CollisionUtil } from '../util/CollisionUtil.js';
+import { TorqueUtil } from '../util/TorqueUtil.js';
+import { BalanceUtil } from '../util/BalanceUtil.js';
 
 /**
- * 물리엔진 메인 클래스
+ * 물리 시뮬레이션 서비스
  * 모든 물리 시스템을 통합하여 관리한다.
  */
-export class PhysicsEngine {
+export class PhysicsService {
   constructor(options = {}) {
     // 물리 객체들
     this.bodies = [];
     
     // 중력 시스템
-    this.gravity = options.gravity || new Gravity();
+    this.gravity = options.gravity || new GravityService();
     
     // 물리 설정
     this.timeStep = options.timeStep || 1 / 60; // 기본 60fps
@@ -108,10 +108,10 @@ export class PhysicsEngine {
         }
 
         // 충돌 감지
-        if (Collision.isAABBColliding(bodyA, bodyB)) {
+        if (CollisionUtil.isAABBColliding(bodyA, bodyB)) {
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
           for (let k = 0; k < this.iterations; k++) {
-            Collision.resolveCollision(bodyA, bodyB);
+            CollisionUtil.resolveCollision(bodyA, bodyB);
           }
 
           // 충돌 이벤트 콜백
@@ -130,7 +130,7 @@ export class PhysicsEngine {
     this.bodies.forEach(body => {
       if (body.isStatic) return;
 
-      const result = Balance.evaluate(body);
+      const result = BalanceUtil.evaluate(body);
       
       if (!result.stable && this.onTopple) {
         this.onTopple(body, result);

@@ -1,4 +1,4 @@
-import { Vector } from '../src/physics/Vector.js';
+import { Vector } from '../src/domain/Vector.js';
 
 describe('Vector', () => {
   describe('생성자', () => {
