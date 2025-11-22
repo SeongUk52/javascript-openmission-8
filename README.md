@@ -230,20 +230,24 @@ src/
 
 ### 완료된 작업
 - ✅ **레이어드 아키텍처**: Domain, Service, Util 레이어로 구조화
-  - Domain: Vector, Body (도메인 모델)
-  - Service: PhysicsService, GravityService (비즈니스 로직)
+  - Domain: Vector, Body, Block, Tower, GameState (도메인 모델)
+  - Service: PhysicsService, GravityService, ScoreService (비즈니스 로직)
   - Util: CollisionUtil, TorqueUtil, BalanceUtil (유틸리티)
 - ✅ **Vector 클래스**: 2D 벡터 연산 (덧셈, 뺄셈, 내적, 외적, 회전 등)
 - ✅ **Body 클래스**: 물리 객체 (위치, 속도, 질량, 관성 모멘트, 토크 등)
+- ✅ **Block 클래스**: 게임 블록 도메인 모델 (Body 확장, 게임 특화 속성)
+- ✅ **Tower 클래스**: 타워 도메인 모델 (블록 컬렉션 관리, 안정성 평가)
+- ✅ **GameState 클래스**: 게임 상태 도메인 모델 (점수, 라운드, 게임 오버 등)
 - ✅ **GravityService**: 중력 힘 적용 및 설정
 - ✅ **CollisionUtil**: AABB 충돌 감지 및 해결 (위치 보정, 임펄스 적용)
 - ✅ **TorqueUtil**: 토크 계산/적용, 각운동 업데이트, 각속도 제한
 - ✅ **BalanceUtil**: 지지 영역 기반 안정성 판정, 허용 오프셋 계산
 - ✅ **PhysicsService**: 모든 물리 시스템 통합, Body 관리, 이벤트 콜백
-- ✅ **테스트**: 총 94개 테스트 케이스 통과
+- ✅ **ScoreService**: 점수 계산 서비스 (배치 점수, 높이 보너스, 안정성 보너스, 연속 배치 보너스)
+- ✅ **테스트**: 총 156개 테스트 케이스 통과
 
 ### 다음 단계
 1. Controller 레이어 구현 (GameController)
-2. 게임 로직 구현 (블록, 타워)
-3. Canvas 렌더링 시스템 (View 레이어)
-4. 게임 루프 및 입력 처리
+2. Canvas 렌더링 시스템 (View 레이어)
+3. 게임 루프 및 입력 처리
+4. 애니메이션 및 UI 구현
