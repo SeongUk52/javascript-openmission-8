@@ -139,12 +139,13 @@ src/
 - [x] 토크 계산 (무게 중심 기준)
 - [x] 균형 판정 알고리즘
 
-### Phase 3: 게임 로직
-- [ ] 블록 생성 시스템
-- [ ] 타워 관리
-- [ ] 입력 처리 (키보드/마우스)
-- [ ] 게임 루프
-- [ ] 점수 시스템
+### Phase 3: 게임 로직 ✅
+- [x] 블록 생성 시스템
+- [x] 타워 관리
+- [x] 입력 처리 (키보드/마우스)
+- [x] 게임 루프
+- [x] 점수 시스템
+- [x] GameController 구현
 
 ### Phase 4: 렌더링 시스템
 - [ ] Canvas 기본 렌더링
@@ -229,10 +230,11 @@ src/
 ## 📊 진행 상황
 
 ### 완료된 작업
-- ✅ **레이어드 아키텍처**: Domain, Service, Util 레이어로 구조화
+- ✅ **레이어드 아키텍처**: Domain, Service, Util, Controller 레이어로 구조화
   - Domain: Vector, Body, Block, Tower, GameState (도메인 모델)
   - Service: PhysicsService, GravityService, ScoreService (비즈니스 로직)
   - Util: CollisionUtil, TorqueUtil, BalanceUtil (유틸리티)
+  - Controller: GameController (게임 로직 조율, 입력 처리)
 - ✅ **Vector 클래스**: 2D 벡터 연산 (덧셈, 뺄셈, 내적, 외적, 회전 등)
 - ✅ **Body 클래스**: 물리 객체 (위치, 속도, 질량, 관성 모멘트, 토크 등)
 - ✅ **Block 클래스**: 게임 블록 도메인 모델 (Body 확장, 게임 특화 속성)
@@ -244,10 +246,11 @@ src/
 - ✅ **BalanceUtil**: 지지 영역 기반 안정성 판정, 허용 오프셋 계산
 - ✅ **PhysicsService**: 모든 물리 시스템 통합, Body 관리, 이벤트 콜백
 - ✅ **ScoreService**: 점수 계산 서비스 (배치 점수, 높이 보너스, 안정성 보너스, 연속 배치 보너스)
-- ✅ **테스트**: 총 156개 테스트 케이스 통과
+- ✅ **GameController**: 게임 컨트롤러 (게임 루프, 입력 처리, 블록 생성/배치, 점수 관리, 게임 오버 처리)
+- ✅ **테스트**: 총 177개 테스트 케이스 통과
 
 ### 다음 단계
-1. Controller 레이어 구현 (GameController)
-2. Canvas 렌더링 시스템 (View 레이어)
-3. 게임 루프 및 입력 처리
-4. 애니메이션 및 UI 구현
+1. Canvas 렌더링 시스템 (View 레이어)
+2. UI 요소 구현 (점수 표시, 게임 오버 화면 등)
+3. 애니메이션 및 효과 구현
+4. 웹 진입점 구현 (index.html, main.js)
