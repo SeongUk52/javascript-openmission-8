@@ -298,18 +298,36 @@ export class GameController {
       currentBlockInPhysics: this.currentBlock ? this.physicsService.bodies.includes(this.currentBlock) : false,
     });
     
-    if (!this.currentBlock || !this.gameState.isPlaying || this.gameState.isPaused) {
-      console.log('[GameController] placeBlock() early return');
+    if (!this.gameState.isPlaying || this.gameState.isPaused) {
+      console.log('[GameController] placeBlock() early return - game not playing or paused');
       return;
     }
 
-    // 블록이 이미 떨어지는 중이면 무시 (중복 배치 방지)
-    if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
-      console.log('[GameController] placeBlock() ignored - block is already falling');
-      return;
+    // 현재 블록이 있고 떨어지는 중이면, 그 블록은 그대로 두고 새로운 블록을 떨어뜨림
+    // 현재 블록이 없거나 떨어지지 않는 중이면, 현재 블록을 떨어뜨림
+    let blockToPlace = this.currentBlock;
+    
+    if (!blockToPlace) {
+      // 현재 블록이 없으면 새로 생성
+      this._spawnNextBlock();
+      blockToPlace = this.currentBlock;
+      if (!blockToPlace) {
+        console.log('[GameController] placeBlock() - no block to place');
+        return;
+      }
     }
-
-    const blockToPlace = this.currentBlock;
+    
+    // 블록이 이미 떨어지는 중이면, 새로운 블록을 생성하여 떨어뜨림
+    if (blockToPlace.isFalling && this.physicsService.bodies.includes(blockToPlace)) {
+      console.log('[GameController] Current block is falling, spawning new block to fall');
+      // 현재 블록은 그대로 두고 새로운 블록 생성
+      this._spawnNextBlock();
+      blockToPlace = this.currentBlock;
+      if (!blockToPlace) {
+        console.log('[GameController] placeBlock() - failed to spawn new block');
+        return;
+      }
+    }
     
     // 블록 상태 설정 (떨어지는 상태로 변경)
     blockToPlace.isFalling = true;
