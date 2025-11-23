@@ -374,13 +374,24 @@ export class GameController {
       console.warn('[GameController] _fixBlockToTower: block is null');
       return;
     }
-    if (!block.isFalling) {
-      console.warn('[GameController] _fixBlockToTower: block is not falling', {
+    
+    // 블록이 이미 배치되었으면 무시
+    if (block.isPlaced) {
+      console.warn('[GameController] _fixBlockToTower: block is already placed', {
         blockId: block.id,
         isFalling: block.isFalling,
         isPlaced: block.isPlaced,
       });
       return;
+    }
+    
+    // 블록이 현재 블록이 아니면 무시 (안전 체크)
+    if (this.currentBlock !== block) {
+      console.warn('[GameController] _fixBlockToTower: block is not currentBlock', {
+        blockId: block.id,
+        currentBlockId: this.currentBlock?.id,
+      });
+      // 하지만 타워에 추가는 진행 (이미 떨어진 블록일 수 있음)
     }
 
     const blockHeight = block.height;
@@ -428,11 +439,14 @@ export class GameController {
     block.angularVelocity = 0;
     block.angle = 0;
     
-    // 블록 상태 변경 (배치됨)
+    // 블록 상태 변경 (배치됨) - 물리 엔진에서 제거하기 전에
     block.place(); // isPlaced = true, isFalling = false
     
-    // 물리 엔진에서 제거
-    this.physicsService.removeBody(block);
+    // 물리 엔진에서 제거 (블록이 더 이상 떨어지지 않도록)
+    const wasInPhysics = this.physicsService.bodies.includes(block);
+    if (wasInPhysics) {
+      this.physicsService.removeBody(block);
+    }
     
     // 블록을 타워에 추가
     this.tower.addBlock(block);
@@ -445,15 +459,20 @@ export class GameController {
       blockAABB: block.getAABB(),
       blockIsPlaced: block.isPlaced,
       blockIsFalling: block.isFalling,
+      wasInPhysics,
       towerBlocksArray: this.tower.blocks.map(b => ({ id: b.id, position: b.position, isPlaced: b.isPlaced })),
     });
     
-    // 현재 블록 초기화 (다음 블록 소환을 위해)
-    // 중요: currentBlock을 null로 설정하기 전에 블록이 타워에 제대로 추가되었는지 확인
-    const wasCurrentBlock = this.currentBlock === block;
-    this.currentBlock = null;
-    
-    console.log('[GameController] Current block cleared, was current:', wasCurrentBlock);
+    // 현재 블록이 이 블록이면 초기화 (다음 블록 소환을 위해)
+    if (this.currentBlock === block) {
+      this.currentBlock = null;
+      console.log('[GameController] Current block cleared');
+    } else {
+      console.warn('[GameController] Current block mismatch:', {
+        fixedBlockId: block.id,
+        currentBlockId: this.currentBlock?.id,
+      });
+    }
 
     // 점수 계산 및 추가
     this._calculateAndAddScore();

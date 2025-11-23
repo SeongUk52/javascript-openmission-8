@@ -100,7 +100,9 @@ export class PhysicsService {
    */
   resolveCollisions() {
     // 디버그: bodies 개수 확인
-    // console.log('[PhysicsService] resolveCollisions called, bodies count:', this.bodies.length);
+    if (this.bodies.length > 1) {
+      // console.log('[PhysicsService] resolveCollisions called, bodies count:', this.bodies.length);
+    }
     
     // 모든 Body 쌍에 대해 충돌 검사
     for (let i = 0; i < this.bodies.length; i++) {
@@ -116,20 +118,21 @@ export class PhysicsService {
         // 충돌 감지
         const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
         
-        // 디버그: 모든 정적/동적 쌍 확인
+        // 디버그: 정적/동적 쌍이 가까이 있을 때 로그 출력
         if (bodyA.isStatic || bodyB.isStatic) {
           const staticBody = bodyA.isStatic ? bodyA : bodyB;
           const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
           const aabbA = bodyA.getAABB();
           const aabbB = bodyB.getAABB();
           
-          // 충돌 가능성이 있는 경우만 로그 출력 (너무 많이 출력되지 않도록)
+          // 충돌 가능성이 있는 경우 로그 출력
           const distanceY = Math.abs(dynamicBody.position.y - staticBody.position.y);
-          if (distanceY < 100 && !isColliding) {
-            // console.log('[PhysicsService] Near but not colliding:', {
+          if (distanceY < 200) {
+            // console.log('[PhysicsService] Checking collision:', {
             //   staticBody: { id: staticBody.id, position: staticBody.position, aabb: aabbA },
             //   dynamicBody: { id: dynamicBody.id, position: dynamicBody.position, aabb: aabbB, velocity: dynamicBody.velocity },
             //   distanceY,
+            //   isColliding,
             // });
           }
         }
@@ -156,14 +159,19 @@ export class PhysicsService {
               },
             });
           }
+          
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
           for (let k = 0; k < this.iterations; k++) {
             CollisionUtil.resolveCollision(bodyA, bodyB);
           }
 
-          // 충돌 이벤트 콜백
+          // 충돌 이벤트 콜백 (충돌 해결 후 호출)
           if (this.onCollision) {
-            this.onCollision(bodyA, bodyB);
+            try {
+              this.onCollision(bodyA, bodyB);
+            } catch (error) {
+              console.error('[PhysicsService] Error in onCollision callback:', error);
+            }
           }
         }
       }
