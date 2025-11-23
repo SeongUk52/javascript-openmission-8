@@ -169,7 +169,7 @@ export class GameController {
         
         placedBlocks.forEach(otherBlock => {
           if (otherBlock === body) return;
-          if (!otherBlock.isPlaced) return;
+          if (otherBlock.isStatic) return; // 베이스는 제외
           
           const otherAABB = otherBlock.getAABB();
           const otherBottom = otherAABB.max.y;
