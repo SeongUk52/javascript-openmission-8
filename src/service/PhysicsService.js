@@ -179,14 +179,17 @@ export class PhysicsService {
     
     // 배치된 블록들만 균형 판정 (떨어지는 중인 블록도 포함)
     // 위에 있는 블록이 무너지면 아래 블록도 영향을 받아야 함
+    // 모든 블록을 순회하면서 균형 판정
     this.bodies.forEach(body => {
       if (body.isStatic) return;
       if (!body.isPlaced) return; // 배치되지 않은 블록은 균형 판정하지 않음
+      if (body.isFalling) return; // 이미 떨어지는 중이면 균형 판정하지 않음 (성능 최적화)
 
       // 블록이 어떤 블록 위에 있는지 확인
       const supportBounds = this._getSupportBounds(body);
       
-      const result = BalanceUtil.evaluate(body, { supportBounds });
+      // tolerance를 0으로 설정하여 더 엄격한 균형 판정
+      const result = BalanceUtil.evaluate(body, { supportBounds, tolerance: 0 });
       
       if (!result.stable && this.onTopple) {
         this.onTopple(body, result);

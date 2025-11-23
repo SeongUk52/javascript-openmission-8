@@ -22,7 +22,7 @@ export class GameController {
       canvasWidth = 800,
       canvasHeight = 600,
       blockWidth = 50,
-      blockHeight = 20,
+      blockHeight = 50, // 정사각형으로 변경
     } = options;
 
     // Canvas 크기

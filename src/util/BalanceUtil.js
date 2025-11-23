@@ -33,7 +33,13 @@ export class BalanceUtil {
     const left = rawLeft - tolerance;
     const right = rawRight + tolerance;
 
-    const stable = com.x >= left && com.x <= right;
+    // 블록의 각도도 고려하여 균형 판정
+    // 블록이 기울어져 있으면 더 쉽게 무너짐
+    const angleFactor = Math.abs(body.angle || 0);
+    const angleThreshold = 0.1; // 약 5.7도
+    
+    // 블록이 기울어져 있으면 안정성 감소
+    const stable = com.x >= left && com.x <= right && angleFactor < angleThreshold;
     let offset = 0;
 
     if (!stable) {
@@ -41,6 +47,11 @@ export class BalanceUtil {
         offset = com.x - left;
       } else if (com.x > right) {
         offset = com.x - right;
+      }
+      
+      // 블록이 기울어져 있으면 offset 증가
+      if (angleFactor > angleThreshold) {
+        offset += angleFactor * 10; // 각도에 따라 offset 증가
       }
     }
 
