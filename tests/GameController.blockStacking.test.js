@@ -37,18 +37,24 @@ describe('GameController - Block Stacking', () => {
     expect(firstBlock).not.toBeNull();
     expect(controller.tower.getBlockCount()).toBe(0);
 
-    // 블록을 베이스에 닿도록 위치 설정
-    const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
-    const baseAABB = baseBlock.getAABB();
-    firstBlock.position.y = baseAABB.min.y - firstBlock.height / 2;
-    firstBlock.velocity.y = 0;
-
-    // 블록 배치
+    // 블록 배치 (떨어뜨림)
     controller.placeBlock();
     expect(controller.fallingBlocks.has(firstBlock)).toBe(true);
+    expect(controller.currentBlock).toBeNull();
 
-    // 물리 업데이트로 충돌 감지 및 고정
-    controller.update(1 / 60);
+    // 블록을 베이스에 닿도록 위치 설정 (충돌 감지를 위해)
+    const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
+    const baseAABB = baseBlock.getAABB();
+    firstBlock.position.y = baseAABB.min.y - firstBlock.height / 2 - 1; // 약간 겹치도록
+    firstBlock.velocity.y = 0;
+    firstBlock.velocity.x = 0;
+    firstBlock.angularVelocity = 0;
+
+    // 물리 업데이트로 충돌 감지 및 고정 (여러 번 호출하여 확실히 충돌 감지)
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (firstBlock.isPlaced) break;
+    }
 
     // 첫 번째 블록이 타워에 추가되어야 함
     expect(controller.tower.getBlockCount()).toBe(1);
@@ -60,28 +66,43 @@ describe('GameController - Block Stacking', () => {
   test('두 번째 블록이 첫 번째 블록 위에 쌓여야 함', () => {
     // 첫 번째 블록 배치
     const firstBlock = controller.currentBlock;
+    controller.placeBlock();
+    
+    // 블록을 베이스에 닿도록 위치 설정
     const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
     const baseAABB = baseBlock.getAABB();
-    firstBlock.position.y = baseAABB.min.y - firstBlock.height / 2;
+    firstBlock.position.y = baseAABB.min.y - firstBlock.height / 2 - 1;
     firstBlock.velocity.y = 0;
+    firstBlock.velocity.x = 0;
+    firstBlock.angularVelocity = 0;
 
-    controller.placeBlock();
-    controller.update(1 / 60);
+    // 물리 업데이트로 충돌 감지 및 고정
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (firstBlock.isPlaced) break;
+    }
 
     expect(controller.tower.getBlockCount()).toBe(1);
     const firstBlockTopY = controller.tower.getTopY();
 
     // 두 번째 블록 배치
+    expect(controller.currentBlock).not.toBeNull();
     const secondBlock = controller.currentBlock;
-    expect(secondBlock).not.toBeNull();
     expect(secondBlock).not.toBe(firstBlock);
 
     // 두 번째 블록을 첫 번째 블록 위에 배치
-    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 10; // 약간 위에
+    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 1; // 약간 위에
     secondBlock.velocity.y = 0;
+    secondBlock.velocity.x = 0;
+    secondBlock.angularVelocity = 0;
 
     controller.placeBlock();
-    controller.update(1 / 60);
+    
+    // 물리 업데이트로 충돌 감지 및 고정
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (secondBlock.isPlaced) break;
+    }
 
     // 두 번째 블록이 타워에 추가되어야 함
     expect(controller.tower.getBlockCount()).toBe(2);
@@ -97,22 +118,35 @@ describe('GameController - Block Stacking', () => {
   test('세 번째 블록이 두 번째 블록 위에 쌓여야 함', () => {
     // 첫 번째 블록 배치
     const firstBlock = controller.currentBlock;
+    controller.placeBlock();
+    
     const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
     const baseAABB = baseBlock.getAABB();
-    firstBlock.position.y = baseAABB.min.y - firstBlock.height / 2;
+    firstBlock.position.y = baseAABB.min.y - firstBlock.height / 2 - 1;
     firstBlock.velocity.y = 0;
+    firstBlock.velocity.x = 0;
+    firstBlock.angularVelocity = 0;
 
-    controller.placeBlock();
-    controller.update(1 / 60);
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (firstBlock.isPlaced) break;
+    }
 
     // 두 번째 블록 배치
     const secondBlock = controller.currentBlock;
+    expect(secondBlock).not.toBeNull();
     const firstBlockTopY = controller.tower.getTopY();
-    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 10;
+    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 1;
     secondBlock.velocity.y = 0;
+    secondBlock.velocity.x = 0;
+    secondBlock.angularVelocity = 0;
 
     controller.placeBlock();
-    controller.update(1 / 60);
+    
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (secondBlock.isPlaced) break;
+    }
 
     expect(controller.tower.getBlockCount()).toBe(2);
     const secondBlockTopY = controller.tower.getTopY();
@@ -120,11 +154,17 @@ describe('GameController - Block Stacking', () => {
     // 세 번째 블록 배치
     const thirdBlock = controller.currentBlock;
     expect(thirdBlock).not.toBeNull();
-    thirdBlock.position.y = secondBlockTopY - thirdBlock.height / 2 - 10;
+    thirdBlock.position.y = secondBlockTopY - thirdBlock.height / 2 - 1;
     thirdBlock.velocity.y = 0;
+    thirdBlock.velocity.x = 0;
+    thirdBlock.angularVelocity = 0;
 
     controller.placeBlock();
-    controller.update(1 / 60);
+    
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (thirdBlock.isPlaced) break;
+    }
 
     // 세 번째 블록이 타워에 추가되어야 함
     expect(controller.tower.getBlockCount()).toBe(3);
@@ -150,18 +190,25 @@ describe('GameController - Block Stacking', () => {
         // 첫 번째 블록: 베이스 위에
         const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
         const baseAABB = baseBlock.getAABB();
-        block.position.y = baseAABB.min.y - block.height / 2;
+        block.position.y = baseAABB.min.y - block.height / 2 - 1;
       } else {
         // 이후 블록: 이전 블록 위에
         const previousTopY = controller.tower.getTopY();
-        block.position.y = previousTopY - block.height / 2 - 10;
+        block.position.y = previousTopY - block.height / 2 - 1;
       }
       
       block.velocity.y = 0;
+      block.velocity.x = 0;
+      block.angularVelocity = 0;
       blocks.push(block);
       
       controller.placeBlock();
-      controller.update(1 / 60);
+      
+      // 물리 업데이트로 충돌 감지 및 고정
+      for (let j = 0; j < 10; j++) {
+        controller.update(1 / 60);
+        if (block.isPlaced) break;
+      }
       
       // 각 블록이 타워에 추가되었는지 확인
       expect(controller.tower.getBlockCount()).toBe(i + 1);
@@ -186,13 +233,19 @@ describe('GameController - Block Stacking', () => {
 
   test('블록이 중복으로 추가되지 않아야 함', () => {
     const block = controller.currentBlock;
+    controller.placeBlock();
+    
     const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
     const baseAABB = baseBlock.getAABB();
-    block.position.y = baseAABB.min.y - block.height / 2;
+    block.position.y = baseAABB.min.y - block.height / 2 - 1;
     block.velocity.y = 0;
+    block.velocity.x = 0;
+    block.angularVelocity = 0;
 
-    controller.placeBlock();
-    controller.update(1 / 60);
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (block.isPlaced) break;
+    }
 
     expect(controller.tower.getBlockCount()).toBe(1);
 
@@ -211,11 +264,17 @@ describe('GameController - Block Stacking', () => {
 
     // 첫 번째 블록 배치
     const firstBlock = controller.currentBlock;
-    firstBlock.position.y = baseTopY - firstBlock.height / 2;
-    firstBlock.velocity.y = 0;
-
     controller.placeBlock();
-    controller.update(1 / 60);
+    
+    firstBlock.position.y = baseTopY - firstBlock.height / 2 - 1;
+    firstBlock.velocity.y = 0;
+    firstBlock.velocity.x = 0;
+    firstBlock.angularVelocity = 0;
+
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (firstBlock.isPlaced) break;
+    }
 
     const firstBlockTopY = controller.tower.getTopY();
     const firstBlockAABB = firstBlock.getAABB();
@@ -223,11 +282,18 @@ describe('GameController - Block Stacking', () => {
 
     // 두 번째 블록 배치
     const secondBlock = controller.currentBlock;
-    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 10;
+    expect(secondBlock).not.toBeNull();
+    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 1;
     secondBlock.velocity.y = 0;
+    secondBlock.velocity.x = 0;
+    secondBlock.angularVelocity = 0;
 
     controller.placeBlock();
-    controller.update(1 / 60);
+    
+    for (let i = 0; i < 10; i++) {
+      controller.update(1 / 60);
+      if (secondBlock.isPlaced) break;
+    }
 
     const secondBlockTopY = controller.tower.getTopY();
     const secondBlockAABB = secondBlock.getAABB();
