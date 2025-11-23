@@ -137,34 +137,10 @@ export class GameController {
         shouldFix = true;
       }
       
-      if (!shouldFix) {
-        // 타워 최상단이 아니면 무시 (중간 블록과의 충돌은 무시)
-        console.log('[GameController] Collision ignored - shouldFix is false:', {
-          fallingBlockId: dynamicBody.id.substring(0, 20),
-          supportBodyId: supportBody.id.substring(0, 20),
-          isBaseBody: !!baseBody,
-          isPlacedBody: !!placedBody,
-        });
-        return;
-      }
-      
-      // 디버그 로그 제거 (성능 향상)
-      // console.log('[GameController] Block collided with base/placed body:', {
-      //   blockId: dynamicBody.id,
-      //   supportBodyId: supportBody.id,
-      //   supportBodyIsStatic: supportBody.isStatic,
-      //   supportBodyIsPlaced: supportBody.isPlaced,
-      //   blockVelocityY: dynamicBody.velocity.y,
-      //   towerTopY: baseBody ? null : this._getTopY(),
-      // });
-      
-      // 블록이 충돌하면 물리 엔진이 자연스럽게 처리하도록 함
-      // 자동 고정하지 않음 - 충돌 해결을 통해 블록이 타워 위에 올라가도록 함
-      // 블록이 충돌하면 isPlaced로 표시만 하고, 물리 엔진이 계속 시뮬레이션하도록 함
-      if (!dynamicBody.isPlaced) {
-        dynamicBody.place(); // isPlaced = true, isFalling = false
-        // 물리 엔진이 자연스럽게 처리하도록 함 (자동 고정하지 않음)
-      }
+      // 베이스를 제외하고 블록이 멈추는 동작은 모두 제거
+      // 물리 엔진이 자연스럽게 처리하도록 함
+      // 블록이 충돌해도 자동으로 멈추지 않음
+      return;
     };
     
     this.physicsService.onTopple = (body, result) => {
@@ -430,13 +406,11 @@ export class GameController {
     const blockHalfWidth = blockToPlace.width / 2;
     const clampedX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
     
-    // 위치와 속도 설정 (물리 엔진에 추가하기 전에 설정)
+    // 위치 설정 (물리 엔진에 추가하기 전에 설정)
     blockToPlace.position.y = spawnY;
     blockToPlace.position.x = clampedX;
-    blockToPlace.velocity.x = 0;
-    blockToPlace.velocity.y = 0;
-    blockToPlace.angularVelocity = 0;
     blockToPlace.angle = 0;
+    // 속도는 물리 엔진이 자연스럽게 처리하도록 함 (0으로 설정하지 않음)
     
     // 블록을 물리 엔진에 추가하여 떨어지도록 함
     // (이미 추가되어 있으면 중복 추가 방지)
