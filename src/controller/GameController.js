@@ -345,19 +345,21 @@ export class GameController {
       });
     }
     
+    // 블록 상태: 떨어지는 중 (위치 설정 전에 설정)
+    blockToPlace.isFalling = true;
+    blockToPlace.isPlaced = false;
+    
     console.log('[GameController] Block positioned for falling:', {
       spawnY,
       nextBlockX: this.nextBlockX,
-      towerTopY: this.tower.getBlockCount() === 0 ? this.tower.basePosition.y - 10 : this.tower.getTopY(),
+      towerTopY: this.tower.getBlockCount() === 0 ? this.tower.basePosition.y - 30 : this.tower.getTopY(),
       blockPosition: { x: blockToPlace.position.x, y: blockToPlace.position.y },
       blockAABB: blockToPlace.getAABB(),
       blockId: blockToPlace.id,
       physicsBodiesCount: this.physicsService.bodies.length,
+      isFalling: blockToPlace.isFalling,
+      isPlaced: blockToPlace.isPlaced,
     });
-    
-    // 블록 상태: 떨어지는 중
-    blockToPlace.isFalling = true;
-    blockToPlace.isPlaced = false;
     
     // 블록이 타워에 닿았는지 확인하는 로직은 update()에서 처리
     // 여기서는 블록을 떨어뜨리기만 함
