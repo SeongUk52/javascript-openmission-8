@@ -95,9 +95,11 @@ export class GameController {
       // staticBody가 있고, dynamicBody가 떨어지는 블록이어야 함
       if (staticBody && dynamicBody === fallingBlock && !staticBody.isFalling) {
         // 블록이 정적 객체(베이스 또는 배치된 블록)와 충돌
-        console.log('[GameController] Block collided with static body:', {
+        console.log('[GameController] Block collided with static/placed body:', {
           blockId: fallingBlock.id,
           staticBodyId: staticBody.id,
+          staticBodyIsStatic: staticBody.isStatic,
+          staticBodyIsPlaced: staticBody.isPlaced,
           blockVelocityY: fallingBlock.velocity.y,
           blockPosition: { x: fallingBlock.position.x, y: fallingBlock.position.y },
           staticBodyPosition: { x: staticBody.position.x, y: staticBody.position.y },

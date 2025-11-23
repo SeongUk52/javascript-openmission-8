@@ -124,21 +124,23 @@ export class PhysicsService {
         // 충돌 감지는 정상 작동하지만 로그는 제거
         
         if (isColliding) {
-          // 디버그: 충돌 감지 로그
-          if (bodyA.isStatic || bodyB.isStatic) {
-            const staticBody = bodyA.isStatic ? bodyA : bodyB;
-            const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
-            console.log('[PhysicsService] Collision detected (static vs dynamic):', {
+          // 디버그: 충돌 감지 로그 (정적 객체 또는 배치된 블록과의 충돌)
+          const staticBody = (bodyA.isStatic || bodyA.isPlaced) ? bodyA : ((bodyB.isStatic || bodyB.isPlaced) ? bodyB : null);
+          const dynamicBody = (bodyA.isStatic || bodyA.isPlaced) ? bodyB : ((bodyB.isStatic || bodyB.isPlaced) ? bodyA : null);
+          
+          if (staticBody && dynamicBody) {
+            console.log('[PhysicsService] Collision detected (static/placed vs dynamic):', {
               staticBody: { 
                 id: staticBody.id, 
                 isStatic: staticBody.isStatic,
+                isPlaced: staticBody.isPlaced,
                 position: staticBody.position, 
-                isPlaced: staticBody.isPlaced, 
                 aabb: staticBody.getAABB() 
               },
               dynamicBody: { 
                 id: dynamicBody.id, 
                 isStatic: dynamicBody.isStatic,
+                isPlaced: dynamicBody.isPlaced,
                 position: dynamicBody.position, 
                 velocity: dynamicBody.velocity, 
                 aabb: dynamicBody.getAABB() 
