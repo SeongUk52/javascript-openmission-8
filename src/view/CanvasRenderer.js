@@ -216,7 +216,7 @@ export class CanvasRenderer {
     
     const { basePosition, baseWidth } = tower;
     const halfWidth = baseWidth / 2;
-    const baseHeight = 10;
+    const baseHeight = 30; // 베이스 높이 증가
 
     this.ctx.fillStyle = '#34495e';
     this.ctx.strokeStyle = '#2c3e50';
@@ -337,14 +337,16 @@ export class CanvasRenderer {
     // 타워에 배치된 블록들 그리기
     if (gameState.tower && gameState.tower.blocks) {
       // 디버그: 타워 블록 정보
-      // console.log('[CanvasRenderer] Drawing tower blocks:', {
-      //   blockCount: gameState.tower.blocks.length,
-      //   blocks: gameState.tower.blocks.map(b => ({
-      //     id: b.id,
-      //     position: { x: b.position.x, y: b.position.y },
-      //     isPlaced: b.isPlaced,
-      //   })),
-      // });
+      console.log('[CanvasRenderer] Drawing tower blocks:', {
+        blockCount: gameState.tower.blocks.length,
+        blocks: gameState.tower.blocks.map(b => ({
+          id: b.id,
+          position: { x: b.position.x, y: b.position.y },
+          isPlaced: b.isPlaced,
+          width: b.width,
+          height: b.height,
+        })),
+      });
       
       gameState.tower.blocks.forEach(block => {
         this.drawBlock(block);
