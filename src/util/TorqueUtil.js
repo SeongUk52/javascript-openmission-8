@@ -56,13 +56,22 @@ export class TorqueUtil {
     body.angularVelocity += body.angularAcceleration * deltaTime;
     
     // 각속도 감쇠 (공기 저항 효과)
-    // 작은 각속도는 더 빠르게 감쇠시켜 자연스럽게 멈추도록
-    const angularDamping = 0.95; // 매 프레임 5% 감쇠
-    if (Math.abs(body.angularVelocity) < 0.1) {
-      // 매우 작은 각속도는 더 빠르게 감쇠
-      body.angularVelocity *= 0.9;
+    // 더 강한 감쇠를 적용하여 자연스럽게 멈추도록
+    if (Math.abs(body.angularVelocity) < 0.05) {
+      // 매우 작은 각속도는 즉시 멈춤
+      body.angularVelocity = 0;
+    } else if (Math.abs(body.angularVelocity) < 0.5) {
+      // 작은 각속도는 빠르게 감쇠
+      body.angularVelocity *= 0.85;
     } else {
-      body.angularVelocity *= angularDamping;
+      // 큰 각속도도 강하게 감쇠
+      body.angularVelocity *= 0.92;
+    }
+    
+    // 각속도 최대값 제한 (너무 빠른 회전 방지)
+    const maxAngularVelocity = 5.0; // 라디안/초
+    if (Math.abs(body.angularVelocity) > maxAngularVelocity) {
+      body.angularVelocity = Math.sign(body.angularVelocity) * maxAngularVelocity;
     }
     
     body.angle += body.angularVelocity * deltaTime;

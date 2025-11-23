@@ -191,8 +191,14 @@ export class GameController {
       if (body instanceof Block && body.isPlaced) {
         // 블록이 무너지면 물리적으로 움직이도록 함
         // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
-        const torque = result.offset * 50; // 토크 감소 (너무 강하지 않게)
+        const torque = result.offset * 20; // 토크 더 감소 (너무 강하지 않게)
         body.angularVelocity += torque;
+        
+        // 각속도 최대값 제한 (너무 빠른 회전 방지)
+        const maxAngularVelocity = 3.0; // 라디안/초
+        if (Math.abs(body.angularVelocity) > maxAngularVelocity) {
+          body.angularVelocity = Math.sign(body.angularVelocity) * maxAngularVelocity;
+        }
         
         // 블록이 무너지면 떨어지도록 함
         // 하지만 isPlaced는 유지하여 계속 균형 판정하도록 함
