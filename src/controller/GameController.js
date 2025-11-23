@@ -785,11 +785,11 @@ export class GameController {
       const baseRight = this.basePosition.x + this.baseWidth / 2;
       const isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
       
-      // 더 넓은 범위로 확인 (블록이 타워에 닿을 수 있도록)
-      // 블록의 하단이 타워 최상단보다 위에 있거나 같으면 닿은 것으로 간주
-      isTouchingTower = distanceY <= 100 && 
-                       distanceY >= -20 && // 블록이 타워 위에 있거나 약간 겹치면
-                       Math.abs(block.velocity.y) < 1000 && // 속도 조건 완화
+      // 블록이 실제로 타워에 닿았는지 확인
+      // 블록의 하단이 타워 최상단에 닿았거나 약간 겹쳤을 때만 고정
+      isTouchingTower = distanceY <= 5 && 
+                       distanceY >= -5 && // 블록이 타워 위에 있거나 약간 겹치면 (5픽셀 이내)
+                       Math.abs(block.velocity.y) < 1000 && // 속도 조건
                        isInBaseRangeX; // X 범위 내에 있어야 함
       
       if (isTouchingTower) {
