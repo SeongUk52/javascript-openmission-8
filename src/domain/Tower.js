@@ -34,10 +34,25 @@ export class Tower {
    * @param {Block} block
    */
   addBlock(block) {
+    if (!block) {
+      console.warn('[Tower] addBlock: block is null or undefined');
+      return;
+    }
+    
+    // 중복 체크: 이미 추가된 블록인지 확인
+    if (this.blocks.includes(block)) {
+      console.warn('[Tower] addBlock: block already exists in tower', {
+        blockId: block.id,
+        blockCount: this.blocks.length,
+      });
+      return;
+    }
+    
     // 블록이 이미 place()되었는지 확인
     if (!block.isPlaced) {
       block.place();
     }
+    
     this.blocks.push(block);
     
     // 디버그: 블록 추가 확인
@@ -47,6 +62,7 @@ export class Tower {
       blockIsPlaced: block.isPlaced,
       blockIsFalling: block.isFalling,
       blockPosition: { x: block.position.x, y: block.position.y },
+      allBlockIds: this.blocks.map(b => b.id),
     });
   }
 
