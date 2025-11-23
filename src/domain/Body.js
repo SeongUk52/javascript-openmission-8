@@ -179,7 +179,7 @@ export class Body {
     this.angularVelocity += frictionTorque * this.invInertia * deltaTime;
     
     // 매우 작은 값이면 0으로 설정 (수치 안정성)
-    if (Math.abs(this.velocity.magnitude()) < 0.01) {
+    if (Math.abs(this.velocity.magnitude()) < 0.5) {
       this.velocity = new Vector(0, 0);
     }
     if (Math.abs(this.angularVelocity) < 0.01) {

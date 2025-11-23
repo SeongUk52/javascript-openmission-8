@@ -78,7 +78,7 @@ export class PhysicsService {
    * @param {number} deltaTime
    */
   step(deltaTime) {
-    // 1. 중력 적용
+    // 1. 중력 적용 (항상 적용 - 물리 법칙)
     this.gravity.applyToBodies(this.bodies);
 
     // 2. 물리 업데이트 (힘 → 가속도 → 속도 → 위치)
@@ -91,11 +91,15 @@ export class PhysicsService {
 
     // 3. 충돌 감지 및 해결 (여러 번 반복하여 안정성 향상)
     // 충돌 해결은 여러 번 반복해야 블록이 베이스를 통과하지 않음
+    // Box2D/Matter.js: 접촉 제약 조건을 여러 번 반복하여 해결하여 중력 효과 상쇄
     if (this.bodies.length > 1) {
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 20; i++) {
         this.resolveCollisions();
       }
     }
+    
+    // 3.5. 접촉 중인 블록의 각속도 지속 감쇠
+    this._applyContactAngularDamping();
 
     // 4. 균형 판정
     this.checkBalance();
@@ -154,7 +158,9 @@ export class PhysicsService {
           // }
           
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
-          for (let k = 0; k < this.iterations; k++) {
+          // 접촉 중일 때는 더 많이 반복하여 안정성 향상
+          const iterations = (bodyA.isStatic || bodyB.isStatic) ? this.iterations * 2 : this.iterations;
+          for (let k = 0; k < iterations; k++) {
             CollisionUtil.resolveCollision(bodyA, bodyB);
           }
 
@@ -169,6 +175,78 @@ export class PhysicsService {
         }
       }
     }
+  }
+
+  /**
+   * 접촉 중인 블록의 속도 및 각속도 지속 감쇠
+   * 접촉 중인 블록은 속도와 각속도가 빠르게 감쇠되어야 함
+   * @private
+   */
+  _applyContactAngularDamping() {
+    // 모든 동적 블록에 대해 접촉 상태 확인
+    this.bodies.forEach(body => {
+      if (body.isStatic) return;
+      if (Math.abs(body.angularVelocity) < 0.01) return; // 이미 멈춘 블록은 스킵
+      
+      // 다른 블록과 접촉 중인지 확인
+      let isInContact = false;
+      let isContactWithStatic = false;
+      for (let i = 0; i < this.bodies.length; i++) {
+        const otherBody = this.bodies[i];
+        if (otherBody === body) continue;
+        
+        // 접촉 중인지 확인 (AABB 충돌)
+        if (CollisionUtil.isAABBColliding(body, otherBody)) {
+          isInContact = true;
+          if (otherBody.isStatic) {
+            isContactWithStatic = true;
+            break; // 정적 객체와 접촉 중이면 더 강하게 처리
+          }
+        }
+      }
+      
+      // 접촉 중이면 각속도 강하게 감쇠
+      if (isInContact) {
+        // 정적 객체(베이스)와 접촉 중이면 매우 강하게 감쇠
+        if (isContactWithStatic) {
+          // 베이스와 접촉 중일 때는 각속도를 강하게 감쇠
+          body.angularVelocity *= 0.6; // 40% 감쇠
+          
+          // 속도도 마찰에 의해 매우 강하게 감쇠
+          // Box2D/Matter.js 스타일: 접촉 중일 때 마찰이 매우 강하게 작용
+          const friction = body.friction || 0.8;
+          const frictionDampingX = 1 - friction * 0.6; // 수평 마찰 매우 강화
+          const frictionDampingY = 1 - friction * 0.5; // 수직 마찰 매우 강화
+          body.velocity.x *= frictionDampingX;
+          body.velocity.y *= frictionDampingY;
+          
+          // 수직 속도가 아래 방향이면 완전히 0으로 (베이스에 닿았을 때)
+          if (body.velocity.y > 0) {
+            body.velocity.y = 0;
+          }
+          
+          // 수평 속도도 완전히 멈춤
+          body.velocity.x = 0;
+          
+          // 각속도도 완전히 멈춤
+          body.angularVelocity = 0;
+        } else {
+          // 일반 접촉에서의 감쇠
+          const contactDamping = 0.9; // 10% 감쇠
+          body.angularVelocity *= contactDamping;
+          
+          // 각속도가 작으면 추가 감쇠
+          if (Math.abs(body.angularVelocity) < 0.3) {
+            body.angularVelocity *= 0.8; // 추가 감쇠
+          }
+          
+          // 매우 작은 각속도는 0으로 설정
+          if (Math.abs(body.angularVelocity) < 0.05) {
+            body.angularVelocity = 0;
+          }
+        }
+      }
+    });
   }
 
   /**

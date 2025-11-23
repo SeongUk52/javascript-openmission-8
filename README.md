@@ -232,6 +232,21 @@ src/
 - 균형 판정: 무게 중심과 지지 영역 관계
 
 ### 참고 자료 링크
+
+#### 최신 오픈소스 물리 엔진
+- **[Box2D](https://box2d.org/)**: C++로 작성된 2D 물리 엔진 (가장 널리 사용되는 2D 물리 엔진)
+  - [Box2D 공식 문서](https://box2d.org/documentation/)
+  - [Box2D GitHub](https://github.com/erincatto/box2d)
+  - 충돌 해결, 마찰, 각속도 감쇠 등의 구현 참고
+- **[Matter.js](https://brm.io/matter-js/)**: JavaScript로 작성된 2D 물리 엔진 (웹 기반 프로젝트에 적합)
+  - [Matter.js 공식 문서](https://brm.io/matter-js/docs/)
+  - [Matter.js GitHub](https://github.com/liabru/matter-js)
+  - JavaScript 구현 방식 참고
+- **[Chipmunk2D](https://chipmunk-physics.net/)**: C로 작성된 경량 2D 물리 엔진
+  - [Chipmunk2D 공식 문서](https://chipmunk-physics.net/documentation.php)
+  - 성능 최적화 기법 참고
+
+#### 일반 물리 엔진 튜토리얼
 - [2D Physics Engine Tutorial](https://www.toptal.com/game/video-game-physics-part-i-an-introduction-to-rigid-body-dynamics)
 - [Collision Detection and Response](https://www.gamedeveloper.com/programming/collision-detection-algorithms)
 - [Friction in Physics Engines](https://en.wikipedia.org/wiki/Friction)
