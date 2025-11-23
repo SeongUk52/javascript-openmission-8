@@ -705,8 +705,8 @@ export class GameController {
           // 더 넓은 범위로 확인 (충돌 해결로 인해 약간 겹칠 수 있음)
           // 블록이 베이스 위에 있거나 약간 겹치면 닿은 것으로 간주
           const distanceY = blockBottom - baseTop;
-          isTouchingTower = distanceY <= 30 && 
-                           distanceY >= -30 &&
+          isTouchingTower = distanceY <= 50 && 
+                           distanceY >= -50 &&
                            Math.abs(block.velocity.y) < 500 &&
                            isInBaseRangeX;
           towerTopY = baseTop;
