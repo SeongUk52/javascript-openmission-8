@@ -198,8 +198,8 @@ export class GameController {
         body.isPlaced = false;
         body.isFalling = true;
         
-        // 블록이 무너지면 게임 오버
-        this._handleGameOver();
+        // 블록이 무너지는 것만으로는 게임 오버가 되지 않음
+        // 블록이 베이스 바닥 아래로 떨어지면 게임 오버 (update에서 처리)
       }
     };
   }
@@ -832,10 +832,11 @@ export class GameController {
       // 타워 위 200픽셀 이내 또는 겹침 (더 넓은 범위로 허용)
       isNearTower = distanceY <= 200 && distanceY >= -50 && isInBaseRangeX;
       
-      // 게임 오버 조건: 블록이 실제로 화면 밖으로 나갔을 때만 게임 오버
-      // 블록이 타워 근처에 있으면 게임 오버하지 않음 (타워에 닿을 수 있도록 기다림)
-      // 화면 아래쪽으로 충분히 나갔고, 타워 근처에 없을 때만 게임 오버
-      const isOutOfBounds = aabb.min.y > this.canvasHeight + 100 && !isNearTower;
+      // 게임 오버 조건: 블록이 베이스 바닥 아래로 떨어졌을 때만 게임 오버
+      // 베이스의 하단 = basePosition.y (베이스 높이 30)
+      // 블록의 상단이 베이스의 하단보다 아래에 있으면 게임 오버
+      const baseBottom = this.basePosition.y;
+      const isOutOfBounds = aabb.min.y > baseBottom;
       
       if (isOutOfBounds) {
         console.log('[GameController] Block out of bounds (bottom):', {
@@ -859,14 +860,9 @@ export class GameController {
       }
     }
 
-    // 타워 안정성 평가
-    if (this._getPlacedBlocks().length > 0) {
-      const stability = this._evaluateStability();
-      if (!stability.stable && !this.gameState.isGameOver) {
-        // 타워가 무너지면 게임 오버
-        this._handleGameOver();
-      }
-    }
+    // 타워 안정성 평가는 하지 않음
+    // 블록이 무너지는 것만으로는 게임 오버가 되지 않음
+    // 블록이 베이스 바닥 아래로 떨어지면 게임 오버 (위에서 처리)
 
     // 현재 블록이 타워에 닿았는지 확인 (자동 배치)
     // 주의: 자동 배치는 블록이 충분히 안정적으로 타워 위에 있을 때만 실행
