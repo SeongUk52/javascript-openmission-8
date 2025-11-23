@@ -294,10 +294,18 @@ export class GameController {
       hasCurrentBlock: !!this.currentBlock,
       isPlaying: this.gameState.isPlaying,
       isPaused: this.gameState.isPaused,
+      currentBlockIsFalling: this.currentBlock?.isFalling,
+      currentBlockInPhysics: this.currentBlock ? this.physicsService.bodies.includes(this.currentBlock) : false,
     });
     
     if (!this.currentBlock || !this.gameState.isPlaying || this.gameState.isPaused) {
       console.log('[GameController] placeBlock() early return');
+      return;
+    }
+
+    // 블록이 이미 떨어지는 중이면 무시 (중복 배치 방지)
+    if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
+      console.log('[GameController] placeBlock() ignored - block is already falling');
       return;
     }
 
@@ -466,7 +474,8 @@ export class GameController {
     block.angle = 0;
     
     // 물리 엔진에 이미 있으면 그대로 두고, 없으면 추가
-    if (!this.physicsService.bodies.includes(block)) {
+    const wasInPhysics = this.physicsService.bodies.includes(block);
+    if (!wasInPhysics) {
       this.physicsService.addBody(block);
     }
     
@@ -482,7 +491,8 @@ export class GameController {
       blockIsPlaced: block.isPlaced,
       blockIsFalling: block.isFalling,
       wasInPhysics,
-      towerBlocksArray: this.tower.blocks.map(b => ({ id: b.id, position: b.position, isPlaced: b.isPlaced })),
+      isStatic: block.isStatic,
+      towerBlocksArray: this.tower.blocks.map(b => ({ id: b.id, position: b.position, isPlaced: b.isPlaced, isStatic: b.isStatic })),
     });
     
     // 현재 블록이 이 블록이면 초기화 (다음 블록 소환을 위해)
