@@ -873,8 +873,9 @@ export class GameController {
    * @private
    */
   _getPlacedBlocks() {
+    // 배치된 블록들만 반환 (베이스 제외, 빠르게 떨어지는 블록 제외)
     return this.physicsService.bodies.filter(body => 
-      body instanceof Block && body.isPlaced && !body.isFalling && !body.isStatic
+      body instanceof Block && !body.isStatic && (!body.isFalling || body.velocity.y < 50)
     );
   }
 
