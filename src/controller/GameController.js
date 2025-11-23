@@ -303,31 +303,28 @@ export class GameController {
       return;
     }
 
-    // 현재 블록이 있고 떨어지는 중이면, 그 블록은 그대로 두고 새로운 블록을 떨어뜨림
-    // 현재 블록이 없거나 떨어지지 않는 중이면, 현재 블록을 떨어뜨림
-    let blockToPlace = this.currentBlock;
-    
-    if (!blockToPlace) {
-      // 현재 블록이 없으면 새로 생성
+    // 현재 블록이 없으면 새로 생성
+    if (!this.currentBlock) {
       this._spawnNextBlock();
-      blockToPlace = this.currentBlock;
-      if (!blockToPlace) {
-        console.log('[GameController] placeBlock() - no block to place');
+      if (!this.currentBlock) {
+        console.log('[GameController] placeBlock() - failed to spawn block');
         return;
       }
     }
-    
+
     // 블록이 이미 떨어지는 중이면, 새로운 블록을 생성하여 떨어뜨림
-    if (blockToPlace.isFalling && this.physicsService.bodies.includes(blockToPlace)) {
+    // 기존 블록은 그대로 떨어지게 둠
+    if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
       console.log('[GameController] Current block is falling, spawning new block to fall');
       // 현재 블록은 그대로 두고 새로운 블록 생성
       this._spawnNextBlock();
-      blockToPlace = this.currentBlock;
-      if (!blockToPlace) {
+      if (!this.currentBlock) {
         console.log('[GameController] placeBlock() - failed to spawn new block');
         return;
       }
     }
+
+    const blockToPlace = this.currentBlock;
     
     // 블록 상태 설정 (떨어지는 상태로 변경)
     blockToPlace.isFalling = true;
@@ -456,6 +453,7 @@ export class GameController {
       // position.y = towerTopY + blockHeight/2
       const towerTopY = this.tower.getTopY();
       // 타워 최상단 위에 배치 (겹치지 않도록)
+      // 블록의 하단이 타워 최상단 위에 오도록
       targetY = towerTopY + blockHeight / 2;
       
       // 디버그: 타워 최상단 확인
@@ -531,14 +529,8 @@ export class GameController {
     this.gameState.incrementRound();
     this.consecutivePlacements++;
 
-    // 다음 블록 생성
+    // 다음 블록 생성 (자동 배치하지 않음 - 사용자가 스페이스바를 눌러야 함)
     this._spawnNextBlock();
-    
-    // 새로 생성된 블록을 자동으로 떨어뜨림
-    if (this.currentBlock && !this.currentBlock.isFalling) {
-      console.log('[GameController] Auto-placing next block after fixing previous block');
-      this.placeBlock();
-    }
 
     // 이벤트 콜백
     if (this.onBlockPlaced) {
