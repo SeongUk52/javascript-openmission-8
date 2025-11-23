@@ -86,41 +86,34 @@ export class GameController {
     this.physicsService.onCollision = (bodyA, bodyB) => {
       if (!this.gameState.isPlaying) return;
       
-      // 현재 블록이 충돌에 포함되어 있는지 확인
-      const fallingBlock = this.currentBlock;
-      if (!fallingBlock || !fallingBlock.isFalling) return;
-      
       // 블록이 베이스나 다른 정적 객체(또는 배치된 블록)와 충돌했는지 확인
       // 배치된 블록도 충돌 대상으로 처리 (isPlaced: true)
       const staticBody = bodyA.isStatic || bodyA.isPlaced ? bodyA : (bodyB.isStatic || bodyB.isPlaced ? bodyB : null);
       const dynamicBody = (bodyA.isStatic || bodyA.isPlaced) ? bodyB : ((bodyB.isStatic || bodyB.isPlaced) ? bodyA : null);
       
       // staticBody가 있고, dynamicBody가 떨어지는 블록이어야 함
-      if (staticBody && dynamicBody === fallingBlock && !staticBody.isFalling) {
-        // 블록이 정적 객체(베이스 또는 배치된 블록)와 충돌
-        console.log('[GameController] Block collided with static/placed body:', {
-          blockId: fallingBlock.id,
-          staticBodyId: staticBody.id,
-          staticBodyIsStatic: staticBody.isStatic,
-          staticBodyIsPlaced: staticBody.isPlaced,
-          blockVelocityY: fallingBlock.velocity.y,
-          blockPosition: { x: fallingBlock.position.x, y: fallingBlock.position.y },
-          staticBodyPosition: { x: staticBody.position.x, y: staticBody.position.y },
-        });
-        
-        // 블록이 충분히 느리게 움직일 때만 고정 (충돌로 인해 멈춤)
-        // 속도 임계값을 높여서 더 쉽게 감지
-        if (Math.abs(fallingBlock.velocity.y) < 500) {
-          // 즉시 고정 (setTimeout 제거)
-          if (this.currentBlock === fallingBlock && fallingBlock.isFalling) {
-            console.log('[GameController] Fixing block immediately after collision');
-            // 속도를 0으로 설정하여 완전히 멈춤
-            fallingBlock.velocity.x = 0;
-            fallingBlock.velocity.y = 0;
-            fallingBlock.angularVelocity = 0;
-            this._fixBlockToTower(fallingBlock);
-          }
-        }
+      if (!staticBody || !dynamicBody || staticBody.isFalling) return;
+      
+      // dynamicBody가 떨어지는 블록인지 확인
+      if (!this.fallingBlocks.has(dynamicBody) && dynamicBody !== this.currentBlock) return;
+      
+      // 블록이 정적 객체(베이스 또는 배치된 블록)와 충돌
+      console.log('[GameController] Block collided with static/placed body:', {
+        blockId: dynamicBody.id,
+        staticBodyId: staticBody.id,
+        staticBodyIsStatic: staticBody.isStatic,
+        staticBodyIsPlaced: staticBody.isPlaced,
+        blockVelocityY: dynamicBody.velocity.y,
+      });
+      
+      // 블록이 충분히 느리게 움직일 때만 고정 (충돌로 인해 멈춤)
+      if (Math.abs(dynamicBody.velocity.y) < 500) {
+        console.log('[GameController] Fixing block immediately after collision');
+        // 속도를 0으로 설정하여 완전히 멈춤
+        dynamicBody.velocity.x = 0;
+        dynamicBody.velocity.y = 0;
+        dynamicBody.angularVelocity = 0;
+        this._fixBlockToTower(dynamicBody);
       }
     };
     
