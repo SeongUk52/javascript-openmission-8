@@ -213,11 +213,17 @@ export class GameController {
   _spawnNextBlock() {
     // currentBlock이 있고 떨어지지 않는 중이면 새로 생성하지 않음
     if (this.currentBlock && !this.currentBlock.isFalling && !this.physicsService.bodies.includes(this.currentBlock)) {
-      console.log('[GameController] _spawnNextBlock: currentBlock already exists and not falling');
+      console.log('[GameController] _spawnNextBlock: currentBlock already exists and not falling', {
+        currentBlockId: this.currentBlock.id,
+        isFalling: this.currentBlock.isFalling,
+        inPhysics: this.physicsService.bodies.includes(this.currentBlock),
+      });
       return;
     }
 
-    const spawnY = 50; // 화면 상단
+    // 블록 생성 위치: 화면 상단 (일관된 위치)
+    // placeBlock()에서 떨어질 위치를 설정하므로, 여기서는 표시용 위치만 설정
+    const spawnY = 200; // 화면 상단에서 200픽셀 아래 (placeBlock과 동일한 위치)
     
     // 블록의 X 위치를 베이스 범위 내로 제한
     const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;
@@ -338,16 +344,15 @@ export class GameController {
       basePositionY: this.tower.basePosition.y,
     });
     
-    if (blockCount === 0) {
-      // 첫 번째 블록: 베이스 위쪽에 배치 (화면 상단 근처)
-      spawnY = 200; // 화면 상단에서 200픽셀 아래
-      console.log('[GameController] First block spawnY:', spawnY);
-    } else {
-      // 이후 블록: 타워 최상단 위쪽에 배치
-      const towerTopY = this.tower.getTopY();
-      spawnY = Math.max(100, towerTopY - 300); // 타워 위 300픽셀 (최소 100픽셀)
-      console.log('[GameController] Subsequent block spawnY:', { towerTopY, spawnY });
-    }
+    // 모든 블록은 화면 상단 근처에서 떨어지도록 설정 (일관된 위치)
+    // 첫 번째 블록과 이후 블록 모두 같은 높이에서 시작
+    spawnY = 200; // 화면 상단에서 200픽셀 아래 (일관된 위치)
+    
+    console.log('[GameController] Block spawnY:', {
+      blockCount,
+      spawnY,
+      towerTopY: blockCount === 0 ? null : this.tower.getTopY(),
+    });
     
     // 블록의 X 위치를 베이스 범위 내로 제한
     const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;

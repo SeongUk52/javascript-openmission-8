@@ -110,7 +110,10 @@ export class Tower {
    * @returns {number}
    */
   getTopY() {
-    if (this.blocks.length === 0) return this.basePosition.y;
+    if (this.blocks.length === 0) {
+      // 블록이 없으면 베이스 상단 Y 좌표 반환 (베이스 높이 30)
+      return this.basePosition.y - 30;
+    }
 
     let maxY = -Infinity;
     this.blocks.forEach(block => {
