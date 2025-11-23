@@ -99,11 +99,6 @@ export class PhysicsService {
    * 충돌 감지 및 해결
    */
   resolveCollisions() {
-    // 디버그: bodies 개수 확인
-    if (this.bodies.length > 1) {
-      // console.log('[PhysicsService] resolveCollisions called, bodies count:', this.bodies.length);
-    }
-    
     // 모든 Body 쌍에 대해 충돌 검사
     for (let i = 0; i < this.bodies.length; i++) {
       for (let j = i + 1; j < this.bodies.length; j++) {
@@ -118,22 +113,36 @@ export class PhysicsService {
         // 충돌 감지
         const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
         
-        // 디버그: 정적/동적 쌍이 가까이 있을 때 로그 출력
+        // 디버그: 정적/동적 쌍이 가까이 있을 때 상세 로그 출력
         if (bodyA.isStatic || bodyB.isStatic) {
           const staticBody = bodyA.isStatic ? bodyA : bodyB;
           const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
           const aabbA = bodyA.getAABB();
           const aabbB = bodyB.getAABB();
           
-          // 충돌 가능성이 있는 경우 로그 출력
+          // 충돌 가능성이 있는 경우 상세 로그 출력
           const distanceY = Math.abs(dynamicBody.position.y - staticBody.position.y);
-          if (distanceY < 200) {
-            // console.log('[PhysicsService] Checking collision:', {
-            //   staticBody: { id: staticBody.id, position: staticBody.position, aabb: aabbA },
-            //   dynamicBody: { id: dynamicBody.id, position: dynamicBody.position, aabb: aabbB, velocity: dynamicBody.velocity },
-            //   distanceY,
-            //   isColliding,
-            // });
+          if (distanceY < 300 && !isColliding) {
+            // AABB가 겹치지 않는 이유 확인
+            const separatedX = aabbA.max.x < aabbB.min.x || aabbA.min.x > aabbB.max.x;
+            const separatedY = aabbA.max.y < aabbB.min.y || aabbA.min.y > aabbB.max.y;
+            console.log('[PhysicsService] Near but not colliding:', {
+              staticBody: { 
+                id: staticBody.id, 
+                position: staticBody.position, 
+                aabb: { min: aabbA.min, max: aabbA.max }
+              },
+              dynamicBody: { 
+                id: dynamicBody.id, 
+                position: dynamicBody.position, 
+                aabb: { min: aabbB.min, max: aabbB.max },
+                velocity: dynamicBody.velocity
+              },
+              distanceY,
+              separatedX,
+              separatedY,
+              isColliding,
+            });
           }
         }
         
