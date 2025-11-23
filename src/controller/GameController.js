@@ -319,7 +319,7 @@ export class GameController {
       color: this._getRandomColor(),
       type: 'normal',
       restitution: 0, // 반발 없음 (완전 비탄성)
-      friction: 0.6, // 마찰 계수
+      friction: 0.8, // 마찰 계수 증가 (바닥에 닿았을 때 회전 감소)
     });
 
     // 초기 속도 0으로 설정 (정지 상태에서 시작)
