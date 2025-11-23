@@ -391,13 +391,17 @@ export class GameController {
     
     // 블록을 타워에 추가
     this.tower.addBlock(block);
-    this.currentBlock = null;
     
     console.log('[GameController] Block fixed to tower:', {
       blockId: block.id,
       position: { x: block.position.x, y: block.position.y },
       towerBlocks: this.tower.getBlockCount(),
+      towerTopY: this.tower.getTopY(),
+      blockAABB: block.getAABB(),
     });
+    
+    // 현재 블록 초기화 (다음 블록 소환을 위해)
+    this.currentBlock = null;
 
     // 점수 계산 및 추가
     this._calculateAndAddScore();
