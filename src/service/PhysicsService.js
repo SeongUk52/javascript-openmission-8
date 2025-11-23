@@ -125,8 +125,11 @@ export class PhysicsService {
 
   /**
    * 균형 판정
+   * @param {boolean} enabled - 균형 판정 활성화 여부 (게임이 시작되었을 때만 true)
    */
-  checkBalance() {
+  checkBalance(enabled = true) {
+    if (!enabled) return;
+    
     this.bodies.forEach(body => {
       if (body.isStatic) return;
 

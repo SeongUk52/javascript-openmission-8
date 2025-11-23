@@ -46,7 +46,7 @@ export class GameController {
 
     // 타워
     const baseX = canvasWidth / 2;
-    const baseY = canvasHeight - 50;
+    const baseY = canvasHeight - 10; // 베이스 높이(10)만큼 위로 올림
     this.tower = new Tower({
       basePosition: new Vector(baseX, baseY),
       baseWidth: 200,
@@ -80,6 +80,11 @@ export class GameController {
    */
   _setupPhysicsEvents() {
     this.physicsService.onTopple = (body) => {
+      // 게임이 시작되지 않았으면 무시
+      if (!this.gameState.isPlaying) {
+        return;
+      }
+      
       if (body instanceof Block && body.isPlaced) {
         // 배치된 블록이 무너지면 게임 오버
         this._handleGameOver();
@@ -91,12 +96,31 @@ export class GameController {
    * 게임 시작
    */
   start() {
+    console.log('[GameController] start() called');
     this.gameState.start();
+    console.log('[GameController] gameState.isPlaying:', this.gameState.isPlaying);
     this.tower.clear();
     this.consecutivePlacements = 0;
     this.nextBlockX = this.canvasWidth / 2;
+    
+    // PhysicsService 초기화 (이전 게임의 body 제거)
+    this.physicsService.clearBodies();
+    
+    // 타워 베이스 추가 (고정된 바닥)
+    this.physicsService.addBody(
+      new Block({
+        position: this.tower.basePosition,
+        width: this.tower.baseWidth,
+        height: 10,
+        isStatic: true,
+        color: '#34495e',
+      })
+    );
+    
     this._spawnNextBlock();
+    console.log('[GameController] currentBlock spawned:', !!this.currentBlock);
     this._startGameLoop();
+    console.log('[GameController] game loop started');
   }
 
   /**
@@ -143,8 +167,19 @@ export class GameController {
       type: 'normal',
     });
 
+    // 초기 속도 0으로 설정 (정지 상태에서 시작)
+    block.velocity.x = 0;
+    block.velocity.y = 0;
+    block.angularVelocity = 0;
+
     this.currentBlock = block;
     this.physicsService.addBody(block);
+    
+    console.log('[GameController] Block spawned:', {
+      position: { x: block.position.x, y: block.position.y },
+      size: { width: block.width, height: block.height },
+      aabb: block.getAABB(),
+    });
   }
 
   /**
@@ -168,13 +203,35 @@ export class GameController {
    * 블록 배치 (스페이스바 또는 클릭)
    */
   placeBlock() {
+    console.log('[GameController] placeBlock() called', {
+      hasCurrentBlock: !!this.currentBlock,
+      isPlaying: this.gameState.isPlaying,
+      isPaused: this.gameState.isPaused,
+    });
+    
     if (!this.currentBlock || !this.gameState.isPlaying || this.gameState.isPaused) {
+      console.log('[GameController] placeBlock() early return');
       return;
     }
 
+    // 블록을 타워에 추가하기 전에 물리 엔진에서 제거
+    // 배치된 블록은 더 이상 물리 시뮬레이션에 참여하지 않음
+    const blockToPlace = this.currentBlock;
+    
+    // 블록 상태 변경 (배치됨)
+    blockToPlace.place(); // isPlaced = true, isFalling = false
+    
+    // 물리 엔진에서 제거
+    this.physicsService.removeBody(blockToPlace);
+    
     // 블록을 타워에 추가
-    this.tower.addBlock(this.currentBlock);
+    this.tower.addBlock(blockToPlace);
     this.currentBlock = null;
+    
+    console.log('[GameController] Block placed, removed from physics:', {
+      blockId: blockToPlace.id,
+      physicsBodiesCount: this.physicsService.bodies.length,
+    });
 
     // 점수 계산 및 추가
     this._calculateAndAddScore();
@@ -225,8 +282,24 @@ export class GameController {
    * @private
    */
   _handleGameOver() {
-    if (this.gameState.isGameOver) return;
+    console.log('[GameController] _handleGameOver() called', {
+      isPlaying: this.gameState.isPlaying,
+      isGameOver: this.gameState.isGameOver,
+      stack: new Error().stack,
+    });
+    
+    // 게임이 시작되지 않았으면 무시
+    if (!this.gameState.isPlaying) {
+      console.log('[GameController] _handleGameOver() ignored - game not playing');
+      return;
+    }
+    
+    if (this.gameState.isGameOver) {
+      console.log('[GameController] _handleGameOver() ignored - already game over');
+      return;
+    }
 
+    console.log('[GameController] Game Over!');
     this.gameState.end();
     this.stop();
 
@@ -261,6 +334,11 @@ export class GameController {
    */
   _startGameLoop() {
     if (this.animationFrameId) return;
+    
+    // 게임이 시작되지 않았으면 루프를 시작하지 않음
+    if (!this.gameState.isPlaying) {
+      return;
+    }
 
     this.lastTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const gameLoop = (currentTime) => {
@@ -295,13 +373,46 @@ export class GameController {
    * @param {number} deltaTime - 경과 시간 (초)
    */
   update(deltaTime) {
-    // 물리 시뮬레이션 업데이트
+    // 게임이 시작되지 않았거나 일시정지 상태면 업데이트하지 않음
+    if (!this.gameState.isPlaying || this.gameState.isPaused) {
+      return;
+    }
+
+    // 물리 시뮬레이션 업데이트 (게임이 시작되었을 때만)
+    // PhysicsService.update() 내부에서 checkBalance()가 호출되지만,
+    // 이미 update() 시작 부분에서 isPlaying 체크를 하므로 안전함
     this.physicsService.update(deltaTime);
 
     // 현재 블록이 화면 밖으로 나갔는지 확인
-    if (this.currentBlock && this.currentBlock.isOutOfBounds(this.canvasWidth, this.canvasHeight)) {
-      this._handleGameOver();
-      return;
+    // 주의: 블록이 생성된 직후에는 아직 물리 업데이트가 한 번도 안 되었을 수 있으므로,
+    // 약간의 여유를 두고 체크해야 함
+    // 단, 블록이 떨어지는 중일 때만 체크 (화면 위쪽으로 나가는 건 정상)
+    // 또한 블록이 물리 엔진에 있어야 함 (배치된 블록은 체크하지 않음)
+    if (this.currentBlock && 
+        this.currentBlock.isFalling && 
+        this.physicsService.bodies.includes(this.currentBlock)) {
+      const aabb = this.currentBlock.getAABB();
+      
+      // 화면 아래쪽으로 나갔을 때만 게임 오버
+      // 좌우로 나가는 건 일단 허용 (블록이 회전하거나 이동할 수 있음)
+      // 위쪽으로 나가는 건 정상 (블록이 떨어지기 시작할 때)
+      const isOutOfBounds = aabb.min.y > this.canvasHeight;
+      
+      if (isOutOfBounds) {
+        console.log('[GameController] Block out of bounds (bottom):', {
+          position: { x: this.currentBlock.position.x, y: this.currentBlock.position.y },
+          aabb: { 
+            min: { x: aabb.min.x, y: aabb.min.y }, 
+            max: { x: aabb.max.x, y: aabb.max.y } 
+          },
+          canvasSize: { width: this.canvasWidth, height: this.canvasHeight },
+          blockSize: { width: this.currentBlock.width, height: this.currentBlock.height },
+          angle: this.currentBlock.angle,
+          velocity: { x: this.currentBlock.velocity.x, y: this.currentBlock.velocity.y },
+        });
+        this._handleGameOver();
+        return;
+      }
     }
 
     // 타워 안정성 평가
@@ -314,9 +425,11 @@ export class GameController {
     }
 
     // 현재 블록이 타워에 닿았는지 확인 (자동 배치)
-    if (this.currentBlock && this._shouldAutoPlace()) {
-      this.placeBlock();
-    }
+    // 주의: 자동 배치는 블록이 충분히 안정적으로 타워 위에 있을 때만 실행
+    // 현재는 자동 배치 기능을 비활성화 (수동 배치만 허용)
+    // if (this.currentBlock && this._shouldAutoPlace()) {
+    //   this.placeBlock();
+    // }
   }
 
   /**
@@ -346,6 +459,21 @@ export class GameController {
    * @param {string} key - 키 코드
    */
   handleKeyDown(key) {
+    console.log('[GameController] handleKeyDown:', key, 'isPlaying:', this.gameState.isPlaying);
+    
+    // 게임이 시작되지 않았으면 스페이스바로 시작
+    if (!this.gameState.isPlaying && !this.gameState.isGameOver) {
+      if (key === ' ' || key === 'Space') {
+        console.log('[GameController] Starting game from keydown');
+        this.start();
+        return;
+      }
+    }
+
+    if (!this.gameState.isPlaying) {
+      return;
+    }
+
     switch (key) {
       case 'ArrowLeft':
       case 'a':
@@ -377,6 +505,15 @@ export class GameController {
    * @param {number} y - Y 좌표
    */
   handleClick(x, y) {
+    console.log('[GameController] handleClick:', x, y, 'isPlaying:', this.gameState.isPlaying);
+    
+    // 게임이 시작되지 않았으면 시작
+    if (!this.gameState.isPlaying && !this.gameState.isGameOver) {
+      console.log('[GameController] Starting game from click');
+      this.start();
+      return;
+    }
+
     if (!this.gameState.isPlaying) {
       if (this.gameState.isGameOver) {
         this.start(); // 게임 오버 상태면 재시작

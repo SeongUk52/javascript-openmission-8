@@ -51,6 +51,12 @@ class GameApp {
 
     // 렌더링 루프 시작
     this._startRenderLoop();
+    
+    // 디버그: 게임 상태 확인
+    console.log('Game initialized:', {
+      isPlaying: this.controller.gameState.isPlaying,
+      isGameOver: this.controller.gameState.isGameOver,
+    });
   }
 
   /**
@@ -132,15 +138,44 @@ class GameApp {
    * @private
    */
   _startRenderLoop() {
+    let frameCount = 0;
     const render = () => {
       // 게임 상태 가져오기
       const gameState = this.controller.getGameState();
 
-      // 게임 렌더링
-      this.gameRenderer.render(gameState);
+      // 디버그: 처음 몇 프레임만 로그
+      if (frameCount < 5 && gameState) {
+        console.log('Render frame', frameCount, {
+          hasTower: !!gameState.tower,
+          hasCurrentBlock: !!gameState.currentBlock,
+          towerBlocks: gameState.tower?.blocks?.length || 0,
+          physicsBodies: gameState.physicsBodies?.length || 0,
+          isPlaying: gameState.gameState?.isPlaying,
+        });
+      }
+      frameCount++;
 
-      // UI 렌더링
-      this.uiRenderer.render(gameState.gameState);
+      // 게임 렌더링 (게임이 시작되었을 때만)
+      if (gameState && gameState.gameState && gameState.gameState.isPlaying) {
+        this.gameRenderer.render(gameState);
+      } else {
+        // 게임이 시작되지 않았을 때는 배경만 클리어
+        this.gameRenderer.clear();
+      }
+
+      // UI 렌더링 (항상)
+      if (gameState && gameState.gameState) {
+        // UI에 전달할 게임 상태 (isPlaying, isGameOver, score, round, highScore 등)
+        const uiState = {
+          isPlaying: gameState.gameState.isPlaying,
+          isGameOver: gameState.gameState.isGameOver,
+          isPaused: gameState.gameState.isPaused,
+          score: gameState.gameState.score,
+          round: gameState.gameState.round,
+          highScore: gameState.gameState.highScore || 0,
+        };
+        this.uiRenderer.render(uiState);
+      }
 
       // 다음 프레임 요청
       requestAnimationFrame(render);

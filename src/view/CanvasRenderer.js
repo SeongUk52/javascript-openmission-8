@@ -42,6 +42,12 @@ export class CanvasRenderer {
    * 화면 클리어
    */
   clear() {
+    // Canvas 크기 확인
+    if (this.canvas.width === 0 || this.canvas.height === 0) {
+      console.warn('Canvas size is 0!', this.canvas.width, this.canvas.height);
+      return;
+    }
+    
     this.ctx.fillStyle = this.backgroundColor;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
@@ -78,7 +84,20 @@ export class CanvasRenderer {
    * @param {Block} block
    */
   drawBlock(block) {
-    if (!(block instanceof Block)) return;
+    if (!(block instanceof Block)) {
+      console.warn('[CanvasRenderer] drawBlock: not a Block instance', block);
+      return;
+    }
+
+    // 디버그: 블록 정보 확인
+    if (!block.position || !block.width || !block.height) {
+      console.warn('[CanvasRenderer] drawBlock: invalid block data', {
+        hasPosition: !!block.position,
+        width: block.width,
+        height: block.height,
+      });
+      return;
+    }
 
     this.ctx.save();
 
@@ -91,7 +110,7 @@ export class CanvasRenderer {
     const halfHeight = block.height / 2;
 
     // 블록 색상
-    this.ctx.fillStyle = block.color;
+    this.ctx.fillStyle = block.color || '#3498db';
     this.ctx.strokeStyle = '#ffffff';
     this.ctx.lineWidth = 2;
 
@@ -192,23 +211,28 @@ export class CanvasRenderer {
   drawTowerBase(tower) {
     const { basePosition, baseWidth } = tower;
     const halfWidth = baseWidth / 2;
+    const baseHeight = 10;
 
     this.ctx.fillStyle = '#34495e';
     this.ctx.strokeStyle = '#2c3e50';
     this.ctx.lineWidth = 3;
 
     // 타워 기반 사각형
+    // basePosition.y는 베이스의 중심 Y 좌표
+    // 베이스의 상단 Y 좌표 = basePosition.y - baseHeight/2
+    // 하지만 베이스는 바닥에 붙어있으므로, basePosition.y는 베이스의 하단 Y 좌표로 간주
+    // 따라서 베이스의 상단 Y 좌표 = basePosition.y - baseHeight
     this.ctx.fillRect(
       basePosition.x - halfWidth,
-      basePosition.y - 10,
+      basePosition.y - baseHeight,
       baseWidth,
-      10
+      baseHeight
     );
     this.ctx.strokeRect(
       basePosition.x - halfWidth,
-      basePosition.y - 10,
+      basePosition.y - baseHeight,
       baseWidth,
-      10
+      baseHeight
     );
   }
 
@@ -221,9 +245,11 @@ export class CanvasRenderer {
     this.drawTowerBase(tower);
 
     // 블록들 그리기
-    tower.blocks.forEach(block => {
-      this.drawBlock(block);
-    });
+    if (tower.blocks && tower.blocks.length > 0) {
+      tower.blocks.forEach(block => {
+        this.drawBlock(block);
+      });
+    }
   }
 
   /**
@@ -269,29 +295,43 @@ export class CanvasRenderer {
    * @param {Object} gameState - 게임 상태
    */
   render(gameState) {
+    if (!gameState) {
+      console.warn('[CanvasRenderer] render: no gameState');
+      return;
+    }
+    
     // 화면 클리어
     this.clear();
 
     // 그리드 그리기
     this._drawGrid();
 
-    // 타워 그리기
+    // 타워 베이스 그리기 (항상)
     if (gameState.tower) {
-      this.drawTower(gameState.tower);
+      this.drawTowerBase(gameState.tower);
     }
 
-    // 현재 블록 그리기
+    // 타워에 배치된 블록들 그리기
+    if (gameState.tower && gameState.tower.blocks) {
+      gameState.tower.blocks.forEach(block => {
+        this.drawBlock(block);
+      });
+    }
+
+    // 현재 떨어지는 블록 그리기
     if (gameState.currentBlock) {
       this.drawBlock(gameState.currentBlock);
     }
 
-    // 다른 물리 객체들 그리기
-    if (gameState.physicsBodies) {
+    // 다른 물리 객체들 그리기 (타워 베이스 등)
+    if (gameState.physicsBodies && Array.isArray(gameState.physicsBodies)) {
       const otherBodies = gameState.physicsBodies.filter(
         body => body !== gameState.currentBlock && 
-                !gameState.tower.blocks.includes(body)
+                gameState.tower && !gameState.tower.blocks.includes(body)
       );
-      this.drawBodies(otherBodies);
+      if (otherBodies.length > 0) {
+        this.drawBodies(otherBodies);
+      }
     }
   }
 }

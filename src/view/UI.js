@@ -208,15 +208,40 @@ export class UI {
   }
 
   /**
+   * UI 캔버스 클리어
+   */
+  clear() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  /**
    * 전체 UI 렌더링
    * @param {Object} gameState - 게임 상태
    */
   render(gameState) {
-    // 점수 표시
-    this.drawScore(gameState.score, gameState.highScore || 0);
+    if (!gameState) {
+      console.warn('[UI] render: no gameState');
+      return;
+    }
+    
+    // UI 캔버스 클리어
+    this.clear();
+    
+    // 시작 화면 (가장 먼저 체크)
+    if (!gameState.isPlaying && !gameState.isGameOver) {
+      this.drawStartScreen();
+      return; // 시작 화면일 때는 다른 UI를 그리지 않음
+    }
 
-    // 라운드 표시
-    this.drawRound(gameState.round);
+    // 점수 표시 (게임 중이거나 게임 오버일 때)
+    if (gameState.isPlaying || gameState.isGameOver) {
+      this.drawScore(gameState.score || 0, gameState.highScore || 0);
+    }
+
+    // 라운드 표시 (게임 중일 때만)
+    if (gameState.isPlaying && !gameState.isPaused) {
+      this.drawRound(gameState.round || 0);
+    }
 
     // 조작 안내 (게임 중일 때만)
     if (gameState.isPlaying && !gameState.isPaused && !gameState.isGameOver) {
@@ -231,11 +256,6 @@ export class UI {
     // 일시정지 화면
     if (gameState.isPaused) {
       this.drawPause();
-    }
-
-    // 시작 화면
-    if (!gameState.isPlaying && !gameState.isGameOver) {
-      this.drawStartScreen();
     }
   }
 }
