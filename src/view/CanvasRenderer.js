@@ -84,6 +84,11 @@ export class CanvasRenderer {
    * @param {Block} block
    */
   drawBlock(block) {
+    if (!block) {
+      console.warn('[CanvasRenderer] drawBlock: block is null or undefined');
+      return;
+    }
+    
     if (!(block instanceof Block)) {
       console.warn('[CanvasRenderer] drawBlock: not a Block instance', block);
       return;
@@ -95,6 +100,7 @@ export class CanvasRenderer {
         hasPosition: !!block.position,
         width: block.width,
         height: block.height,
+        blockId: block.id,
       });
       return;
     }
