@@ -208,8 +208,15 @@ export class GameController {
     if (this.currentBlock) return;
 
     const spawnY = 50; // 화면 상단
+    
+    // 블록의 X 위치를 베이스 범위 내로 제한
+    const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;
+    const baseRight = this.tower.basePosition.x + this.tower.baseWidth / 2;
+    const blockHalfWidth = this.blockWidth / 2;
+    const clampedX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
+    
     const block = new Block({
-      position: new Vector(this.nextBlockX, spawnY),
+      position: new Vector(clampedX, spawnY),
       width: this.blockWidth,
       height: this.blockHeight,
       mass: 1,
@@ -221,16 +228,18 @@ export class GameController {
     block.velocity.x = 0;
     block.velocity.y = 0;
     block.angularVelocity = 0;
-    
+    block.isFalling = false; // 소환 시에는 떨어지지 않음
+
     // 배치 전에는 물리 엔진에 추가하지 않음 (떨어지지 않도록)
     // 배치할 때 물리 엔진에 추가하여 떨어지도록 함
     this.currentBlock = block;
-    // this.physicsService.addBody(block); // 주석 처리 - 배치할 때 추가
+    this.nextBlockX = clampedX; // nextBlockX도 업데이트
     
     console.log('[GameController] Block spawned:', {
       position: { x: block.position.x, y: block.position.y },
       size: { width: block.width, height: block.height },
       aabb: block.getAABB(),
+      nextBlockX: this.nextBlockX,
     });
   }
 
@@ -474,15 +483,24 @@ export class GameController {
       return;
     }
 
+    // 블록이 떨어지는 중이면 이동 불가 (물리 엔진에 있을 때는 이동 불가)
+    if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
+      return;
+    }
+
     const moveSpeed = 5;
     this.nextBlockX += direction * moveSpeed;
 
-    // 화면 경계 체크
-    const halfWidth = this.blockWidth / 2;
-    this.nextBlockX = Math.max(halfWidth, Math.min(this.canvasWidth - halfWidth, this.nextBlockX));
+    // 베이스 범위 내로 제한
+    const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;
+    const baseRight = this.tower.basePosition.x + this.tower.baseWidth / 2;
+    const blockHalfWidth = this.blockWidth / 2;
+    this.nextBlockX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
 
-    // 현재 블록 위치 업데이트
-    this.currentBlock.position.x = this.nextBlockX;
+    // 현재 블록 위치 업데이트 (물리 엔진에 없을 때만)
+    if (!this.physicsService.bodies.includes(this.currentBlock)) {
+      this.currentBlock.position.x = this.nextBlockX;
+    }
   }
 
   /**
