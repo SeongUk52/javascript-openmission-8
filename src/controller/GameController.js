@@ -748,7 +748,7 @@ export class GameController {
     
     for (const block of fallingBlocksToCheck) {
       if (!block || !block.isFalling || !this.physicsService.bodies.includes(block)) continue;
-      const aabb = this.currentBlock.getAABB();
+      const aabb = block.getAABB();
       
       // 베이스 위치 확인
       const baseBlock = this.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
@@ -764,7 +764,7 @@ export class GameController {
         const distanceY = blockBottom - towerTopY;
         
         // X 위치도 확인 (블록이 베이스 범위 내에 있어야 함)
-        const blockCenterX = this.currentBlock.position.x;
+        const blockCenterX = block.position.x;
         const baseLeft = baseAABB.min.x;
         const baseRight = baseAABB.max.x;
         isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
@@ -777,7 +777,7 @@ export class GameController {
         const distanceY = blockBottom - towerTopY;
         
         // X 위치도 확인 (베이스 범위 내에 있어야 함)
-        const blockCenterX = this.currentBlock.position.x;
+        const blockCenterX = block.position.x;
         const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;
         const baseRight = this.tower.basePosition.x + this.tower.baseWidth / 2;
         isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
@@ -793,15 +793,16 @@ export class GameController {
       
       if (isOutOfBounds) {
         console.log('[GameController] Block out of bounds (bottom):', {
-          position: { x: this.currentBlock.position.x, y: this.currentBlock.position.y },
+          blockId: block.id,
+          position: { x: block.position.x, y: block.position.y },
           aabb: { 
             min: { x: aabb.min.x, y: aabb.min.y }, 
             max: { x: aabb.max.x, y: aabb.max.y } 
           },
           canvasSize: { width: this.canvasWidth, height: this.canvasHeight },
-          blockSize: { width: this.currentBlock.width, height: this.currentBlock.height },
-          angle: this.currentBlock.angle,
-          velocity: { x: this.currentBlock.velocity.x, y: this.currentBlock.velocity.y },
+          blockSize: { width: block.width, height: block.height },
+          angle: block.angle,
+          velocity: { x: block.velocity.x, y: block.velocity.y },
           towerTopY,
           isNearTower,
           baseBlock: baseBlock ? { position: baseBlock.position, aabb: baseBlock.getAABB() } : null,
