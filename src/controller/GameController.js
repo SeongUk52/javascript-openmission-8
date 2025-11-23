@@ -332,18 +332,33 @@ export class GameController {
     const blockHeight = block.height;
     
     // 블록의 위치를 타워의 최상단에 맞춤
+    // position은 중심 좌표이므로, 블록의 하단 = position.y + height/2
     let targetY;
     if (this.tower.getBlockCount() === 0) {
       // 첫 번째 블록: 베이스 위에 배치
+      // 베이스 상단 = basePosition.y - 10 (베이스 높이 10)
+      // 블록의 하단 = 베이스 상단
+      // position.y + blockHeight/2 = basePosition.y - 10
+      // position.y = basePosition.y - 10 - blockHeight/2
       targetY = this.tower.basePosition.y - 10 - blockHeight / 2;
     } else {
       // 이후 블록: 타워 최상단 위에 배치
+      // 타워 최상단 = getTopY() (블록의 최대 Y, 즉 블록의 하단)
+      // 다음 블록의 하단 = 타워 최상단
+      // position.y + blockHeight/2 = towerTopY
+      // position.y = towerTopY - blockHeight/2
       const towerTopY = this.tower.getTopY();
       targetY = towerTopY - blockHeight / 2;
     }
     
+    // 블록의 X 위치를 베이스 범위 내로 제한
+    const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;
+    const baseRight = this.tower.basePosition.x + this.tower.baseWidth / 2;
+    const blockHalfWidth = block.width / 2;
+    const clampedX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
+    
     block.position.y = targetY;
-    block.position.x = this.nextBlockX;
+    block.position.x = clampedX;
     block.velocity.x = 0;
     block.velocity.y = 0;
     block.angularVelocity = 0;
@@ -599,6 +614,7 @@ export class GameController {
       const baseBlock = this.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
       let towerTopY = 0;
       let isNearTower = false;
+      let isInBaseRangeX = false;
       
       if (this.tower.getBlockCount() === 0 && baseBlock) {
         // 첫 번째 블록: 베이스와의 거리 확인
@@ -606,17 +622,33 @@ export class GameController {
         towerTopY = baseAABB.min.y; // 베이스 상단
         const blockBottom = aabb.max.y; // 블록 하단
         const distanceY = blockBottom - towerTopY;
-        isNearTower = distanceY <= 100 && distanceY >= -20; // 베이스 위 100픽셀 이내 또는 겹침
+        
+        // X 위치도 확인 (블록이 베이스 범위 내에 있어야 함)
+        const blockCenterX = this.currentBlock.position.x;
+        const baseLeft = baseAABB.min.x;
+        const baseRight = baseAABB.max.x;
+        isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
+        
+        isNearTower = distanceY <= 100 && distanceY >= -20 && isInBaseRangeX; // 베이스 위 100픽셀 이내 또는 겹침, 그리고 X 범위 내
       } else if (this.tower.getBlockCount() > 0) {
         // 이후 블록: 타워 최상단과의 거리 확인
         towerTopY = this.tower.getTopY();
         const blockBottom = aabb.max.y;
         const distanceY = blockBottom - towerTopY;
-        isNearTower = distanceY <= 100 && distanceY >= -20;
+        
+        // X 위치도 확인 (베이스 범위 내에 있어야 함)
+        const blockCenterX = this.currentBlock.position.x;
+        const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;
+        const baseRight = this.tower.basePosition.x + this.tower.baseWidth / 2;
+        isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
+        
+        isNearTower = distanceY <= 100 && distanceY >= -20 && isInBaseRangeX;
       }
       
       // 화면 아래쪽으로 나갔고, 타워 근처에 없을 때만 게임 오버
-      const isOutOfBounds = aabb.min.y > this.canvasHeight + 50 && !isNearTower; // 여유 공간 추가
+      // 또는 베이스 범위 밖으로 떨어졌을 때도 게임 오버
+      const isOutOfBounds = (aabb.min.y > this.canvasHeight + 50 && !isNearTower) || 
+                            (!isInBaseRangeX && aabb.min.y > this.canvasHeight - 100); // 베이스 범위 밖으로 떨어지면 게임 오버
       
       if (isOutOfBounds) {
         console.log('[GameController] Block out of bounds (bottom):', {
