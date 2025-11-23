@@ -162,6 +162,9 @@ export class GameController {
       baseSize: { width: this.tower.baseWidth, height: baseHeight },
       baseAABB: baseBlock.getAABB(),
       baseId: baseBlock.id,
+      isStatic: baseBlock.isStatic,
+      mass: baseBlock.mass,
+      invMass: baseBlock.invMass,
     });
     
     this._spawnNextBlock();

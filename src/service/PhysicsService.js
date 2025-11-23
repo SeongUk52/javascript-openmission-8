@@ -140,8 +140,20 @@ export class PhysicsService {
             const staticBody = bodyA.isStatic ? bodyA : bodyB;
             const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
             console.log('[PhysicsService] Collision detected (static vs dynamic):', {
-              staticBody: { id: staticBody.id, position: staticBody.position, isPlaced: staticBody.isPlaced, aabb: staticBody.getAABB() },
-              dynamicBody: { id: dynamicBody.id, position: dynamicBody.position, velocity: dynamicBody.velocity, aabb: dynamicBody.getAABB() },
+              staticBody: { 
+                id: staticBody.id, 
+                isStatic: staticBody.isStatic,
+                position: staticBody.position, 
+                isPlaced: staticBody.isPlaced, 
+                aabb: staticBody.getAABB() 
+              },
+              dynamicBody: { 
+                id: dynamicBody.id, 
+                isStatic: dynamicBody.isStatic,
+                position: dynamicBody.position, 
+                velocity: dynamicBody.velocity, 
+                aabb: dynamicBody.getAABB() 
+              },
             });
           }
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
