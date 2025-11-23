@@ -297,16 +297,24 @@ export class GameController {
       return;
     }
 
-    // 현재 블록이 없거나 떨어지는 중이면 새로 생성
-    if (!this.currentBlock || (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock))) {
-      if (this.currentBlock && this.currentBlock.isFalling) {
-        // 기존 블록은 fallingBlocks에 추가하고 currentBlock은 null로
-        this.fallingBlocks.add(this.currentBlock);
-        console.log('[GameController] Current block is falling, moving to fallingBlocks');
-      }
+    // 현재 블록이 없으면 새로 생성
+    if (!this.currentBlock) {
       this._spawnNextBlock();
       if (!this.currentBlock) {
         console.log('[GameController] placeBlock() - failed to spawn block');
+        return;
+      }
+    }
+
+    // 현재 블록이 이미 떨어지는 중이면, 그 블록은 fallingBlocks에 추가하고 새 블록 생성
+    if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
+      // 기존 블록은 fallingBlocks에 추가 (이미 추가되어 있을 수도 있음)
+      this.fallingBlocks.add(this.currentBlock);
+      console.log('[GameController] Current block is falling, spawning new block');
+      // 새 블록 생성
+      this._spawnNextBlock();
+      if (!this.currentBlock) {
+        console.log('[GameController] placeBlock() - failed to spawn new block');
         return;
       }
     }
@@ -368,8 +376,8 @@ export class GameController {
     // 떨어지는 블록 목록에 추가
     this.fallingBlocks.add(blockToPlace);
     
-    // currentBlock을 null로 설정 (다음 블록을 위해)
-    this.currentBlock = null;
+    // currentBlock은 유지 (다음 placeBlock 호출 시 새 블록 생성하도록)
+    // 블록이 고정되면 _fixBlockToTower에서 currentBlock을 null로 설정
     
     console.log('[GameController] Block positioned for falling:', {
       blockId: blockToPlace.id,
@@ -406,14 +414,8 @@ export class GameController {
       return;
     }
     
-    // 블록이 현재 블록이 아니면 무시 (안전 체크)
-    if (this.currentBlock !== block) {
-      console.warn('[GameController] _fixBlockToTower: block is not currentBlock', {
-        blockId: block.id,
-        currentBlockId: this.currentBlock?.id,
-      });
-      // 하지만 타워에 추가는 진행 (이미 떨어진 블록일 수 있음)
-    }
+    // currentBlock이 이 블록이면 초기화 (다음 블록을 위해)
+    // currentBlock이 아니어도 정상 동작 (떨어지는 블록일 수 있음)
 
     const blockHeight = block.height;
     
