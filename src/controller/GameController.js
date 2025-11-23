@@ -659,8 +659,9 @@ export class GameController {
       
       // 화면 아래쪽으로 나갔고, 타워 근처에 없을 때만 게임 오버
       // 또는 베이스 범위 밖으로 떨어졌을 때도 게임 오버
+      // 베이스 범위 밖으로 떨어지면 즉시 게임 오버 (베이스 위에 떨어지지 않으면 게임 오버)
       const isOutOfBounds = (aabb.min.y > this.canvasHeight + 50 && !isNearTower) || 
-                            (!isInBaseRangeX && aabb.min.y > this.canvasHeight - 100); // 베이스 범위 밖으로 떨어지면 게임 오버
+                            (!isInBaseRangeX && aabb.min.y > this.canvasHeight - 200); // 베이스 범위 밖으로 떨어지면 게임 오버 (더 빠르게 감지)
       
       if (isOutOfBounds) {
         console.log('[GameController] Block out of bounds (bottom):', {
