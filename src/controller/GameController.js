@@ -344,11 +344,21 @@ export class GameController {
     } else {
       // 이후 블록: 타워 최상단 위에 배치
       // 타워 최상단 = getTopY() (블록의 최대 Y, 즉 블록의 하단)
-      // 다음 블록의 하단 = 타워 최상단
+      // 다음 블록의 하단 = 타워 최상단 위에 배치해야 함 (겹치지 않도록)
       // position.y + blockHeight/2 = towerTopY
       // position.y = towerTopY - blockHeight/2
       const towerTopY = this.tower.getTopY();
+      // 타워 최상단 위에 배치 (겹치지 않도록)
       targetY = towerTopY - blockHeight / 2;
+      
+      // 디버그: 타워 최상단 확인
+      console.log('[GameController] Placing block on tower:', {
+        towerTopY,
+        blockHeight,
+        targetY,
+        blockBottom: targetY + blockHeight / 2,
+        towerBlocks: this.tower.getBlockCount(),
+      });
     }
     
     // 블록의 X 위치를 베이스 범위 내로 제한
@@ -583,10 +593,12 @@ export class GameController {
       } else {
         // 이후 블록: 타워 최상단과 충돌 확인
         towerTopY = this.tower.getTopY();
-        const blockBottom = blockAABB.min.y;
-        isTouchingTower = blockBottom <= towerTopY + 15 && 
-                         blockBottom >= towerTopY - 15 &&
-                         Math.abs(this.currentBlock.velocity.y) < 150;
+        const blockBottom = blockAABB.max.y; // 블록의 하단
+        // 블록의 하단이 타워 최상단에 닿았는지 확인
+        const distanceY = blockBottom - towerTopY;
+        isTouchingTower = distanceY <= 10 && 
+                         distanceY >= -10 &&
+                         Math.abs(this.currentBlock.velocity.y) < 200;
       }
       
       if (isTouchingTower) {
