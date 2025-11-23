@@ -82,13 +82,17 @@ export class PhysicsService {
 
     // 2. 물리 업데이트 (힘 → 가속도 → 속도 → 위치)
     this.bodies.forEach(body => {
-      body.update(deltaTime);
+      if (!body.isStatic) {
+        body.update(deltaTime);
+      }
     });
 
     // 3. 충돌 감지 및 해결 (여러 번 반복하여 안정성 향상)
     // 충돌 해결은 여러 번 반복해야 블록이 베이스를 통과하지 않음
-    for (let i = 0; i < 3; i++) {
-      this.resolveCollisions();
+    if (this.bodies.length > 1) {
+      for (let i = 0; i < 3; i++) {
+        this.resolveCollisions();
+      }
     }
 
     // 4. 균형 판정
@@ -99,6 +103,9 @@ export class PhysicsService {
    * 충돌 감지 및 해결
    */
   resolveCollisions() {
+    // 디버그: resolveCollisions 호출 확인
+    // console.log('[PhysicsService] resolveCollisions called, bodies:', this.bodies.length);
+    
     // 모든 Body 쌍에 대해 충돌 검사
     for (let i = 0; i < this.bodies.length; i++) {
       for (let j = i + 1; j < this.bodies.length; j++) {
@@ -112,6 +119,34 @@ export class PhysicsService {
 
         // 충돌 감지
         const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
+        
+        // 디버그: 모든 정적/동적 쌍 확인 (매 프레임마다 출력하면 너무 많으니 가까울 때만)
+        if (bodyA.isStatic || bodyB.isStatic) {
+          const staticBody = bodyA.isStatic ? bodyA : bodyB;
+          const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
+          const distanceY = Math.abs(dynamicBody.position.y - staticBody.position.y);
+          
+          // 매우 가까울 때만 로그 출력
+          if (distanceY < 100) {
+            const aabbA = bodyA.getAABB();
+            const aabbB = bodyB.getAABB();
+            console.log('[PhysicsService] Checking collision (close):', {
+              staticBody: { 
+                id: staticBody.id, 
+                position: staticBody.position, 
+                aabb: { min: aabbA.min, max: aabbA.max }
+              },
+              dynamicBody: { 
+                id: dynamicBody.id, 
+                position: dynamicBody.position, 
+                aabb: { min: aabbB.min, max: aabbB.max },
+                velocity: dynamicBody.velocity
+              },
+              distanceY,
+              isColliding,
+            });
+          }
+        }
         
         // 디버그: 정적/동적 쌍이 가까이 있을 때 상세 로그 출력
         if (bodyA.isStatic || bodyB.isStatic) {
