@@ -103,10 +103,14 @@ export class GameController {
         
         // 블록이 충분히 느리게 움직일 때만 고정 (충돌로 인해 멈춤)
         // 속도 임계값을 높여서 더 쉽게 감지
-        if (Math.abs(fallingBlock.velocity.y) < 200) {
+        if (Math.abs(fallingBlock.velocity.y) < 500) {
           // 즉시 고정 (setTimeout 제거)
           if (this.currentBlock === fallingBlock && fallingBlock.isFalling) {
             console.log('[GameController] Fixing block immediately after collision');
+            // 속도를 0으로 설정하여 완전히 멈춤
+            fallingBlock.velocity.x = 0;
+            fallingBlock.velocity.y = 0;
+            fallingBlock.angularVelocity = 0;
             this._fixBlockToTower(fallingBlock);
           }
         }
@@ -610,9 +614,9 @@ export class GameController {
           // 더 넓은 범위로 확인 (충돌 해결로 인해 약간 겹칠 수 있음)
           // 블록이 베이스 위에 있거나 약간 겹치면 닿은 것으로 간주
           const distanceY = blockBottom - baseTop;
-          isTouchingTower = distanceY <= 20 && 
-                           distanceY >= -20 &&
-                           Math.abs(this.currentBlock.velocity.y) < 200 &&
+          isTouchingTower = distanceY <= 30 && 
+                           distanceY >= -30 &&
+                           Math.abs(this.currentBlock.velocity.y) < 500 &&
                            isInBaseRangeX;
           towerTopY = baseTop;
           
@@ -636,9 +640,9 @@ export class GameController {
         const blockBottom = blockAABB.max.y; // 블록의 하단
         // 블록의 하단이 타워 최상단에 닿았는지 확인
         const distanceY = blockBottom - towerTopY;
-        isTouchingTower = distanceY <= 10 && 
-                         distanceY >= -10 &&
-                         Math.abs(this.currentBlock.velocity.y) < 200;
+        isTouchingTower = distanceY <= 30 && 
+                         distanceY >= -30 &&
+                         Math.abs(this.currentBlock.velocity.y) < 500;
       }
       
       if (isTouchingTower) {

@@ -101,14 +101,23 @@ export class CollisionUtil {
     const invMassSum = bodyA.invMass + bodyB.invMass;
     if (invMassSum === 0) return;
 
+    // 반발 계수가 0이면 완전 비탄성 충돌 (속도 감쇠)
     const impulseScalar = (-(1 + restitution) * velAlongNormal) / invMassSum;
     const impulse = Vector.multiply(normal, impulseScalar);
 
     if (!bodyA.isStatic) {
       bodyA.applyImpulse(Vector.multiply(impulse, -1));
+      // 반발 계수가 0이면 속도를 더 감쇠시킴
+      if (restitution === 0) {
+        bodyA.velocity.multiply(0.95); // 추가 감쇠
+      }
     }
     if (!bodyB.isStatic) {
       bodyB.applyImpulse(impulse);
+      // 반발 계수가 0이면 속도를 더 감쇠시킴
+      if (restitution === 0) {
+        bodyB.velocity.multiply(0.95); // 추가 감쇠
+      }
     }
   }
 }

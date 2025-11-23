@@ -11,14 +11,27 @@ class GameApp {
     this.gameCanvas = document.getElementById('game-canvas');
     this.uiCanvas = document.getElementById('ui-canvas');
 
-    // Canvas 크기 설정
-    const width = 800;
-    const height = 600;
+    // Canvas 크기 설정 (전체화면)
+    const width = window.innerWidth;
+    const height = window.innerHeight;
     
     this.gameCanvas.width = width;
     this.gameCanvas.height = height;
     this.uiCanvas.width = width;
     this.uiCanvas.height = height;
+    
+    // 창 크기 변경 시 Canvas 크기 조정
+    window.addEventListener('resize', () => {
+      const newWidth = window.innerWidth;
+      const newHeight = window.innerHeight;
+      this.gameCanvas.width = newWidth;
+      this.gameCanvas.height = newHeight;
+      this.uiCanvas.width = newWidth;
+      this.uiCanvas.height = newHeight;
+      // 컨트롤러 크기 업데이트
+      this.controller.canvasWidth = newWidth;
+      this.controller.canvasHeight = newHeight;
+    });
 
     // 렌더러 생성
     this.gameRenderer = new CanvasRenderer(this.gameCanvas, {
