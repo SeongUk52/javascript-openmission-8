@@ -87,11 +87,13 @@ export class GameController {
       const fallingBlock = this.currentBlock;
       if (!fallingBlock || !fallingBlock.isFalling) return;
       
-      // 블록이 베이스나 다른 정적 객체와 충돌했는지 확인
-      const staticBody = bodyA.isStatic ? bodyA : (bodyB.isStatic ? bodyB : null);
-      const dynamicBody = bodyA.isStatic ? bodyB : (bodyB.isStatic ? bodyA : null);
+      // 블록이 베이스나 다른 정적 객체(또는 배치된 블록)와 충돌했는지 확인
+      // 배치된 블록도 충돌 대상으로 처리 (isPlaced: true)
+      const staticBody = bodyA.isStatic || bodyA.isPlaced ? bodyA : (bodyB.isStatic || bodyB.isPlaced ? bodyB : null);
+      const dynamicBody = (bodyA.isStatic || bodyA.isPlaced) ? bodyB : ((bodyB.isStatic || bodyB.isPlaced) ? bodyA : null);
       
-      if (staticBody && dynamicBody === fallingBlock) {
+      // staticBody가 있고, dynamicBody가 떨어지는 블록이어야 함
+      if (staticBody && dynamicBody === fallingBlock && !staticBody.isFalling) {
         // 블록이 정적 객체(베이스 또는 배치된 블록)와 충돌
         console.log('[GameController] Block collided with static body:', {
           blockId: fallingBlock.id,
