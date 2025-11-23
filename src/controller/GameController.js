@@ -376,8 +376,9 @@ export class GameController {
     // 떨어지는 블록 목록에 추가
     this.fallingBlocks.add(blockToPlace);
     
-    // currentBlock은 유지 (다음 placeBlock 호출 시 새 블록 생성하도록)
-    // 블록이 고정되면 _fixBlockToTower에서 currentBlock을 null로 설정
+    // currentBlock을 null로 설정 (다음 placeBlock 호출 시 새 블록 생성하도록)
+    // 블록이 고정되면 _fixBlockToTower에서 다음 블록을 생성함
+    this.currentBlock = null;
     
     console.log('[GameController] Block positioned for falling:', {
       blockId: blockToPlace.id,
@@ -498,10 +499,13 @@ export class GameController {
     // 떨어지는 블록 목록에서 제거
     this.fallingBlocks.delete(block);
     
-    // currentBlock이 이 블록이면 초기화
+    // currentBlock이 이 블록이면 초기화하고 다음 블록 생성
+    // currentBlock이 아니어도 정상 동작 (떨어지는 블록일 수 있음)
     if (this.currentBlock === block) {
       this.currentBlock = null;
-      console.log('[GameController] Current block cleared');
+      console.log('[GameController] Current block cleared, spawning next block');
+      // 다음 블록 생성 (자동 배치하지 않음 - 사용자가 스페이스바를 눌러야 함)
+      this._spawnNextBlock();
     }
 
     // 점수 계산 및 추가
@@ -510,9 +514,6 @@ export class GameController {
     // 라운드 증가
     this.gameState.incrementRound();
     this.consecutivePlacements++;
-
-    // 다음 블록 생성 (자동 배치하지 않음 - 사용자가 스페이스바를 눌러야 함)
-    this._spawnNextBlock();
 
     // 이벤트 콜백
     if (this.onBlockPlaced) {
