@@ -209,6 +209,11 @@ export class CanvasRenderer {
    * @param {Tower} tower
    */
   drawTowerBase(tower) {
+    if (!tower || !tower.basePosition || !tower.baseWidth) {
+      console.warn('[CanvasRenderer] drawTowerBase: invalid tower data', tower);
+      return;
+    }
+    
     const { basePosition, baseWidth } = tower;
     const halfWidth = baseWidth / 2;
     const baseHeight = 10;
@@ -218,19 +223,30 @@ export class CanvasRenderer {
     this.ctx.lineWidth = 3;
 
     // 타워 기반 사각형
-    // basePosition.y는 베이스의 중심 Y 좌표
-    // 베이스의 상단 Y 좌표 = basePosition.y - baseHeight/2
-    // 하지만 베이스는 바닥에 붙어있으므로, basePosition.y는 베이스의 하단 Y 좌표로 간주
-    // 따라서 베이스의 상단 Y 좌표 = basePosition.y - baseHeight
+    // basePosition.y는 베이스의 하단 Y 좌표 (canvasHeight)
+    // 베이스의 상단 Y 좌표 = basePosition.y - baseHeight
+    const baseTopY = basePosition.y - baseHeight;
+    const baseLeftX = basePosition.x - halfWidth;
+    
+    // 디버그: 베이스 그리기 정보
+    // console.log('[CanvasRenderer] Drawing base:', {
+    //   basePosition: { x: basePosition.x, y: basePosition.y },
+    //   baseTopY,
+    //   baseLeftX,
+    //   baseWidth,
+    //   baseHeight,
+    //   canvasHeight: this.canvas.height,
+    // });
+    
     this.ctx.fillRect(
-      basePosition.x - halfWidth,
-      basePosition.y - baseHeight,
+      baseLeftX,
+      baseTopY,
       baseWidth,
       baseHeight
     );
     this.ctx.strokeRect(
-      basePosition.x - halfWidth,
-      basePosition.y - baseHeight,
+      baseLeftX,
+      baseTopY,
       baseWidth,
       baseHeight
     );
@@ -308,11 +324,28 @@ export class CanvasRenderer {
 
     // 타워 베이스 그리기 (항상)
     if (gameState.tower) {
+      // 디버그: 베이스 정보 확인
+      if (!gameState.tower.basePosition || !gameState.tower.baseWidth) {
+        console.warn('[CanvasRenderer] Tower base missing data:', {
+          hasBasePosition: !!gameState.tower.basePosition,
+          hasBaseWidth: !!gameState.tower.baseWidth,
+        });
+      }
       this.drawTowerBase(gameState.tower);
     }
 
     // 타워에 배치된 블록들 그리기
     if (gameState.tower && gameState.tower.blocks) {
+      // 디버그: 타워 블록 정보
+      // console.log('[CanvasRenderer] Drawing tower blocks:', {
+      //   blockCount: gameState.tower.blocks.length,
+      //   blocks: gameState.tower.blocks.map(b => ({
+      //     id: b.id,
+      //     position: { x: b.position.x, y: b.position.y },
+      //     isPlaced: b.isPlaced,
+      //   })),
+      // });
+      
       gameState.tower.blocks.forEach(block => {
         this.drawBlock(block);
       });

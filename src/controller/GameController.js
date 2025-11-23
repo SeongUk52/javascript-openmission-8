@@ -46,7 +46,7 @@ export class GameController {
 
     // 타워
     const baseX = canvasWidth / 2;
-    const baseY = canvasHeight - 10; // 베이스 높이(10)만큼 위로 올림
+    const baseY = canvasHeight; // 베이스는 바닥에 붙어있음 (베이스의 하단 Y 좌표)
     this.tower = new Tower({
       basePosition: new Vector(baseX, baseY),
       baseWidth: 200,
@@ -79,6 +79,40 @@ export class GameController {
    * @private
    */
   _setupPhysicsEvents() {
+    // 충돌 이벤트: 블록이 베이스나 타워에 닿았는지 확인
+    this.physicsService.onCollision = (bodyA, bodyB) => {
+      if (!this.gameState.isPlaying) return;
+      
+      // 현재 블록이 충돌에 포함되어 있는지 확인
+      const fallingBlock = this.currentBlock;
+      if (!fallingBlock || !fallingBlock.isFalling) return;
+      
+      // 블록이 베이스나 다른 정적 객체와 충돌했는지 확인
+      const staticBody = bodyA.isStatic ? bodyA : (bodyB.isStatic ? bodyB : null);
+      const dynamicBody = bodyA.isStatic ? bodyB : (bodyB.isStatic ? bodyA : null);
+      
+      if (staticBody && dynamicBody === fallingBlock) {
+        // 블록이 정적 객체(베이스 또는 배치된 블록)와 충돌
+        console.log('[GameController] Block collided with static body:', {
+          blockId: fallingBlock.id,
+          staticBodyId: staticBody.id,
+          blockVelocityY: fallingBlock.velocity.y,
+          blockPosition: { x: fallingBlock.position.x, y: fallingBlock.position.y },
+          staticBodyPosition: { x: staticBody.position.x, y: staticBody.position.y },
+        });
+        
+        // 블록이 충분히 느리게 움직일 때만 고정 (충돌로 인해 멈춤)
+        // 속도 임계값을 높여서 더 쉽게 감지
+        if (Math.abs(fallingBlock.velocity.y) < 200) {
+          // 즉시 고정 (setTimeout 제거)
+          if (this.currentBlock === fallingBlock && fallingBlock.isFalling) {
+            console.log('[GameController] Fixing block immediately after collision');
+            this._fixBlockToTower(fallingBlock);
+          }
+        }
+      }
+    };
+    
     this.physicsService.onTopple = (body) => {
       // 게임이 시작되지 않았으면 무시
       if (!this.gameState.isPlaying) {
@@ -107,15 +141,28 @@ export class GameController {
     this.physicsService.clearBodies();
     
     // 타워 베이스 추가 (고정된 바닥)
-    this.physicsService.addBody(
-      new Block({
-        position: this.tower.basePosition,
-        width: this.tower.baseWidth,
-        height: 10,
-        isStatic: true,
-        color: '#34495e',
-      })
-    );
+    // 베이스의 중심 위치 계산: basePosition.y는 베이스의 하단이므로
+    // 베이스의 중심 Y = basePosition.y - height/2
+    const baseHeight = 10;
+    const baseCenterY = this.tower.basePosition.y - baseHeight / 2;
+    const baseBlock = new Block({
+      position: new Vector(this.tower.basePosition.x, baseCenterY),
+      width: this.tower.baseWidth,
+      height: baseHeight,
+      isStatic: true,
+      color: '#34495e',
+    });
+    baseBlock.isPlaced = true; // 베이스는 항상 배치된 상태
+    baseBlock.isFalling = false;
+    this.physicsService.addBody(baseBlock);
+    
+    console.log('[GameController] Base added to physics:', {
+      basePosition: { x: this.tower.basePosition.x, y: this.tower.basePosition.y },
+      baseCenter: { x: baseBlock.position.x, y: baseBlock.position.y },
+      baseSize: { width: this.tower.baseWidth, height: baseHeight },
+      baseAABB: baseBlock.getAABB(),
+      baseId: baseBlock.id,
+    });
     
     this._spawnNextBlock();
     console.log('[GameController] currentBlock spawned:', !!this.currentBlock);
@@ -171,9 +218,11 @@ export class GameController {
     block.velocity.x = 0;
     block.velocity.y = 0;
     block.angularVelocity = 0;
-
+    
+    // 배치 전에는 물리 엔진에 추가하지 않음 (떨어지지 않도록)
+    // 배치할 때 물리 엔진에 추가하여 떨어지도록 함
     this.currentBlock = block;
-    this.physicsService.addBody(block);
+    // this.physicsService.addBody(block); // 주석 처리 - 배치할 때 추가
     
     console.log('[GameController] Block spawned:', {
       position: { x: block.position.x, y: block.position.y },
@@ -214,23 +263,97 @@ export class GameController {
       return;
     }
 
-    // 블록을 타워에 추가하기 전에 물리 엔진에서 제거
-    // 배치된 블록은 더 이상 물리 시뮬레이션에 참여하지 않음
     const blockToPlace = this.currentBlock;
     
-    // 블록 상태 변경 (배치됨)
-    blockToPlace.place(); // isPlaced = true, isFalling = false
+    // 블록을 물리 엔진에 추가하여 떨어지도록 함
+    // (이미 추가되어 있으면 중복 추가 방지)
+    if (!this.physicsService.bodies.includes(blockToPlace)) {
+      this.physicsService.addBody(blockToPlace);
+      console.log('[GameController] Block added to physics for falling');
+    }
     
-    // 물리 엔진에서 제거
-    this.physicsService.removeBody(blockToPlace);
+    // 블록이 타워 위에 떨어지도록 위치 설정
+    // 블록을 타워 위에 배치하는 것이 아니라, 블록이 떨어져서 타워에 닿도록 함
+    // 따라서 블록의 초기 위치는 타워 위쪽에 설정
+    const blockHeight = blockToPlace.height;
+    let spawnY;
+    if (this.tower.getBlockCount() === 0) {
+      // 첫 번째 블록: 베이스 위쪽에 배치 (화면 상단 근처)
+      spawnY = 100; // 화면 상단에서 100픽셀 아래
+    } else {
+      // 이후 블록: 타워 최상단 위쪽에 배치
+      const towerTopY = this.tower.getTopY();
+      spawnY = Math.max(50, towerTopY - 150); // 타워 위 150픽셀 (최소 50픽셀)
+    }
     
-    // 블록을 타워에 추가
-    this.tower.addBlock(blockToPlace);
-    this.currentBlock = null;
+    blockToPlace.position.y = spawnY;
+    blockToPlace.position.x = this.nextBlockX;
+    blockToPlace.velocity.x = 0;
+    blockToPlace.velocity.y = 0;
+    blockToPlace.angularVelocity = 0;
+    blockToPlace.angle = 0;
     
-    console.log('[GameController] Block placed, removed from physics:', {
+    console.log('[GameController] Block positioned for falling:', {
+      spawnY,
+      nextBlockX: this.nextBlockX,
+      towerTopY: this.tower.getBlockCount() === 0 ? this.tower.basePosition.y - 10 : this.tower.getTopY(),
+      blockPosition: { x: blockToPlace.position.x, y: blockToPlace.position.y },
+      blockAABB: blockToPlace.getAABB(),
       blockId: blockToPlace.id,
       physicsBodiesCount: this.physicsService.bodies.length,
+    });
+    
+    // 블록 상태: 떨어지는 중
+    blockToPlace.isFalling = true;
+    blockToPlace.isPlaced = false;
+    
+    // 블록이 타워에 닿았는지 확인하는 로직은 update()에서 처리
+    // 여기서는 블록을 떨어뜨리기만 함
+    // 블록이 떨어져서 타워에 닿으면 자동으로 고정됨
+  }
+
+  /**
+   * 블록을 타워에 고정
+   * @param {Block} block
+   * @private
+   */
+  _fixBlockToTower(block) {
+    if (!block || !block.isFalling) return;
+
+    const blockHeight = block.height;
+    
+    // 블록의 위치를 타워의 최상단에 맞춤
+    let targetY;
+    if (this.tower.getBlockCount() === 0) {
+      // 첫 번째 블록: 베이스 위에 배치
+      targetY = this.tower.basePosition.y - 10 - blockHeight / 2;
+    } else {
+      // 이후 블록: 타워 최상단 위에 배치
+      const towerTopY = this.tower.getTopY();
+      targetY = towerTopY - blockHeight / 2;
+    }
+    
+    block.position.y = targetY;
+    block.position.x = this.nextBlockX;
+    block.velocity.x = 0;
+    block.velocity.y = 0;
+    block.angularVelocity = 0;
+    block.angle = 0;
+    
+    // 블록 상태 변경 (배치됨)
+    block.place(); // isPlaced = true, isFalling = false
+    
+    // 물리 엔진에서 제거
+    this.physicsService.removeBody(block);
+    
+    // 블록을 타워에 추가
+    this.tower.addBlock(block);
+    this.currentBlock = null;
+    
+    console.log('[GameController] Block fixed to tower:', {
+      blockId: block.id,
+      position: { x: block.position.x, y: block.position.y },
+      towerBlocks: this.tower.getBlockCount(),
     });
 
     // 점수 계산 및 추가
@@ -383,20 +506,96 @@ export class GameController {
     // 이미 update() 시작 부분에서 isPlaying 체크를 하므로 안전함
     this.physicsService.update(deltaTime);
 
+    // 현재 블록이 타워에 닿았는지 확인 (자동 고정)
+    // 충돌 이벤트로도 처리하지만, 여기서도 직접 확인
+    if (this.currentBlock && 
+        this.currentBlock.isFalling && 
+        this.physicsService.bodies.includes(this.currentBlock)) {
+      const blockAABB = this.currentBlock.getAABB();
+      
+      // 베이스 또는 타워 블록과 충돌했는지 확인
+      let isTouchingTower = false;
+      let towerTopY = 0;
+      
+      if (this.tower.getBlockCount() === 0) {
+        // 첫 번째 블록: 베이스와 충돌 확인
+        // 베이스는 물리 엔진에 있으므로 충돌 감지로 확인
+        const baseBlock = this.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
+        if (baseBlock) {
+          const baseAABB = baseBlock.getAABB();
+          // 블록의 하단이 베이스의 상단에 닿았는지 확인
+          const blockBottom = blockAABB.min.y;
+          const baseTop = baseAABB.min.y;
+          // 더 넓은 범위로 확인 (충돌 해결로 인해 약간 겹칠 수 있음)
+          // 블록이 베이스 위에 있거나 약간 겹치면 닿은 것으로 간주
+          isTouchingTower = blockBottom <= baseTop + 20 && 
+                           blockBottom >= baseTop - 20 &&
+                           Math.abs(this.currentBlock.velocity.y) < 200;
+          towerTopY = baseTop;
+          
+          // 디버그: 베이스와 블록 위치 확인
+          if (Math.abs(blockBottom - baseTop) < 30) {
+            console.log('[GameController] Block near base:', {
+              blockBottom,
+              baseTop,
+              distance: Math.abs(blockBottom - baseTop),
+              velocityY: this.currentBlock.velocity.y,
+              isTouching: isTouchingTower,
+            });
+          }
+        }
+      } else {
+        // 이후 블록: 타워 최상단과 충돌 확인
+        towerTopY = this.tower.getTopY();
+        const blockBottom = blockAABB.min.y;
+        isTouchingTower = blockBottom <= towerTopY + 15 && 
+                         blockBottom >= towerTopY - 15 &&
+                         Math.abs(this.currentBlock.velocity.y) < 150;
+      }
+      
+      if (isTouchingTower) {
+        console.log('[GameController] Block touching tower, fixing...', {
+          blockBottom: blockAABB.min.y,
+          towerTopY,
+          velocityY: this.currentBlock.velocity.y,
+          towerBlocks: this.tower.getBlockCount(),
+        });
+        // 블록을 타워에 고정
+        this._fixBlockToTower(this.currentBlock);
+        return; // 고정 후에는 더 이상 체크하지 않음
+      }
+    }
+
     // 현재 블록이 화면 밖으로 나갔는지 확인
-    // 주의: 블록이 생성된 직후에는 아직 물리 업데이트가 한 번도 안 되었을 수 있으므로,
-    // 약간의 여유를 두고 체크해야 함
-    // 단, 블록이 떨어지는 중일 때만 체크 (화면 위쪽으로 나가는 건 정상)
-    // 또한 블록이 물리 엔진에 있어야 함 (배치된 블록은 체크하지 않음)
+    // 단, 블록이 떨어지는 중일 때만 체크 (타워에 닿기 전까지는 기다림)
+    // 블록이 타워 근처에 있으면 게임 오버하지 않음
     if (this.currentBlock && 
         this.currentBlock.isFalling && 
         this.physicsService.bodies.includes(this.currentBlock)) {
       const aabb = this.currentBlock.getAABB();
       
-      // 화면 아래쪽으로 나갔을 때만 게임 오버
-      // 좌우로 나가는 건 일단 허용 (블록이 회전하거나 이동할 수 있음)
-      // 위쪽으로 나가는 건 정상 (블록이 떨어지기 시작할 때)
-      const isOutOfBounds = aabb.min.y > this.canvasHeight;
+      // 베이스 위치 확인
+      const baseBlock = this.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
+      let towerTopY = 0;
+      let isNearTower = false;
+      
+      if (this.tower.getBlockCount() === 0 && baseBlock) {
+        // 첫 번째 블록: 베이스와의 거리 확인
+        const baseAABB = baseBlock.getAABB();
+        towerTopY = baseAABB.min.y; // 베이스 상단
+        const blockBottom = aabb.max.y; // 블록 하단
+        const distanceY = blockBottom - towerTopY;
+        isNearTower = distanceY <= 100 && distanceY >= -20; // 베이스 위 100픽셀 이내 또는 겹침
+      } else if (this.tower.getBlockCount() > 0) {
+        // 이후 블록: 타워 최상단과의 거리 확인
+        towerTopY = this.tower.getTopY();
+        const blockBottom = aabb.max.y;
+        const distanceY = blockBottom - towerTopY;
+        isNearTower = distanceY <= 100 && distanceY >= -20;
+      }
+      
+      // 화면 아래쪽으로 나갔고, 타워 근처에 없을 때만 게임 오버
+      const isOutOfBounds = aabb.min.y > this.canvasHeight + 50 && !isNearTower; // 여유 공간 추가
       
       if (isOutOfBounds) {
         console.log('[GameController] Block out of bounds (bottom):', {
@@ -409,6 +608,9 @@ export class GameController {
           blockSize: { width: this.currentBlock.width, height: this.currentBlock.height },
           angle: this.currentBlock.angle,
           velocity: { x: this.currentBlock.velocity.x, y: this.currentBlock.velocity.y },
+          towerTopY,
+          isNearTower,
+          baseBlock: baseBlock ? { position: baseBlock.position, aabb: baseBlock.getAABB() } : null,
         });
         this._handleGameOver();
         return;

@@ -85,8 +85,11 @@ export class PhysicsService {
       body.update(deltaTime);
     });
 
-    // 3. 충돌 감지 및 해결
-    this.resolveCollisions();
+    // 3. 충돌 감지 및 해결 (여러 번 반복하여 안정성 향상)
+    // 충돌 해결은 여러 번 반복해야 블록이 베이스를 통과하지 않음
+    for (let i = 0; i < 3; i++) {
+      this.resolveCollisions();
+    }
 
     // 4. 균형 판정
     this.checkBalance();
@@ -96,6 +99,9 @@ export class PhysicsService {
    * 충돌 감지 및 해결
    */
   resolveCollisions() {
+    // 디버그: bodies 개수 확인
+    // console.log('[PhysicsService] resolveCollisions called, bodies count:', this.bodies.length);
+    
     // 모든 Body 쌍에 대해 충돌 검사
     for (let i = 0; i < this.bodies.length; i++) {
       for (let j = i + 1; j < this.bodies.length; j++) {
@@ -110,14 +116,32 @@ export class PhysicsService {
         // 충돌 감지
         const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
         
+        // 디버그: 모든 정적/동적 쌍 확인
+        if (bodyA.isStatic || bodyB.isStatic) {
+          const staticBody = bodyA.isStatic ? bodyA : bodyB;
+          const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
+          const aabbA = bodyA.getAABB();
+          const aabbB = bodyB.getAABB();
+          
+          // 충돌 가능성이 있는 경우만 로그 출력 (너무 많이 출력되지 않도록)
+          const distanceY = Math.abs(dynamicBody.position.y - staticBody.position.y);
+          if (distanceY < 100 && !isColliding) {
+            // console.log('[PhysicsService] Near but not colliding:', {
+            //   staticBody: { id: staticBody.id, position: staticBody.position, aabb: aabbA },
+            //   dynamicBody: { id: dynamicBody.id, position: dynamicBody.position, aabb: aabbB, velocity: dynamicBody.velocity },
+            //   distanceY,
+            // });
+          }
+        }
+        
         if (isColliding) {
           // 디버그: 충돌 감지 로그
           if (bodyA.isStatic || bodyB.isStatic) {
             const staticBody = bodyA.isStatic ? bodyA : bodyB;
             const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
             console.log('[PhysicsService] Collision detected (static vs dynamic):', {
-              staticBody: { id: staticBody.id, position: staticBody.position, isPlaced: staticBody.isPlaced },
-              dynamicBody: { id: dynamicBody.id, position: dynamicBody.position, velocity: dynamicBody.velocity },
+              staticBody: { id: staticBody.id, position: staticBody.position, isPlaced: staticBody.isPlaced, aabb: staticBody.getAABB() },
+              dynamicBody: { id: dynamicBody.id, position: dynamicBody.position, velocity: dynamicBody.velocity, aabb: dynamicBody.getAABB() },
             });
           }
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
