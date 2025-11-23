@@ -68,7 +68,7 @@ export class CollisionUtil {
    * @private
    */
   static _positionalCorrection(bodyA, bodyB, normal, penetration) {
-    const percent = 0.2; // 보정 비율 (낮춰서 더 부드럽게)
+    const percent = 0.8; // 보정 비율 (증가하여 더 정확한 위치 보정)
     const slop = 0.01; // 허용 오차
     const correctedPenetration = Math.max(penetration - slop, 0);
 
@@ -107,40 +107,36 @@ export class CollisionUtil {
 
     if (!bodyA.isStatic) {
       bodyA.applyImpulse(Vector.multiply(impulse, -1));
-      // 반발 계수가 0이면 속도를 더 감쇠시킴
-      if (restitution === 0) {
-        bodyA.velocity.multiply(0.95); // 추가 감쇠
-      }
     }
     if (!bodyB.isStatic) {
       bodyB.applyImpulse(impulse);
-      // 반발 계수가 0이면 속도를 더 감쇠시킴
-      if (restitution === 0) {
-        bodyB.velocity.multiply(0.95); // 추가 감쇠
-      }
     }
     
-    // 마찰 적용 (접촉 중인 블록의 속도 감쇠)
-    const friction = Math.min(bodyA.friction || 0.6, bodyB.friction || 0.6);
-    if (friction > 0) {
+    // 마찰 적용 (Coulumb 마찰 법칙: 마찰 임펄스는 정상 임펄스에 비례)
+    const friction = Math.min(bodyA.friction || 0.8, bodyB.friction || 0.8);
+    if (friction > 0 && Math.abs(impulseScalar) > 0) {
       // 접선 속도 계산 (normal에 수직인 방향)
       const tangent = new Vector(-normal.y, normal.x);
       const velAlongTangent = relativeVelocity.dot(tangent);
       
-      // 마찰 임펄스 계산
-      const frictionImpulseScalar = -velAlongTangent * friction / invMassSum;
+      // 마찰 임펄스 계산 (정상 임펄스에 비례, 최대값 제한)
+      const maxFrictionImpulse = Math.abs(impulseScalar) * friction;
+      const frictionImpulseScalar = Math.max(
+        -maxFrictionImpulse,
+        Math.min(maxFrictionImpulse, -velAlongTangent / invMassSum)
+      );
       const frictionImpulse = Vector.multiply(tangent, frictionImpulseScalar);
       
       // 마찰 적용 (속도 감쇠)
       if (!bodyA.isStatic) {
-        bodyA.velocity.add(Vector.multiply(frictionImpulse, -bodyA.invMass));
-        // 각속도도 마찰에 의해 감쇠
-        bodyA.angularVelocity *= (1 - friction * 0.1);
+        bodyA.applyImpulse(Vector.multiply(frictionImpulse, -1));
+        // 접촉 중인 블록의 각속도 감쇠 (마찰에 의해)
+        bodyA.angularVelocity *= (1 - friction * 0.3);
       }
       if (!bodyB.isStatic) {
-        bodyB.velocity.add(Vector.multiply(frictionImpulse, bodyB.invMass));
-        // 각속도도 마찰에 의해 감쇠
-        bodyB.angularVelocity *= (1 - friction * 0.1);
+        bodyB.applyImpulse(frictionImpulse);
+        // 접촉 중인 블록의 각속도 감쇠 (마찰에 의해)
+        bodyB.angularVelocity *= (1 - friction * 0.3);
       }
     }
   }

@@ -86,12 +86,6 @@ export class PhysicsService {
     this.bodies.forEach(body => {
       if (!body.isStatic) {
         body.update(deltaTime);
-        // 블록이 바닥이나 다른 블록에 닿아있으면 각속도 감쇠 강화
-        // (마찰 효과)
-        if (Math.abs(body.velocity.y) < 10 && Math.abs(body.velocity.x) < 10) {
-          // 거의 정지 상태면 각속도도 빠르게 감쇠
-          body.angularVelocity *= 0.9;
-        }
       }
     });
 

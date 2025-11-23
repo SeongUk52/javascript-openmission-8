@@ -167,13 +167,15 @@ export class Body {
   applyFriction(deltaTime) {
     if (this.isStatic) return;
     
-    // 선형 마찰
-    const frictionForce = this.velocity.copy().multiply(-this.friction * this.mass);
+    // 선형 마찰 (공기 저항 효과 - 약함)
+    const airResistance = 0.02; // 공기 저항 계수
+    const frictionForce = this.velocity.copy().multiply(-airResistance * this.mass);
     this.velocity.add(Vector.multiply(frictionForce, deltaTime));
     
-    // 각 마찰 (강화) - 바닥에 닿았을 때 회전 감소
-    const frictionMultiplier = Math.abs(this.velocity.y) < 10 ? 2.0 : 1.0; // 거의 정지 상태면 마찰 강화
-    const frictionTorque = -this.angularVelocity * this.friction * frictionMultiplier * this.inertia;
+    // 각 마찰 (공기 저항 효과 - 약함)
+    // 실제 마찰은 충돌 시에만 적용됨
+    const airResistanceAngular = 0.05; // 각속도 공기 저항
+    const frictionTorque = -this.angularVelocity * airResistanceAngular * this.inertia;
     this.angularVelocity += frictionTorque * this.invInertia * deltaTime;
     
     // 매우 작은 값이면 0으로 설정 (수치 안정성)
