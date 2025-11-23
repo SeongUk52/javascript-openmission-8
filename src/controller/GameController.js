@@ -307,14 +307,24 @@ export class GameController {
     // 블록을 타워 위에 배치하는 것이 아니라, 블록이 떨어져서 타워에 닿도록 함
     // 따라서 블록의 초기 위치는 타워 위쪽에 설정
     const blockHeight = blockToPlace.height;
+    const blockCount = this.tower.getBlockCount();
     let spawnY;
-    if (this.tower.getBlockCount() === 0) {
+    
+    console.log('[GameController] Calculating spawnY:', {
+      blockCount,
+      towerTopY: blockCount === 0 ? null : this.tower.getTopY(),
+      basePositionY: this.tower.basePosition.y,
+    });
+    
+    if (blockCount === 0) {
       // 첫 번째 블록: 베이스 위쪽에 배치 (화면 상단 근처)
       spawnY = 200; // 화면 상단에서 200픽셀 아래
+      console.log('[GameController] First block spawnY:', spawnY);
     } else {
       // 이후 블록: 타워 최상단 위쪽에 배치
       const towerTopY = this.tower.getTopY();
       spawnY = Math.max(100, towerTopY - 300); // 타워 위 300픽셀 (최소 100픽셀)
+      console.log('[GameController] Subsequent block spawnY:', { towerTopY, spawnY });
     }
     
     // 블록의 X 위치를 베이스 범위 내로 제한
