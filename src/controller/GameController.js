@@ -147,7 +147,7 @@ export class GameController {
     // 타워 베이스 추가 (고정된 바닥)
     // 베이스의 중심 위치 계산: basePosition.y는 베이스의 하단이므로
     // 베이스의 중심 Y = basePosition.y - height/2
-    const baseHeight = 10;
+    const baseHeight = 30; // 베이스 높이 증가
     const baseCenterY = this.tower.basePosition.y - baseHeight / 2;
     const baseBlock = new Block({
       position: new Vector(this.tower.basePosition.x, baseCenterY),
@@ -364,11 +364,11 @@ export class GameController {
     let targetY;
     if (this.tower.getBlockCount() === 0) {
       // 첫 번째 블록: 베이스 위에 배치
-      // 베이스 상단 = basePosition.y - 10 (베이스 높이 10)
+      // 베이스 상단 = basePosition.y - 30 (베이스 높이 30)
       // 블록의 하단 = 베이스 상단
-      // position.y + blockHeight/2 = basePosition.y - 10
-      // position.y = basePosition.y - 10 - blockHeight/2
-      targetY = this.tower.basePosition.y - 10 - blockHeight / 2;
+      // position.y + blockHeight/2 = basePosition.y - 30
+      // position.y = basePosition.y - 30 - blockHeight/2
+      targetY = this.tower.basePosition.y - 30 - blockHeight / 2;
     } else {
       // 이후 블록: 타워 최상단 위에 배치
       // 타워 최상단 = getTopY() (블록의 최대 Y, 즉 블록의 하단)

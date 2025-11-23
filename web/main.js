@@ -52,8 +52,8 @@ class GameApp {
     this.controller = new GameController({
       canvasWidth: width,
       canvasHeight: height,
-      blockWidth: 50,
-      blockHeight: 20,
+      blockWidth: 100, // 블록 크기 증가
+      blockHeight: 40, // 블록 높이 증가
     });
 
     // 이벤트 콜백 설정
