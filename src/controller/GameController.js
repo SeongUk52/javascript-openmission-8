@@ -137,10 +137,12 @@ export class GameController {
         shouldFix = true;
       }
       
-      // 베이스를 제외하고 블록이 멈추는 동작은 모두 제거
-      // 물리 엔진이 자연스럽게 처리하도록 함
-      // 블록이 충돌해도 자동으로 멈추지 않음
-      return;
+      // 블록이 충돌하면 isPlaced로 표시 (균형 판정을 받기 위해)
+      // 하지만 자동으로 멈추지는 않음 - 물리 엔진이 자연스럽게 처리
+      if (!dynamicBody.isPlaced) {
+        dynamicBody.place(); // isPlaced = true, isFalling = false
+        // 물리 엔진이 자연스럽게 처리하도록 함 (자동 고정하지 않음)
+      }
     };
     
     this.physicsService.onTopple = (body, result) => {

@@ -52,8 +52,8 @@ class GameApp {
     this.controller = new GameController({
       canvasWidth: width,
       canvasHeight: height,
-      blockWidth: 100, // 블록 크기 증가
-      blockHeight: 40, // 블록 높이 증가
+      blockWidth: 50, // 정사각형 블록
+      blockHeight: 50, // 정사각형 블록
     });
 
     // 이벤트 콜백 설정
