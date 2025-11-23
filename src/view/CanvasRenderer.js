@@ -336,17 +336,17 @@ export class CanvasRenderer {
 
     // 타워에 배치된 블록들 그리기
     if (gameState.tower && gameState.tower.blocks) {
-      // 디버그: 타워 블록 정보
-      console.log('[CanvasRenderer] Drawing tower blocks:', {
-        blockCount: gameState.tower.blocks.length,
-        blocks: gameState.tower.blocks.map(b => ({
-          id: b.id,
-          position: { x: b.position.x, y: b.position.y },
-          isPlaced: b.isPlaced,
-          width: b.width,
-          height: b.height,
-        })),
-      });
+      // 디버그 로그 제거 (매 프레임마다 출력되어 성능에 영향)
+      // console.log('[CanvasRenderer] Drawing tower blocks:', {
+      //   blockCount: gameState.tower.blocks.length,
+      //   blocks: gameState.tower.blocks.map(b => ({
+      //     id: b.id,
+      //     position: { x: b.position.x, y: b.position.y },
+      //     isPlaced: b.isPlaced,
+      //     width: b.width,
+      //     height: b.height,
+      //   })),
+      // });
       
       gameState.tower.blocks.forEach(block => {
         this.drawBlock(block);
