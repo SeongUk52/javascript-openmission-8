@@ -150,17 +150,21 @@ export class GameController {
       if (body instanceof Block) {
         // 블록이 무너지면 물리적으로 움직이도록 함
         // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
-        const torque = result.offset * 100; // 토크 증가 (블록이 더 쉽게 무너지도록)
+        const torque = result.offset * 50; // 토크 감소 (너무 빠른 회전 방지)
         body.angularVelocity += torque;
         
         // 각속도 최대값 제한 (너무 빠른 회전 방지)
-        const maxAngularVelocity = 5.0; // 라디안/초 (증가)
+        const maxAngularVelocity = 2.0; // 라디안/초 (감소)
         if (Math.abs(body.angularVelocity) > maxAngularVelocity) {
           body.angularVelocity = Math.sign(body.angularVelocity) * maxAngularVelocity;
         }
         
-        // 블록이 무너지면 떨어지도록 함
+        // 블록이 무너지면 아래로 떨어지도록 함
         body.isFalling = true;
+        // 아래로 떨어지도록 velocity.y 증가
+        if (body.velocity.y < 50) {
+          body.velocity.y += 100; // 아래로 떨어지도록 속도 추가
+        }
         
         // 위에 있는 블록들도 영향을 받도록 함 (연쇄 반응)
         const placedBlocks = this._getPlacedBlocks();
@@ -183,8 +187,12 @@ export class GameController {
               // 위에 있는 블록도 무너지도록 함
               otherBlock.isFalling = true;
               // 위 블록에도 토크 전달 (연쇄 반응)
-              const relativeTorque = result.offset * 50;
+              const relativeTorque = result.offset * 30; // 토크 감소
               otherBlock.angularVelocity += relativeTorque;
+              // 아래로 떨어지도록 velocity.y 증가
+              if (otherBlock.velocity.y < 50) {
+                otherBlock.velocity.y += 100; // 아래로 떨어지도록 속도 추가
+              }
             }
           }
         });

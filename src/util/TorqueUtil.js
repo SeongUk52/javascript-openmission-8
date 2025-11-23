@@ -62,14 +62,14 @@ export class TorqueUtil {
       body.angularVelocity = 0;
     } else if (Math.abs(body.angularVelocity) < 0.5) {
       // 작은 각속도는 빠르게 감쇠
-      body.angularVelocity *= 0.85;
+      body.angularVelocity *= 0.80; // 더 강한 감쇠
     } else {
       // 큰 각속도도 강하게 감쇠
-      body.angularVelocity *= 0.92;
+      body.angularVelocity *= 0.88; // 더 강한 감쇠
     }
     
     // 각속도 최대값 제한 (너무 빠른 회전 방지)
-    const maxAngularVelocity = 5.0; // 라디안/초
+    const maxAngularVelocity = 3.0; // 라디안/초 (감소)
     if (Math.abs(body.angularVelocity) > maxAngularVelocity) {
       body.angularVelocity = Math.sign(body.angularVelocity) * maxAngularVelocity;
     }
