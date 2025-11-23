@@ -344,12 +344,12 @@ export class GameController {
     } else {
       // 이후 블록: 타워 최상단 위에 배치
       // 타워 최상단 = getTopY() (블록의 최대 Y, 즉 블록의 하단)
-      // 다음 블록의 하단 = 타워 최상단 위에 배치해야 함 (겹치지 않도록)
-      // position.y + blockHeight/2 = towerTopY
-      // position.y = towerTopY - blockHeight/2
+      // 다음 블록의 하단이 타워 최상단 위에 있어야 함 (겹치지 않도록)
+      // position.y + blockHeight/2 = towerTopY + blockHeight
+      // position.y = towerTopY + blockHeight/2
       const towerTopY = this.tower.getTopY();
       // 타워 최상단 위에 배치 (겹치지 않도록)
-      targetY = towerTopY - blockHeight / 2;
+      targetY = towerTopY + blockHeight / 2;
       
       // 디버그: 타워 최상단 확인
       console.log('[GameController] Placing block on tower:', {
