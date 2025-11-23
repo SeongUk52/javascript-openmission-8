@@ -124,29 +124,32 @@ export class PhysicsService {
         // 충돌 감지는 정상 작동하지만 로그는 제거
         
         if (isColliding) {
-          // 디버그: 충돌 감지 로그 (정적 객체 또는 배치된 블록과의 충돌)
-          const staticBody = (bodyA.isStatic || bodyA.isPlaced) ? bodyA : ((bodyB.isStatic || bodyB.isPlaced) ? bodyB : null);
-          const dynamicBody = (bodyA.isStatic || bodyA.isPlaced) ? bodyB : ((bodyB.isStatic || bodyB.isPlaced) ? bodyA : null);
+          // 디버그 로그 제거 (성능 향상 및 콘솔 스팸 방지)
+          // const baseBody = bodyA.isStatic && bodyA.isPlaced ? bodyA : (bodyB.isStatic && bodyB.isPlaced ? bodyB : null);
+          // const placedBody = !bodyA.isStatic && bodyA.isPlaced ? bodyA : (!bodyB.isStatic && bodyB.isPlaced ? bodyB : null);
+          // const fallingBody = (bodyA.isFalling && !bodyA.isPlaced) ? bodyA : ((bodyB.isFalling && !bodyB.isPlaced) ? bodyB : null);
           
-          if (staticBody && dynamicBody) {
-            console.log('[PhysicsService] Collision detected (static/placed vs dynamic):', {
-              staticBody: { 
-                id: staticBody.id, 
-                isStatic: staticBody.isStatic,
-                isPlaced: staticBody.isPlaced,
-                position: staticBody.position, 
-                aabb: staticBody.getAABB() 
-              },
-              dynamicBody: { 
-                id: dynamicBody.id, 
-                isStatic: dynamicBody.isStatic,
-                isPlaced: dynamicBody.isPlaced,
-                position: dynamicBody.position, 
-                velocity: dynamicBody.velocity, 
-                aabb: dynamicBody.getAABB() 
-              },
-            });
-          }
+          // if ((baseBody || placedBody) && fallingBody) {
+          //   const supportBody = baseBody || placedBody;
+          //   console.log('[PhysicsService] Collision detected (base/placed vs falling):', {
+          //     supportBody: { 
+          //       id: supportBody.id, 
+          //       isStatic: supportBody.isStatic,
+          //       isPlaced: supportBody.isPlaced,
+          //       position: supportBody.position, 
+          //       aabb: supportBody.getAABB() 
+          //     },
+          //     fallingBody: { 
+          //       id: fallingBody.id, 
+          //       isStatic: fallingBody.isStatic,
+          //       isPlaced: fallingBody.isPlaced,
+          //       isFalling: fallingBody.isFalling,
+          //       position: fallingBody.position, 
+          //       velocity: fallingBody.velocity, 
+          //       aabb: fallingBody.getAABB() 
+          //     },
+          //   });
+          // }
           
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
           for (let k = 0; k < this.iterations; k++) {

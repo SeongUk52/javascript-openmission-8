@@ -77,7 +77,7 @@ class GameApp {
    * @private
    */
   _setupEventCallbacks() {
-    this.controller.onBlockPlaced = (tower) => {
+    this.controller.onBlockPlaced = (placedBlocks) => {
       // 블록 배치 시 추가 처리 (필요시)
     };
 
@@ -159,9 +159,9 @@ class GameApp {
       // 디버그: 처음 몇 프레임만 로그
       if (frameCount < 5 && gameState) {
         console.log('Render frame', frameCount, {
-          hasTower: !!gameState.tower,
+          hasBase: !!(gameState.basePosition && gameState.baseWidth),
           hasCurrentBlock: !!gameState.currentBlock,
-          towerBlocks: gameState.tower?.blocks?.length || 0,
+          placedBlocks: gameState.placedBlocks?.length || 0,
           physicsBodies: gameState.physicsBodies?.length || 0,
           isPlaying: gameState.gameState?.isPlaying,
         });

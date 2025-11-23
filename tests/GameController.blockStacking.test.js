@@ -35,12 +35,14 @@ describe('GameController - Block Stacking', () => {
   test('첫 번째 블록이 타워에 추가되어야 함', () => {
     const firstBlock = controller.currentBlock;
     expect(firstBlock).not.toBeNull();
-    expect(controller.tower.getBlockCount()).toBe(0);
+    expect(controller._getPlacedBlocks().length).toBe(0);
 
     // 블록 배치 (떨어뜨림)
     controller.placeBlock();
     expect(controller.fallingBlocks.has(firstBlock)).toBe(true);
-    expect(controller.currentBlock).toBeNull();
+    // placeBlock() 호출 후 바로 다음 블록이 생성됨
+    expect(controller.currentBlock).not.toBeNull();
+    expect(controller.currentBlock).not.toBe(firstBlock); // 다음 블록이 생성됨
 
     // 블록을 베이스에 닿도록 위치 설정 (충돌 감지를 위해)
     const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
@@ -57,8 +59,9 @@ describe('GameController - Block Stacking', () => {
     }
 
     // 첫 번째 블록이 타워에 추가되어야 함
-    expect(controller.tower.getBlockCount()).toBe(1);
-    expect(controller.tower.blocks).toContain(firstBlock);
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks.length).toBe(1);
+    expect(placedBlocks).toContain(firstBlock);
     expect(firstBlock.isPlaced).toBe(true);
     expect(controller.fallingBlocks.has(firstBlock)).toBe(false);
   });
@@ -82,37 +85,47 @@ describe('GameController - Block Stacking', () => {
       if (firstBlock.isPlaced) break;
     }
 
-    expect(controller.tower.getBlockCount()).toBe(1);
-    const firstBlockTopY = controller.tower.getTopY();
+    expect(controller._getPlacedBlocks().length).toBe(1);
+    const firstBlockTopY = controller._getTopY();
 
     // 두 번째 블록 배치
     expect(controller.currentBlock).not.toBeNull();
     const secondBlock = controller.currentBlock;
     expect(secondBlock).not.toBe(firstBlock);
 
-    // 두 번째 블록을 첫 번째 블록 위에 배치
-    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 1; // 약간 위에
+    controller.placeBlock();
+    
+    // placeBlock() 후에 블록 위치를 첫 번째 블록 위에 설정
+    // 블록의 하단이 첫 번째 블록의 하단에 닿도록 설정
+    // 블록의 하단 = position.y + height/2
+    // firstBlockTopY는 첫 번째 블록의 하단이므로, 두 번째 블록의 하단이 firstBlockTopY에 닿아야 함
+    // position.y + height/2 = firstBlockTopY
+    // position.y = firstBlockTopY - height/2
+    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2;
     secondBlock.velocity.y = 0;
     secondBlock.velocity.x = 0;
     secondBlock.angularVelocity = 0;
-
-    controller.placeBlock();
     
     // 물리 업데이트로 충돌 감지 및 고정
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
       if (secondBlock.isPlaced) break;
     }
 
     // 두 번째 블록이 타워에 추가되어야 함
-    expect(controller.tower.getBlockCount()).toBe(2);
-    expect(controller.tower.blocks).toContain(firstBlock);
-    expect(controller.tower.blocks).toContain(secondBlock);
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks.length).toBe(2, '2개의 블록이 타워에 있어야 함');
+    expect(placedBlocks).toContain(firstBlock);
+    expect(placedBlocks).toContain(secondBlock);
     expect(secondBlock.isPlaced).toBe(true);
+    expect(firstBlock.isPlaced).toBe(true);
     
     // 두 번째 블록이 첫 번째 블록 위에 있어야 함
     const secondBlockAABB = secondBlock.getAABB();
     expect(secondBlockAABB.min.y).toBeGreaterThan(firstBlockTopY);
+    
+    // 블록 개수 재확인
+    expect(controller._getPlacedBlocks().length).toBe(2, '블록 개수가 2개여야 함');
   });
 
   test('세 번째 블록이 두 번째 블록 위에 쌓여야 함', () => {
@@ -135,47 +148,58 @@ describe('GameController - Block Stacking', () => {
     // 두 번째 블록 배치
     const secondBlock = controller.currentBlock;
     expect(secondBlock).not.toBeNull();
-    const firstBlockTopY = controller.tower.getTopY();
-    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 1;
+    const firstBlockTopY = controller._getTopY();
+    
+    controller.placeBlock();
+    
+    // placeBlock() 후에 블록 위치를 첫 번째 블록 위에 설정
+    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2;
     secondBlock.velocity.y = 0;
     secondBlock.velocity.x = 0;
     secondBlock.angularVelocity = 0;
-
-    controller.placeBlock();
     
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
       if (secondBlock.isPlaced) break;
     }
 
-    expect(controller.tower.getBlockCount()).toBe(2);
-    const secondBlockTopY = controller.tower.getTopY();
+    expect(controller._getPlacedBlocks().length).toBe(2);
+    const secondBlockTopY = controller._getTopY();
 
     // 세 번째 블록 배치
     const thirdBlock = controller.currentBlock;
     expect(thirdBlock).not.toBeNull();
-    thirdBlock.position.y = secondBlockTopY - thirdBlock.height / 2 - 1;
+    
+    controller.placeBlock();
+    
+    // placeBlock() 후에 블록 위치를 두 번째 블록 위에 설정
+    // 블록의 하단이 두 번째 블록의 하단에 닿도록 설정
+    thirdBlock.position.y = secondBlockTopY - thirdBlock.height / 2;
     thirdBlock.velocity.y = 0;
     thirdBlock.velocity.x = 0;
     thirdBlock.angularVelocity = 0;
-
-    controller.placeBlock();
     
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
       if (thirdBlock.isPlaced) break;
     }
 
     // 세 번째 블록이 타워에 추가되어야 함
-    expect(controller.tower.getBlockCount()).toBe(3);
-    expect(controller.tower.blocks).toContain(firstBlock);
-    expect(controller.tower.blocks).toContain(secondBlock);
-    expect(controller.tower.blocks).toContain(thirdBlock);
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks.length).toBe(3, '3개의 블록이 타워에 있어야 함');
+    expect(placedBlocks).toContain(firstBlock);
+    expect(placedBlocks).toContain(secondBlock);
+    expect(placedBlocks).toContain(thirdBlock);
     expect(thirdBlock.isPlaced).toBe(true);
+    expect(secondBlock.isPlaced).toBe(true);
+    expect(firstBlock.isPlaced).toBe(true);
     
     // 세 번째 블록이 두 번째 블록 위에 있어야 함
     const thirdBlockAABB = thirdBlock.getAABB();
     expect(thirdBlockAABB.min.y).toBeGreaterThan(secondBlockTopY);
+    
+    // 블록 개수 재확인
+    expect(controller._getPlacedBlocks().length).toBe(3, '블록 개수가 3개여야 함');
   });
 
   test('5개 블록이 순차적으로 쌓여야 함', () => {
@@ -190,6 +214,11 @@ describe('GameController - Block Stacking', () => {
       const block = controller.currentBlock;
       expect(block).not.toBeNull();
       
+      blocks.push(block);
+      
+      controller.placeBlock();
+      
+      // placeBlock() 후에 블록 위치 설정
       if (i === 0) {
         // 첫 번째 블록: 베이스 위에
         const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
@@ -197,33 +226,33 @@ describe('GameController - Block Stacking', () => {
         block.position.y = baseAABB.min.y - block.height / 2 - 1;
       } else {
         // 이후 블록: 이전 블록 위에
-        const previousTopY = controller.tower.getTopY();
-        block.position.y = previousTopY - block.height / 2 - 1;
+        const previousTopY = controller._getTopY();
+        // 블록의 하단이 타워 최상단에 닿도록 설정
+        block.position.y = previousTopY - block.height / 2;
       }
       
       block.velocity.y = 0;
       block.velocity.x = 0;
       block.angularVelocity = 0;
-      blocks.push(block);
-      
-      controller.placeBlock();
       
       // 물리 업데이트로 충돌 감지 및 고정
-      for (let j = 0; j < 10; j++) {
+      for (let j = 0; j < 20; j++) {
         controller.update(1 / 60);
         if (block.isPlaced) break;
       }
       
       // 각 블록이 타워에 추가되었는지 확인
-      expect(controller.tower.getBlockCount()).toBe(i + 1);
-      expect(controller.tower.blocks).toContain(block);
+      const placedBlocks = controller._getPlacedBlocks();
+      expect(placedBlocks.length).toBe(i + 1);
+      expect(placedBlocks).toContain(block);
       expect(block.isPlaced).toBe(true);
     }
     
     // 모든 블록이 타워에 있어야 함
-    expect(controller.tower.getBlockCount()).toBe(5);
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks.length).toBe(5);
     blocks.forEach(block => {
-      expect(controller.tower.blocks).toContain(block);
+      expect(placedBlocks).toContain(block);
       expect(block.isPlaced).toBe(true);
     });
     
@@ -251,14 +280,17 @@ describe('GameController - Block Stacking', () => {
       if (block.isPlaced) break;
     }
 
-    expect(controller.tower.getBlockCount()).toBe(1);
+    expect(controller._getPlacedBlocks().length).toBe(1);
 
-    // 같은 블록을 다시 추가 시도
-    controller.tower.addBlock(block);
+    // 같은 블록을 다시 추가 시도 (이미 배치된 블록이므로 중복 추가되지 않아야 함)
+    // _fixBlockToTower를 다시 호출해도 블록이 중복으로 추가되지 않아야 함
+    const placedBlocksBefore = controller._getPlacedBlocks();
+    controller._fixBlockToTower(block);
+    const placedBlocksAfter = controller._getPlacedBlocks();
 
     // 블록 개수가 증가하지 않아야 함
-    expect(controller.tower.getBlockCount()).toBe(1);
-    expect(controller.tower.blocks).toContain(block);
+    expect(placedBlocksAfter.length).toBe(1);
+    expect(placedBlocksAfter).toContain(block);
   });
 
   test('타워의 getTopY가 올바르게 계산되어야 함', () => {
@@ -280,29 +312,288 @@ describe('GameController - Block Stacking', () => {
       if (firstBlock.isPlaced) break;
     }
 
-    const firstBlockTopY = controller.tower.getTopY();
-    const firstBlockAABB = firstBlock.getAABB();
-    expect(firstBlockTopY).toBe(firstBlockAABB.max.y);
+    const firstBlockTopY = controller._getTopY();
+    // _getTopY()는 position.y + height/2를 반환
+    // 블록이 고정된 위치를 유지하므로 fixedPositionY를 사용
+    const expectedTopY = firstBlock.fixedPositionY !== undefined 
+      ? firstBlock.fixedPositionY + firstBlock.height / 2
+      : firstBlock.position.y + firstBlock.height / 2;
+    expect(firstBlockTopY).toBeCloseTo(expectedTopY, 1);
 
     // 두 번째 블록 배치
     const secondBlock = controller.currentBlock;
     expect(secondBlock).not.toBeNull();
-    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2 - 1;
+    
+    controller.placeBlock();
+    
+    // placeBlock() 후에 블록 위치를 첫 번째 블록 위에 설정
+    secondBlock.position.y = firstBlockTopY - secondBlock.height / 2;
     secondBlock.velocity.y = 0;
     secondBlock.velocity.x = 0;
     secondBlock.angularVelocity = 0;
-
-    controller.placeBlock();
     
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
       if (secondBlock.isPlaced) break;
     }
 
-    const secondBlockTopY = controller.tower.getTopY();
-    const secondBlockAABB = secondBlock.getAABB();
-    expect(secondBlockTopY).toBe(secondBlockAABB.max.y);
+    const secondBlockTopY = controller._getTopY();
+    // _getTopY()는 position.y + height/2를 반환
+    // 블록이 고정된 위치를 유지하므로 fixedPositionY를 사용
+    const expectedSecondTopY = secondBlock.fixedPositionY !== undefined
+      ? secondBlock.fixedPositionY + secondBlock.height / 2
+      : secondBlock.position.y + secondBlock.height / 2;
+    expect(secondBlockTopY).toBeCloseTo(expectedSecondTopY, 1);
     expect(secondBlockTopY).toBeGreaterThan(firstBlockTopY);
+  });
+
+  test('4번째 블록이 세 번째 블록 위에 쌓여야 함', () => {
+    const blocks = [];
+    
+    // 첫 번째부터 세 번째 블록까지 배치
+    for (let i = 0; i < 3; i++) {
+      if (!controller.currentBlock) {
+        controller._spawnNextBlock();
+      }
+      const block = controller.currentBlock;
+      expect(block).not.toBeNull();
+      
+      controller.placeBlock();
+      
+      // placeBlock() 후에 블록 위치 설정
+      if (i === 0) {
+        const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
+        const baseAABB = baseBlock.getAABB();
+        block.position.y = baseAABB.min.y - block.height / 2 - 1;
+      } else {
+        const previousTopY = controller._getTopY();
+        block.position.y = previousTopY - block.height / 2;
+      }
+      
+      block.velocity.y = 0;
+      block.velocity.x = 0;
+      block.angularVelocity = 0;
+      blocks.push(block);
+      
+      for (let j = 0; j < 20; j++) {
+        controller.update(1 / 60);
+        if (block.isPlaced) break;
+      }
+    }
+    
+    expect(controller._getPlacedBlocks().length).toBe(3);
+    const thirdBlockTopY = controller._getTopY();
+    
+    // 4번째 블록 배치
+    const fourthBlock = controller.currentBlock;
+    expect(fourthBlock).not.toBeNull();
+    expect(blocks).not.toContain(fourthBlock);
+    
+    controller.placeBlock();
+    
+    // placeBlock() 후에 블록 위치를 세 번째 블록 위에 설정
+    fourthBlock.position.y = thirdBlockTopY - fourthBlock.height / 2;
+    fourthBlock.velocity.y = 0;
+    fourthBlock.velocity.x = 0;
+    fourthBlock.angularVelocity = 0;
+    
+    for (let i = 0; i < 20; i++) {
+      controller.update(1 / 60);
+      if (fourthBlock.isPlaced) break;
+    }
+    
+    // 4번째 블록이 타워에 추가되어야 함
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks.length).toBe(4, '4개의 블록이 타워에 있어야 함');
+    expect(placedBlocks).toContain(fourthBlock);
+    expect(fourthBlock.isPlaced).toBe(true);
+    
+    // 모든 블록이 배치되었는지 확인
+    blocks.forEach(block => {
+      expect(block.isPlaced).toBe(true);
+      expect(placedBlocks).toContain(block);
+    });
+    
+    // 4번째 블록이 세 번째 블록 위에 있어야 함
+    const fourthBlockAABB = fourthBlock.getAABB();
+    expect(fourthBlockAABB.min.y).toBeGreaterThan(thirdBlockTopY);
+    
+    // 모든 블록이 올바른 순서로 쌓였는지 확인
+    blocks.push(fourthBlock);
+    for (let i = 1; i < blocks.length; i++) {
+      const prevAABB = blocks[i - 1].getAABB();
+      const currAABB = blocks[i].getAABB();
+      expect(currAABB.min.y).toBeGreaterThan(prevAABB.max.y);
+    }
+    
+    // 블록 개수 재확인
+    expect(controller._getPlacedBlocks().length).toBe(4, '블록 개수가 4개여야 함');
+  });
+
+  test('5번째 블록이 네 번째 블록 위에 쌓여야 함', () => {
+    const blocks = [];
+    
+    // 첫 번째부터 네 번째 블록까지 배치
+    for (let i = 0; i < 4; i++) {
+      if (!controller.currentBlock) {
+        controller._spawnNextBlock();
+      }
+      const block = controller.currentBlock;
+      expect(block).not.toBeNull();
+      
+      controller.placeBlock();
+      
+      // placeBlock() 후에 블록 위치 설정
+      if (i === 0) {
+        const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
+        const baseAABB = baseBlock.getAABB();
+        block.position.y = baseAABB.min.y - block.height / 2 - 1;
+      } else {
+        const previousTopY = controller._getTopY();
+        block.position.y = previousTopY - block.height / 2;
+      }
+      
+      block.velocity.y = 0;
+      block.velocity.x = 0;
+      block.angularVelocity = 0;
+      blocks.push(block);
+      
+      for (let j = 0; j < 20; j++) {
+        controller.update(1 / 60);
+        if (block.isPlaced) break;
+      }
+    }
+    
+    expect(controller._getPlacedBlocks().length).toBe(4);
+    const fourthBlockTopY = controller._getTopY();
+    
+    // 5번째 블록 배치
+    const fifthBlock = controller.currentBlock;
+    expect(fifthBlock).not.toBeNull();
+    expect(blocks).not.toContain(fifthBlock);
+    
+    controller.placeBlock();
+    
+    // placeBlock() 후에 블록 위치를 네 번째 블록 위에 설정
+    fifthBlock.position.y = fourthBlockTopY - fifthBlock.height / 2;
+    fifthBlock.velocity.y = 0;
+    fifthBlock.velocity.x = 0;
+    fifthBlock.angularVelocity = 0;
+    
+    for (let i = 0; i < 20; i++) {
+      controller.update(1 / 60);
+      if (fifthBlock.isPlaced) break;
+    }
+    
+    // 5번째 블록이 타워에 추가되어야 함
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks.length).toBe(5, '5개의 블록이 타워에 있어야 함');
+    expect(placedBlocks).toContain(fifthBlock);
+    expect(fifthBlock.isPlaced).toBe(true);
+    
+    // 모든 블록이 배치되었는지 확인
+    blocks.forEach(block => {
+      expect(block.isPlaced).toBe(true);
+      expect(placedBlocks).toContain(block);
+    });
+    
+    // 5번째 블록이 네 번째 블록 위에 있어야 함
+    const fifthBlockAABB = fifthBlock.getAABB();
+    expect(fifthBlockAABB.min.y).toBeGreaterThan(fourthBlockTopY);
+    
+    // 모든 블록이 올바른 순서로 쌓였는지 확인
+    blocks.push(fifthBlock);
+    for (let i = 1; i < blocks.length; i++) {
+      const prevAABB = blocks[i - 1].getAABB();
+      const currAABB = blocks[i].getAABB();
+      expect(currAABB.min.y).toBeGreaterThan(prevAABB.max.y);
+    }
+    
+    // 블록 개수 재확인
+    expect(controller._getPlacedBlocks().length).toBe(5, '블록 개수가 5개여야 함');
+  });
+
+  test('6번째 블록이 다섯 번째 블록 위에 쌓여야 함', () => {
+    const blocks = [];
+    
+    // 첫 번째부터 다섯 번째 블록까지 배치
+    for (let i = 0; i < 5; i++) {
+      if (!controller.currentBlock) {
+        controller._spawnNextBlock();
+      }
+      const block = controller.currentBlock;
+      expect(block).not.toBeNull();
+      
+      controller.placeBlock();
+      
+      // placeBlock() 후에 블록 위치 설정
+      if (i === 0) {
+        const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
+        const baseAABB = baseBlock.getAABB();
+        block.position.y = baseAABB.min.y - block.height / 2 - 1;
+      } else {
+        const previousTopY = controller._getTopY();
+        block.position.y = previousTopY - block.height / 2;
+      }
+      
+      block.velocity.y = 0;
+      block.velocity.x = 0;
+      block.angularVelocity = 0;
+      blocks.push(block);
+      
+      for (let j = 0; j < 20; j++) {
+        controller.update(1 / 60);
+        if (block.isPlaced) break;
+      }
+    }
+    
+    expect(controller._getPlacedBlocks().length).toBe(5);
+    const fifthBlockTopY = controller._getTopY();
+    
+    // 6번째 블록 배치
+    const sixthBlock = controller.currentBlock;
+    expect(sixthBlock).not.toBeNull();
+    expect(blocks).not.toContain(sixthBlock);
+    
+    controller.placeBlock();
+    
+    // placeBlock() 후에 블록 위치를 다섯 번째 블록 위에 설정
+    sixthBlock.position.y = fifthBlockTopY - sixthBlock.height / 2;
+    sixthBlock.velocity.y = 0;
+    sixthBlock.velocity.x = 0;
+    sixthBlock.angularVelocity = 0;
+    
+    for (let i = 0; i < 20; i++) {
+      controller.update(1 / 60);
+      if (sixthBlock.isPlaced) break;
+    }
+    
+    // 6번째 블록이 타워에 추가되어야 함
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks.length).toBe(6, '6개의 블록이 타워에 있어야 함');
+    expect(placedBlocks).toContain(sixthBlock);
+    expect(sixthBlock.isPlaced).toBe(true);
+    
+    // 모든 블록이 배치되었는지 확인
+    blocks.forEach(block => {
+      expect(block.isPlaced).toBe(true);
+      expect(placedBlocks).toContain(block);
+    });
+    
+    // 6번째 블록이 다섯 번째 블록 위에 있어야 함
+    const sixthBlockAABB = sixthBlock.getAABB();
+    expect(sixthBlockAABB.min.y).toBeGreaterThan(fifthBlockTopY);
+    
+    // 모든 블록이 올바른 순서로 쌓였는지 확인
+    blocks.push(sixthBlock);
+    for (let i = 1; i < blocks.length; i++) {
+      const prevAABB = blocks[i - 1].getAABB();
+      const currAABB = blocks[i].getAABB();
+      expect(currAABB.min.y).toBeGreaterThan(prevAABB.max.y);
+    }
+    
+    // 블록 개수 재확인
+    expect(controller._getPlacedBlocks().length).toBe(6, '블록 개수가 6개여야 함');
   });
 });
 

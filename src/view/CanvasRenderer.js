@@ -1,6 +1,5 @@
 import { Vector } from '../domain/Vector.js';
 import { Block } from '../domain/Block.js';
-import { Tower } from '../domain/Tower.js';
 
 /**
  * Canvas 렌더러
@@ -260,15 +259,15 @@ export class CanvasRenderer {
 
   /**
    * 타워의 모든 블록 그리기
-   * @param {Tower} tower
+   * @param {Object} towerData - {basePosition, baseWidth, blocks}
    */
-  drawTower(tower) {
+  drawTower(towerData) {
     // 타워 기반 그리기
-    this.drawTowerBase(tower);
+    this.drawTowerBase(towerData);
 
     // 블록들 그리기
-    if (tower.blocks && tower.blocks.length > 0) {
-      tower.blocks.forEach(block => {
+    if (towerData.blocks && towerData.blocks.length > 0) {
+      towerData.blocks.forEach(block => {
         this.drawBlock(block);
       });
     }
@@ -329,32 +328,16 @@ export class CanvasRenderer {
     this._drawGrid();
 
     // 타워 베이스 그리기 (항상)
-    if (gameState.tower) {
-      // 디버그: 베이스 정보 확인
-      if (!gameState.tower.basePosition || !gameState.tower.baseWidth) {
-        console.warn('[CanvasRenderer] Tower base missing data:', {
-          hasBasePosition: !!gameState.tower.basePosition,
-          hasBaseWidth: !!gameState.tower.baseWidth,
-        });
-      }
-      this.drawTowerBase(gameState.tower);
+    if (gameState.basePosition && gameState.baseWidth) {
+      this.drawTowerBase({
+        basePosition: gameState.basePosition,
+        baseWidth: gameState.baseWidth,
+      });
     }
 
-    // 타워에 배치된 블록들 그리기
-    if (gameState.tower && gameState.tower.blocks) {
-      // 디버그 로그 제거 (매 프레임마다 출력되어 성능에 영향)
-      // console.log('[CanvasRenderer] Drawing tower blocks:', {
-      //   blockCount: gameState.tower.blocks.length,
-      //   blocks: gameState.tower.blocks.map(b => ({
-      //     id: b.id,
-      //     position: { x: b.position.x, y: b.position.y },
-      //     isPlaced: b.isPlaced,
-      //     width: b.width,
-      //     height: b.height,
-      //   })),
-      // });
-      
-      gameState.tower.blocks.forEach(block => {
+    // 타워에 배치된 블록들 그리기 (물리 엔진에서)
+    if (gameState.placedBlocks && gameState.placedBlocks.length > 0) {
+      gameState.placedBlocks.forEach(block => {
         this.drawBlock(block);
       });
     }
@@ -368,7 +351,7 @@ export class CanvasRenderer {
     if (gameState.physicsBodies && Array.isArray(gameState.physicsBodies)) {
       const otherBodies = gameState.physicsBodies.filter(
         body => body !== gameState.currentBlock && 
-                gameState.tower && !gameState.tower.blocks.includes(body)
+                !(gameState.placedBlocks && gameState.placedBlocks.includes(body))
       );
       if (otherBodies.length > 0) {
         this.drawBodies(otherBodies);
