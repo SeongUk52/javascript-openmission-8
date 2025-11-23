@@ -108,7 +108,18 @@ export class PhysicsService {
         }
 
         // 충돌 감지
-        if (CollisionUtil.isAABBColliding(bodyA, bodyB)) {
+        const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
+        
+        if (isColliding) {
+          // 디버그: 충돌 감지 로그
+          if (bodyA.isStatic || bodyB.isStatic) {
+            const staticBody = bodyA.isStatic ? bodyA : bodyB;
+            const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
+            console.log('[PhysicsService] Collision detected (static vs dynamic):', {
+              staticBody: { id: staticBody.id, position: staticBody.position, isPlaced: staticBody.isPlaced },
+              dynamicBody: { id: dynamicBody.id, position: dynamicBody.position, velocity: dynamicBody.velocity },
+            });
+          }
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
           for (let k = 0; k < this.iterations; k++) {
             CollisionUtil.resolveCollision(bodyA, bodyB);
