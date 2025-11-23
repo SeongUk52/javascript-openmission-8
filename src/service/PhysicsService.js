@@ -177,13 +177,11 @@ export class PhysicsService {
   checkBalance(enabled = true) {
     if (!enabled) return;
     
-    // 배치된 블록들만 균형 판정 (떨어지는 중인 블록도 포함)
-    // 위에 있는 블록이 무너지면 아래 블록도 영향을 받아야 함
-    // 모든 블록을 순회하면서 균형 판정
+    // 모든 동적 블록에 대해 균형 판정 (isPlaced 사용하지 않음)
+    // 블록이 베이스나 다른 블록 위에 있으면 균형 판정
     this.bodies.forEach(body => {
       if (body.isStatic) return;
-      if (!body.isPlaced) return; // 배치되지 않은 블록은 균형 판정하지 않음
-      if (body.isFalling) return; // 이미 떨어지는 중이면 균형 판정하지 않음 (성능 최적화)
+      if (body.isFalling && body.velocity.y > 100) return; // 빠르게 떨어지는 중이면 균형 판정하지 않음 (성능 최적화)
 
       // 블록이 어떤 블록 위에 있는지 확인
       const supportBounds = this._getSupportBounds(body);
@@ -223,8 +221,12 @@ export class PhysicsService {
     
     this.bodies.forEach(otherBody => {
       if (otherBody === body) return;
-      if (!otherBody.isPlaced) return; // 배치되지 않은 블록은 지지할 수 없음
-      if (otherBody.isFalling && !otherBody.isPlaced) return; // 떨어지는 중이고 배치되지 않은 블록은 지지할 수 없음
+      if (otherBody.isStatic) {
+        // 정적 블록(베이스)은 항상 지지할 수 있음
+      } else if (otherBody.isFalling && otherBody.velocity.y > 50) {
+        // 빠르게 떨어지는 중인 블록은 지지할 수 없음
+        return;
+      }
       
       const otherAABB = otherBody.getAABB();
       if (!otherAABB || !otherAABB.min || !otherAABB.max) return;

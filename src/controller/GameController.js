@@ -137,12 +137,8 @@ export class GameController {
         shouldFix = true;
       }
       
-      // 블록이 충돌하면 isPlaced로 표시 (균형 판정을 받기 위해)
-      // 하지만 자동으로 멈추지는 않음 - 물리 엔진이 자연스럽게 처리
-      if (!dynamicBody.isPlaced) {
-        dynamicBody.place(); // isPlaced = true, isFalling = false
-        // 물리 엔진이 자연스럽게 처리하도록 함 (자동 고정하지 않음)
-      }
+      // 블록이 충돌해도 자동으로 멈추지 않음 - 물리 엔진이 자연스럽게 처리
+      // isPlaced를 사용하지 않음
     };
     
     this.physicsService.onTopple = (body, result) => {
@@ -151,7 +147,7 @@ export class GameController {
         return;
       }
       
-      if (body instanceof Block && body.isPlaced) {
+      if (body instanceof Block) {
         // 블록이 무너지면 물리적으로 움직이도록 함
         // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
         const torque = result.offset * 100; // 토크 증가 (블록이 더 쉽게 무너지도록)
