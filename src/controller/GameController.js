@@ -222,6 +222,8 @@ export class GameController {
       mass: 1,
       color: this._getRandomColor(),
       type: 'normal',
+      restitution: 0.2, // 낮은 반발 계수 (튀어오르지 않도록)
+      friction: 0.6, // 마찰 계수
     });
 
     // 초기 속도 0으로 설정 (정지 상태에서 시작)
