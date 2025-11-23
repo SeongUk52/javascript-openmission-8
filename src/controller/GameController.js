@@ -151,7 +151,7 @@ export class GameController {
       height: baseHeight,
       isStatic: true,
       color: '#34495e',
-      restitution: 0.1, // 낮은 반발 계수 (튀어오르지 않도록)
+      restitution: 0, // 반발 없음 (완전 비탄성)
       friction: 0.8, // 높은 마찰 계수
     });
     baseBlock.isPlaced = true; // 베이스는 항상 배치된 상태
@@ -224,7 +224,7 @@ export class GameController {
       mass: 1,
       color: this._getRandomColor(),
       type: 'normal',
-      restitution: 0.2, // 낮은 반발 계수 (튀어오르지 않도록)
+      restitution: 0, // 반발 없음 (완전 비탄성)
       friction: 0.6, // 마찰 계수
     });
 
