@@ -205,6 +205,11 @@ src/
   - 정상 임펄스 계산: `j = -(1 + e) * v_rel · n / (1/mA + 1/mB)`
   - 위치 보정 (Positional Correction): penetration 해결을 위한 위치 조정
   - 참고: 일반적인 2D 물리 엔진 충돌 해결 알고리즘
+- **충돌 매니폴드 (Collision Manifold)**: AABB 충돌 감지 및 normal/penetration 계산
+  - penetration: 겹치는 영역의 최소 크기 (MTV - Minimum Translation Vector)
+  - normal: penetration이 가장 작은 축 방향, bodyA에서 bodyB로 향하는 방향
+  - X축 penetration < Y축 penetration → X축 normal, 그 반대면 Y축 normal
+  - 참고: Box2D/Matter.js의 AABB 충돌 감지 방식
 
 #### 마찰 (Friction)
 - **Coulumb 마찰 법칙**: 마찰 임펄스는 정상 임펄스에 비례
@@ -212,6 +217,11 @@ src/
   - 접선 속도 감쇠: 접촉면에서의 상대 속도 감소
   - 각속도 감쇠: 접촉 중인 블록의 회전 감소
   - 참고: 물리 엔진에서의 마찰 구현 베스트 프랙티스
+- **정적 마찰(Static Friction)과 동적 마찰(Dynamic Friction) 구분**
+  - 정적 마찰: 상대 속도가 작을 때(임계값 1.0 이하) 더 강한 마찰 적용 (1.5배)
+  - 동적 마찰: 상대 속도가 클 때 일반 마찰 적용
+  - 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록 정적 마찰 강화
+  - 참고: Box2D/Matter.js의 정적/동적 마찰 구분 방식
 
 #### 각운동 (Angular Motion)
 - **각속도 감쇠**: 공기 저항과 접촉 마찰 분리

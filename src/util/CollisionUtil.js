@@ -38,15 +38,29 @@ export class CollisionUtil {
     const aabbA = bodyA.getAABB();
     const aabbB = bodyB.getAABB();
 
+    // Box2D/Matter.js: AABB 충돌에서 penetration과 normal 계산
+    // penetration은 겹치는 영역의 최소 크기
+    // normal은 penetration이 가장 작은 축 방향으로 결정
     const overlapX = Math.min(aabbA.max.x, aabbB.max.x) - Math.max(aabbA.min.x, aabbB.min.x);
     const overlapY = Math.min(aabbA.max.y, aabbB.max.y) - Math.max(aabbA.min.y, aabbB.min.y);
 
+    // Box2D/Matter.js: 가장 작은 penetration을 선택 (MTV - Minimum Translation Vector)
     if (overlapX < overlapY) {
-      const normal = new Vector(bodyA.getCenterOfMass().x < bodyB.getCenterOfMass().x ? 1 : -1, 0);
+      // X축 방향 penetration이 더 작음 → X축 방향 normal
+      // normal 방향: bodyA의 중심에서 bodyB의 중심으로 향하는 방향
+      const centerA = bodyA.getCenterOfMass();
+      const centerB = bodyB.getCenterOfMass();
+      const normalX = centerA.x < centerB.x ? 1 : -1;
+      const normal = new Vector(normalX, 0);
       return { collided: true, normal, penetration: overlapX };
     }
 
-    const normal = new Vector(0, bodyA.getCenterOfMass().y < bodyB.getCenterOfMass().y ? 1 : -1);
+    // Y축 방향 penetration이 더 작음 → Y축 방향 normal
+    // normal 방향: bodyA의 중심에서 bodyB의 중심으로 향하는 방향
+    const centerA = bodyA.getCenterOfMass();
+    const centerB = bodyB.getCenterOfMass();
+    const normalY = centerA.y < centerB.y ? 1 : -1;
+    const normal = new Vector(0, normalY);
     return { collided: true, normal, penetration: overlapY };
   }
 
@@ -73,22 +87,29 @@ export class CollisionUtil {
 
   /**
    * 위치 보정 (penetration 해결)
+   * Box2D/Matter.js: 위치 보정 (Positional Correction)
+   * penetration을 해결하기 위해 두 객체를 분리
    * @private
    */
   static _positionalCorrection(bodyA, bodyB, normal, penetration) {
     const percent = 1.0; // 보정 비율 (100% 보정)
-    const slop = 0.001; // 허용 오차 감소
+    const slop = 0.001; // 허용 오차 (작은 penetration은 무시)
     const correctedPenetration = Math.max(penetration - slop, 0);
 
     const invMassSum = bodyA.invMass + bodyB.invMass;
     if (invMassSum === 0) return;
 
+    // Box2D/Matter.js: 질량에 비례하여 분리
+    // correction = normal * (penetration * percent) / invMassSum
+    // bodyA는 normal 반대 방향으로, bodyB는 normal 방향으로 이동
     const correction = Vector.multiply(normal, (correctedPenetration * percent) / invMassSum);
 
     if (!bodyA.isStatic) {
+      // bodyA는 normal 반대 방향으로 이동 (normal이 bodyA → bodyB 방향이므로)
       bodyA.position.subtract(Vector.multiply(correction, bodyA.invMass));
     }
     if (!bodyB.isStatic) {
+      // bodyB는 normal 방향으로 이동
       bodyB.position.add(Vector.multiply(correction, bodyB.invMass));
     }
   }
@@ -111,7 +132,8 @@ export class CollisionUtil {
     // 접촉 중일 때는 normal impulse가 중력 효과를 상쇄해야 함
     let impulseScalar;
     // Box2D/Matter.js: 접촉 제약 조건은 penetration이 있거나 접촉 중일 때 항상 해결
-    if (penetration > 0.001 || Math.abs(velAlongNormal) < 10) {
+    // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록 접촉 제약 조건 강화
+    if (penetration > 0.001 || Math.abs(velAlongNormal) < 20) {
       // 접촉 중일 때 (penetration > 0)
       // Box2D/Matter.js: 접촉 제약 조건을 해결하기 위해 impulse 적용
       // 접촉 제약 조건: v_rel · n = 0 (접촉면에서 상대 속도가 0)
@@ -167,7 +189,8 @@ export class CollisionUtil {
     } else {
       // penetration이 없어도 접촉 중이면 접촉 제약 조건 해결
       // Box2D/Matter.js: 접촉 제약 조건은 penetration이 있거나 접촉 중일 때 항상 해결
-      if (Math.abs(velAlongNormal) < 10) {
+      // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록 접촉 제약 조건 강화
+      if (Math.abs(velAlongNormal) < 20) {
         // 접촉 중이면 접촉 제약 조건 해결
         const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
         const gravityAccel = 500;
@@ -291,6 +314,8 @@ export class CollisionUtil {
     }
     
     // 마찰 적용 (Coulumb 마찰 법칙: 마찰 임펄스는 정상 임펄스에 비례)
+    // Box2D/Matter.js: 정적 마찰(static friction)과 동적 마찰(dynamic friction) 구분
+    // 정적 마찰: 접촉 중이고 상대 속도가 작을 때 더 강한 마찰 적용
     const friction = Math.min(bodyA.friction || 0.8, bodyB.friction || 0.8);
     if (friction > 0 && Math.abs(impulseScalar) > 0) {
       // 접선 방향 계산 (normal에 수직인 방향)
@@ -313,8 +338,15 @@ export class CollisionUtil {
       
       const velAlongTangent = relativeVelocityAtContact.dot(tangent);
       
+      // Box2D/Matter.js: 정적 마찰과 동적 마찰 구분
+      // 상대 속도가 작으면 정적 마찰(더 강함), 크면 동적 마찰
+      const staticFrictionThreshold = 1.0; // 정적 마찰 임계값
+      const isStaticFriction = Math.abs(velAlongTangent) < staticFrictionThreshold;
+      const staticFrictionMultiplier = isStaticFriction ? 1.5 : 1.0; // 정적 마찰은 1.5배 강함
+      
       // 마찰 임펄스 계산 (정상 임펄스에 비례, 최대값 제한)
-      const maxFrictionImpulse = Math.abs(impulseScalar) * friction * 3.0; // 마찰 강화
+      // Box2D/Matter.js: 정적 마찰은 더 강하게 적용하여 블록이 미끄러지지 않도록 함
+      const maxFrictionImpulse = Math.abs(impulseScalar) * friction * 3.0 * staticFrictionMultiplier; // 정적 마찰 강화
       const frictionImpulseScalar = Math.max(
         -maxFrictionImpulse,
         Math.min(maxFrictionImpulse, -velAlongTangent / invMassSum)
@@ -352,6 +384,14 @@ export class CollisionUtil {
             bodyA.velocity.y = 0;
           }
         } else {
+          // Box2D/Matter.js: 블록 간 접촉에서도 정적 마찰 적용
+          // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록
+          const relativeSpeed = Math.abs(velAlongTangent);
+          if (relativeSpeed < 1.0) {
+            // 정적 마찰: 상대 속도가 작으면 마찰 토크를 더 강하게 적용
+            const staticFrictionTorque = -bodyA.angularVelocity * friction * bodyA.inertia * 3.0;
+            bodyA.applyAngularImpulse(staticFrictionTorque);
+          }
           // Box2D/Matter.js: 일반 접촉에서의 마찰 토크만 적용
           // 각속도가 매우 작으면 0으로 (수치 안정성)
           if (Math.abs(bodyA.angularVelocity) < 0.05) {
@@ -400,6 +440,14 @@ export class CollisionUtil {
             bodyB.velocity.y = 0;
           }
         } else {
+          // Box2D/Matter.js: 블록 간 접촉에서도 정적 마찰 적용
+          // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록
+          const relativeSpeed = Math.abs(velAlongTangent);
+          if (relativeSpeed < 1.0) {
+            // 정적 마찰: 상대 속도가 작으면 마찰 토크를 더 강하게 적용
+            const staticFrictionTorque = -bodyB.angularVelocity * friction * bodyB.inertia * 3.0;
+            bodyB.applyAngularImpulse(staticFrictionTorque);
+          }
           // Box2D/Matter.js: 일반 접촉에서의 마찰 토크만 적용
           
           // 매우 작은 각속도는 0으로 설정
