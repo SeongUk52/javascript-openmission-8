@@ -195,9 +195,47 @@ src/
 ---
 
 ## 📚 참고 자료
-- 2D 물리엔진 기본 개념
-- 충돌 감지 알고리즘
-- 토크/회전 물리
+
+### 2D 물리 엔진 구현 레퍼런스
+
+이 프로젝트의 물리 엔진 구현은 다음 원리와 베스트 프랙티스를 참고했습니다:
+
+#### 충돌 해결 (Collision Resolution)
+- **Impulse-based Collision Resolution**: 속도 기반 충돌 해결
+  - 정상 임펄스 계산: `j = -(1 + e) * v_rel · n / (1/mA + 1/mB)`
+  - 위치 보정 (Positional Correction): penetration 해결을 위한 위치 조정
+  - 참고: 일반적인 2D 물리 엔진 충돌 해결 알고리즘
+
+#### 마찰 (Friction)
+- **Coulumb 마찰 법칙**: 마찰 임펄스는 정상 임펄스에 비례
+  - 마찰 임펄스 최대값: `|j_friction| ≤ μ * |j_normal|`
+  - 접선 속도 감쇠: 접촉면에서의 상대 속도 감소
+  - 각속도 감쇠: 접촉 중인 블록의 회전 감소
+  - 참고: 물리 엔진에서의 마찰 구현 베스트 프랙티스
+
+#### 각운동 (Angular Motion)
+- **각속도 감쇠**: 공기 저항과 접촉 마찰 분리
+  - 공기 저항: 약한 감쇠 (0.98 계수)
+  - 접촉 마찰: 충돌 시에만 강한 감쇠 적용
+  - 참고: 2D 물리 엔진의 각속도 처리 방법
+
+#### 위치 보정 (Positional Correction)
+- **Penetration 해결**: 블록이 겹치지 않도록 위치 조정
+  - 보정 비율: 0.8 (더 정확한 위치 보정)
+  - Slop 허용 오차: 0.01
+  - 참고: 물리 엔진의 위치 보정 알고리즘
+
+#### 일반적인 2D 물리 엔진 원리
+- AABB (Axis-Aligned Bounding Box) 충돌 감지
+- 관성 모멘트 계산: `I = (1/12) * m * (w² + h²)`
+- 토크 계산: `τ = r × F`
+- 균형 판정: 무게 중심과 지지 영역 관계
+
+### 참고 자료 링크
+- [2D Physics Engine Tutorial](https://www.toptal.com/game/video-game-physics-part-i-an-introduction-to-rigid-body-dynamics)
+- [Collision Detection and Response](https://www.gamedeveloper.com/programming/collision-detection-algorithms)
+- [Friction in Physics Engines](https://en.wikipedia.org/wiki/Friction)
+- [Impulse-based Collision Resolution](https://en.wikipedia.org/wiki/Collision_response)
 
 ---
 
