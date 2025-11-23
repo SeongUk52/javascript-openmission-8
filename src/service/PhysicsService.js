@@ -187,6 +187,18 @@ export class PhysicsService {
       const result = BalanceUtil.evaluate(body, { supportBounds });
       
       if (!result.stable && this.onTopple) {
+        // 디버그: 블록이 무너지는지 확인
+        console.log('[PhysicsService] Block toppling:', {
+          blockId: body.id ? body.id.substring(0, 20) : 'unknown',
+          centerOfMass: { x: result.centerOfMass.x, y: result.centerOfMass.y },
+          supportBounds: { 
+            left: supportBounds.min.x, 
+            right: supportBounds.max.x,
+            y: supportBounds.min.y
+          },
+          offset: result.offset,
+          stable: result.stable,
+        });
         this.onTopple(body, result);
       }
     });
@@ -229,13 +241,19 @@ export class PhysicsService {
       // 블록의 하단이 다른 블록의 상단 근처에 있어야 함
       const distanceY = bodyBottom - otherTop;
       
-      if (distanceY >= -5 && distanceY <= 5) { // 5픽셀 이내
+      // 더 넓은 범위로 허용 (블록이 비스듬히 쌓여있을 때도 감지)
+      if (distanceY >= -20 && distanceY <= 20) { // 20픽셀 이내
         // X 위치도 확인: 블록이 다른 블록 위에 있어야 함
         const otherLeft = otherAABB.min.x;
         const otherRight = otherAABB.max.x;
+        const bodyLeft = bodyAABB.min.x;
+        const bodyRight = bodyAABB.max.x;
         
-        // 블록의 중심이 다른 블록 위에 있거나, 블록이 다른 블록과 겹치면
-        if (bodyCenterX >= otherLeft && bodyCenterX <= otherRight) {
+        // 블록이 다른 블록과 겹치거나, 블록의 중심이 다른 블록 위에 있으면
+        // X 범위가 겹치는지 확인
+        const xOverlap = !(bodyRight < otherLeft || bodyLeft > otherRight);
+        
+        if (xOverlap) {
           if (distanceY < minDistance) {
             minDistance = distanceY;
             supportBody = otherBody;

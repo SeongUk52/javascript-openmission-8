@@ -189,9 +189,16 @@ export class GameController {
       }
       
       if (body instanceof Block && body.isPlaced) {
+        console.log('[GameController] Block toppling detected:', {
+          blockId: body.id ? body.id.substring(0, 20) : 'unknown',
+          offset: result.offset,
+          centerOfMass: { x: result.centerOfMass.x, y: result.centerOfMass.y },
+          supportBounds: result.supportBounds,
+        });
+        
         // 블록이 무너지면 물리적으로 움직이도록 함
         // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
-        const torque = result.offset * 100; // 토크 적용
+        const torque = result.offset * 500; // 토크 증가 (더 강하게)
         body.angularVelocity += torque;
         
         // 블록이 무너지면 떨어지도록 함
