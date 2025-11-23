@@ -575,7 +575,7 @@ export class GameController {
       return;
     }
 
-    const moveSpeed = 5;
+    const moveSpeed = 15; // 이동 속도 증가 (5 -> 15)
     this.nextBlockX += direction * moveSpeed;
 
     // 베이스 범위 내로 제한
