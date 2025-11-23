@@ -705,7 +705,14 @@ export class GameController {
         }
       } else {
         // 이후 블록: 타워 최상단과 충돌 확인
-        towerTopY = this.tower.getTopY();
+        // 배치된 블록들 중 가장 위에 있는 블록 찾기
+        let maxTopY = -Infinity;
+        this.tower.blocks.forEach(placedBlock => {
+          const placedAABB = placedBlock.getAABB();
+          maxTopY = Math.max(maxTopY, placedAABB.max.y);
+        });
+        towerTopY = maxTopY > -Infinity ? maxTopY : this.tower.basePosition.y - 30;
+        
         const blockBottom = blockAABB.max.y; // 블록의 하단
         // 블록의 하단이 타워 최상단에 닿았는지 확인
         const distanceY = blockBottom - towerTopY;
@@ -716,7 +723,7 @@ export class GameController {
       
       if (isTouchingTower) {
         console.log('[GameController] Block touching tower, fixing...', {
-          blockBottom: blockAABB.min.y,
+          blockBottom: blockAABB.max.y,
           towerTopY,
           velocityY: this.currentBlock.velocity.y,
           towerBlocks: this.tower.getBlockCount(),
