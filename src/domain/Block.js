@@ -32,6 +32,7 @@ export class Block extends Body {
       width,
       height,
       mass,
+      isStatic: options.isStatic || false, // 정적 객체 여부 전달
     });
 
     // 게임 특화 속성
