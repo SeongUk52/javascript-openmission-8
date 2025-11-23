@@ -681,19 +681,7 @@ export class GameController {
                            isInBaseRangeX;
           towerTopY = baseTop;
           
-          // 디버그: 베이스와 블록 위치 확인
-          if (Math.abs(distanceY) < 50) {
-            console.log('[GameController] Block near base:', {
-              blockBottom,
-              baseTop,
-              distanceY,
-              blockCenterX,
-              baseRangeX: { left: baseLeft, right: baseRight },
-              isInBaseRangeX,
-              velocityY: this.currentBlock.velocity.y,
-              isTouching: isTouchingTower,
-            });
-          }
+          // 디버그 로그 제거 (성능에 영향)
         }
       } else {
         // 이후 블록: 타워 최상단과 충돌 확인
