@@ -34,8 +34,20 @@ export class Tower {
    * @param {Block} block
    */
   addBlock(block) {
+    // 블록이 이미 place()되었는지 확인
+    if (!block.isPlaced) {
+      block.place();
+    }
     this.blocks.push(block);
-    block.place();
+    
+    // 디버그: 블록 추가 확인
+    console.log('[Tower] Block added:', {
+      blockId: block.id,
+      blockCount: this.blocks.length,
+      blockIsPlaced: block.isPlaced,
+      blockIsFalling: block.isFalling,
+      blockPosition: { x: block.position.x, y: block.position.y },
+    });
   }
 
   /**
