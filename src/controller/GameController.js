@@ -286,8 +286,14 @@ export class GameController {
       spawnY = Math.max(50, towerTopY - 150); // 타워 위 150픽셀 (최소 50픽셀)
     }
     
+    // 블록의 X 위치를 베이스 범위 내로 제한
+    const baseLeft = this.tower.basePosition.x - this.tower.baseWidth / 2;
+    const baseRight = this.tower.basePosition.x + this.tower.baseWidth / 2;
+    const blockHalfWidth = blockToPlace.width / 2;
+    const clampedX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
+    
     blockToPlace.position.y = spawnY;
-    blockToPlace.position.x = this.nextBlockX;
+    blockToPlace.position.x = clampedX;
     blockToPlace.velocity.x = 0;
     blockToPlace.velocity.y = 0;
     blockToPlace.angularVelocity = 0;
