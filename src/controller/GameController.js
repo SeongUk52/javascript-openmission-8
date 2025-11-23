@@ -533,6 +533,12 @@ export class GameController {
 
     // 다음 블록 생성
     this._spawnNextBlock();
+    
+    // 새로 생성된 블록을 자동으로 떨어뜨림
+    if (this.currentBlock && !this.currentBlock.isFalling) {
+      console.log('[GameController] Auto-placing next block after fixing previous block');
+      this.placeBlock();
+    }
 
     // 이벤트 콜백
     if (this.onBlockPlaced) {
