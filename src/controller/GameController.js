@@ -523,22 +523,34 @@ export class GameController {
         const baseBlock = this.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
         if (baseBlock) {
           const baseAABB = baseBlock.getAABB();
-          // 블록의 하단이 베이스의 상단에 닿았는지 확인
-          const blockBottom = blockAABB.min.y;
-          const baseTop = baseAABB.min.y;
+          // 블록의 하단(max.y)이 베이스의 상단(min.y)에 닿았는지 확인
+          const blockBottom = blockAABB.max.y; // 블록의 하단
+          const baseTop = baseAABB.min.y; // 베이스의 상단
+          
+          // X 위치도 확인 (블록이 베이스 범위 내에 있어야 함)
+          const blockCenterX = this.currentBlock.position.x;
+          const baseLeft = baseAABB.min.x;
+          const baseRight = baseAABB.max.x;
+          const isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
+          
           // 더 넓은 범위로 확인 (충돌 해결로 인해 약간 겹칠 수 있음)
           // 블록이 베이스 위에 있거나 약간 겹치면 닿은 것으로 간주
-          isTouchingTower = blockBottom <= baseTop + 20 && 
-                           blockBottom >= baseTop - 20 &&
-                           Math.abs(this.currentBlock.velocity.y) < 200;
+          const distanceY = blockBottom - baseTop;
+          isTouchingTower = distanceY <= 20 && 
+                           distanceY >= -20 &&
+                           Math.abs(this.currentBlock.velocity.y) < 200 &&
+                           isInBaseRangeX;
           towerTopY = baseTop;
           
           // 디버그: 베이스와 블록 위치 확인
-          if (Math.abs(blockBottom - baseTop) < 30) {
+          if (Math.abs(distanceY) < 50) {
             console.log('[GameController] Block near base:', {
               blockBottom,
               baseTop,
-              distance: Math.abs(blockBottom - baseTop),
+              distanceY,
+              blockCenterX,
+              baseRangeX: { left: baseLeft, right: baseRight },
+              isInBaseRangeX,
               velocityY: this.currentBlock.velocity.y,
               isTouching: isTouchingTower,
             });
