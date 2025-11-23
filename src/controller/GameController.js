@@ -52,8 +52,11 @@ export class GameController {
       baseWidth: 400, // 베이스 너비 증가 (200 -> 400)
     });
 
-    // 현재 떨어지는 블록
+    // 현재 배치 대기 중인 블록 (조작 가능)
     this.currentBlock = null;
+
+    // 떨어지는 중인 블록들 (여러 개 가능)
+    this.fallingBlocks = new Set();
 
     // 다음 블록 위치 (좌우 이동 가능)
     this.nextBlockX = baseX;
@@ -215,12 +218,9 @@ export class GameController {
    * @private
    */
   _spawnNextBlock() {
-    if (this.currentBlock) {
-      console.warn('[GameController] _spawnNextBlock: currentBlock already exists', {
-        currentBlockId: this.currentBlock.id,
-        currentBlockIsFalling: this.currentBlock.isFalling,
-        currentBlockIsPlaced: this.currentBlock.isPlaced,
-      });
+    // currentBlock이 있고 떨어지지 않는 중이면 새로 생성하지 않음
+    if (this.currentBlock && !this.currentBlock.isFalling && !this.physicsService.bodies.includes(this.currentBlock)) {
+      console.log('[GameController] _spawnNextBlock: currentBlock already exists and not falling');
       return;
     }
 
@@ -296,6 +296,7 @@ export class GameController {
       isPaused: this.gameState.isPaused,
       currentBlockIsFalling: this.currentBlock?.isFalling,
       currentBlockInPhysics: this.currentBlock ? this.physicsService.bodies.includes(this.currentBlock) : false,
+      fallingBlocksCount: this.fallingBlocks.size,
     });
     
     if (!this.gameState.isPlaying || this.gameState.isPaused) {
@@ -303,23 +304,16 @@ export class GameController {
       return;
     }
 
-    // 현재 블록이 없으면 새로 생성
-    if (!this.currentBlock) {
+    // 현재 블록이 없거나 떨어지는 중이면 새로 생성
+    if (!this.currentBlock || (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock))) {
+      if (this.currentBlock && this.currentBlock.isFalling) {
+        // 기존 블록은 fallingBlocks에 추가하고 currentBlock은 null로
+        this.fallingBlocks.add(this.currentBlock);
+        console.log('[GameController] Current block is falling, moving to fallingBlocks');
+      }
       this._spawnNextBlock();
       if (!this.currentBlock) {
         console.log('[GameController] placeBlock() - failed to spawn block');
-        return;
-      }
-    }
-
-    // 블록이 이미 떨어지는 중이면, 새로운 블록을 생성하여 떨어뜨림
-    // 기존 블록은 그대로 떨어지게 둠
-    if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
-      console.log('[GameController] Current block is falling, spawning new block to fall');
-      // 현재 블록은 그대로 두고 새로운 블록 생성
-      this._spawnNextBlock();
-      if (!this.currentBlock) {
-        console.log('[GameController] placeBlock() - failed to spawn new block');
         return;
       }
     }
@@ -372,35 +366,30 @@ export class GameController {
     // (이미 추가되어 있으면 중복 추가 방지)
     if (!this.physicsService.bodies.includes(blockToPlace)) {
       this.physicsService.addBody(blockToPlace);
-      console.log('[GameController] Block added to physics for falling:', {
-        blockId: blockToPlace.id,
-        position: { x: blockToPlace.position.x, y: blockToPlace.position.y },
-        isFalling: blockToPlace.isFalling,
-        isPlaced: blockToPlace.isPlaced,
-        spawnY,
-        clampedX,
-      });
     }
     
-    // 블록 상태: 떨어지는 중 (위치 설정 전에 설정)
+    // 블록 상태: 떨어지는 중
     blockToPlace.isFalling = true;
     blockToPlace.isPlaced = false;
     
+    // 떨어지는 블록 목록에 추가
+    this.fallingBlocks.add(blockToPlace);
+    
+    // currentBlock을 null로 설정 (다음 블록을 위해)
+    this.currentBlock = null;
+    
     console.log('[GameController] Block positioned for falling:', {
+      blockId: blockToPlace.id,
       spawnY,
       nextBlockX: this.nextBlockX,
       towerTopY: this.tower.getBlockCount() === 0 ? this.tower.basePosition.y - 30 : this.tower.getTopY(),
       blockPosition: { x: blockToPlace.position.x, y: blockToPlace.position.y },
       blockAABB: blockToPlace.getAABB(),
-      blockId: blockToPlace.id,
       physicsBodiesCount: this.physicsService.bodies.length,
+      fallingBlocksCount: this.fallingBlocks.size,
       isFalling: blockToPlace.isFalling,
       isPlaced: blockToPlace.isPlaced,
     });
-    
-    // 블록이 타워에 닿았는지 확인하는 로직은 update()에서 처리
-    // 여기서는 블록을 떨어뜨리기만 함
-    // 블록이 떨어져서 타워에 닿으면 자동으로 고정됨
   }
 
   /**
@@ -511,15 +500,13 @@ export class GameController {
       towerBlocksArray: this.tower.blocks.map(b => ({ id: b.id, position: b.position, isPlaced: b.isPlaced, isStatic: b.isStatic })),
     });
     
-    // 현재 블록이 이 블록이면 초기화 (다음 블록 소환을 위해)
+    // 떨어지는 블록 목록에서 제거
+    this.fallingBlocks.delete(block);
+    
+    // currentBlock이 이 블록이면 초기화
     if (this.currentBlock === block) {
       this.currentBlock = null;
       console.log('[GameController] Current block cleared');
-    } else {
-      console.warn('[GameController] Current block mismatch:', {
-        fixedBlockId: block.id,
-        currentBlockId: this.currentBlock?.id,
-      });
     }
 
     // 점수 계산 및 추가
@@ -681,12 +668,15 @@ export class GameController {
     // 이미 update() 시작 부분에서 isPlaying 체크를 하므로 안전함
     this.physicsService.update(deltaTime);
 
-    // 현재 블록이 타워에 닿았는지 확인 (자동 고정)
+    // 떨어지는 블록들이 타워에 닿았는지 확인 (자동 고정)
     // 충돌 이벤트로도 처리하지만, 여기서도 직접 확인
-    if (this.currentBlock && 
-        this.currentBlock.isFalling && 
-        this.physicsService.bodies.includes(this.currentBlock)) {
-      const blockAABB = this.currentBlock.getAABB();
+    const blocksToCheck = this.currentBlock && this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)
+      ? [this.currentBlock, ...this.fallingBlocks]
+      : Array.from(this.fallingBlocks);
+    
+    for (const block of blocksToCheck) {
+      if (!block || !block.isFalling || !this.physicsService.bodies.includes(block)) continue;
+      const blockAABB = block.getAABB();
       
       // 베이스 또는 타워 블록과 충돌했는지 확인
       let isTouchingTower = false;
@@ -703,7 +693,7 @@ export class GameController {
           const baseTop = baseAABB.min.y; // 베이스의 상단
           
           // X 위치도 확인 (블록이 베이스 범위 내에 있어야 함)
-          const blockCenterX = this.currentBlock.position.x;
+          const blockCenterX = block.position.x;
           const baseLeft = baseAABB.min.x;
           const baseRight = baseAABB.max.x;
           const isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
@@ -713,11 +703,9 @@ export class GameController {
           const distanceY = blockBottom - baseTop;
           isTouchingTower = distanceY <= 30 && 
                            distanceY >= -30 &&
-                           Math.abs(this.currentBlock.velocity.y) < 500 &&
+                           Math.abs(block.velocity.y) < 500 &&
                            isInBaseRangeX;
           towerTopY = baseTop;
-          
-          // 디버그 로그 제거 (성능에 영향)
         }
       } else {
         // 이후 블록: 타워 최상단과 충돌 확인
@@ -734,28 +722,32 @@ export class GameController {
         const distanceY = blockBottom - towerTopY;
         isTouchingTower = distanceY <= 30 && 
                          distanceY >= -30 &&
-                         Math.abs(this.currentBlock.velocity.y) < 500;
+                         Math.abs(block.velocity.y) < 500;
       }
       
       if (isTouchingTower) {
         console.log('[GameController] Block touching tower, fixing...', {
+          blockId: block.id,
           blockBottom: blockAABB.max.y,
           towerTopY,
-          velocityY: this.currentBlock.velocity.y,
+          velocityY: block.velocity.y,
           towerBlocks: this.tower.getBlockCount(),
         });
         // 블록을 타워에 고정
-        this._fixBlockToTower(this.currentBlock);
-        return; // 고정 후에는 더 이상 체크하지 않음
+        this._fixBlockToTower(block);
+        break; // 하나씩 처리
       }
     }
 
-    // 현재 블록이 화면 밖으로 나갔는지 확인
+    // 떨어지는 블록들이 화면 밖으로 나갔는지 확인
     // 단, 블록이 떨어지는 중일 때만 체크 (타워에 닿기 전까지는 기다림)
     // 블록이 타워 근처에 있으면 게임 오버하지 않음
-    if (this.currentBlock && 
-        this.currentBlock.isFalling && 
-        this.physicsService.bodies.includes(this.currentBlock)) {
+    const fallingBlocksToCheck = this.currentBlock && this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)
+      ? [this.currentBlock, ...this.fallingBlocks]
+      : Array.from(this.fallingBlocks);
+    
+    for (const block of fallingBlocksToCheck) {
+      if (!block || !block.isFalling || !this.physicsService.bodies.includes(block)) continue;
       const aabb = this.currentBlock.getAABB();
       
       // 베이스 위치 확인
