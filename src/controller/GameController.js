@@ -455,13 +455,19 @@ export class GameController {
     block.angularVelocity = 0;
     block.angle = 0;
     
-    // 블록 상태 변경 (배치됨) - 물리 엔진에서 제거하기 전에
+    // 블록 상태 변경 (배치됨) - 물리 엔진에 남겨두되 정적으로 만들기
     block.place(); // isPlaced = true, isFalling = false
     
-    // 물리 엔진에서 제거 (블록이 더 이상 떨어지지 않도록)
-    const wasInPhysics = this.physicsService.bodies.includes(block);
-    if (wasInPhysics) {
-      this.physicsService.removeBody(block);
+    // 블록을 정적으로 만들기 (물리 엔진에 남겨두되 움직이지 않도록)
+    block.isStatic = true;
+    block.velocity.x = 0;
+    block.velocity.y = 0;
+    block.angularVelocity = 0;
+    block.angle = 0;
+    
+    // 물리 엔진에 이미 있으면 그대로 두고, 없으면 추가
+    if (!this.physicsService.bodies.includes(block)) {
+      this.physicsService.addBody(block);
     }
     
     // 블록을 타워에 추가
