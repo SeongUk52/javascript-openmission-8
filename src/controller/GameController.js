@@ -152,19 +152,44 @@ export class GameController {
       if (body instanceof Block && body.isPlaced) {
         // 블록이 무너지면 물리적으로 움직이도록 함
         // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
-        const torque = result.offset * 20; // 토크 더 감소 (너무 강하지 않게)
+        const torque = result.offset * 100; // 토크 증가 (블록이 더 쉽게 무너지도록)
         body.angularVelocity += torque;
         
         // 각속도 최대값 제한 (너무 빠른 회전 방지)
-        const maxAngularVelocity = 3.0; // 라디안/초
+        const maxAngularVelocity = 5.0; // 라디안/초 (증가)
         if (Math.abs(body.angularVelocity) > maxAngularVelocity) {
           body.angularVelocity = Math.sign(body.angularVelocity) * maxAngularVelocity;
         }
         
         // 블록이 무너지면 떨어지도록 함
-        // 하지만 isPlaced는 유지하여 계속 균형 판정하도록 함
-        // (위에 있는 블록이 무너지면 아래 블록도 영향을 받아야 함)
         body.isFalling = true;
+        
+        // 위에 있는 블록들도 영향을 받도록 함 (연쇄 반응)
+        const placedBlocks = this._getPlacedBlocks();
+        const bodyAABB = body.getAABB();
+        const bodyTop = bodyAABB.min.y;
+        
+        placedBlocks.forEach(otherBlock => {
+          if (otherBlock === body) return;
+          if (!otherBlock.isPlaced) return;
+          
+          const otherAABB = otherBlock.getAABB();
+          const otherBottom = otherAABB.max.y;
+          
+          // 다른 블록이 이 블록 위에 있는지 확인
+          const distanceY = otherBottom - bodyTop;
+          if (distanceY >= -10 && distanceY <= 10) {
+            // X 위치도 확인
+            const xOverlap = !(otherAABB.max.x < bodyAABB.min.x || otherAABB.min.x > bodyAABB.max.x);
+            if (xOverlap) {
+              // 위에 있는 블록도 무너지도록 함
+              otherBlock.isFalling = true;
+              // 위 블록에도 토크 전달 (연쇄 반응)
+              const relativeTorque = result.offset * 50;
+              otherBlock.angularVelocity += relativeTorque;
+            }
+          }
+        });
         
         // 블록이 무너지는 것만으로는 게임 오버가 되지 않음
         // 블록이 베이스 바닥 아래로 떨어지면 게임 오버 (update에서 처리)
