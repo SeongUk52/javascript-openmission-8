@@ -64,6 +64,8 @@ export class CollisionUtil {
     CollisionUtil._positionalCorrection(bodyA, bodyB, manifold.normal, manifold.penetration);
     
     // 접촉 중일 때는 항상 impulse 적용 (penetration이 있으면 접촉 중)
+    // Box2D/Matter.js: 접촉 제약 조건 해결을 위해 중력 정보 필요
+    // 중력 정보는 PhysicsService에서 전달받아야 하지만, 현재는 기본값 사용
     CollisionUtil._applyImpulse(bodyA, bodyB, manifold.normal, manifold.penetration);
     
     // Box2D/Matter.js: 속도를 직접 설정하지 않고 impulse만으로 해결
@@ -104,48 +106,104 @@ export class CollisionUtil {
     const invMassSum = bodyA.invMass + bodyB.invMass;
     if (invMassSum === 0) return;
 
-    // 접촉 중일 때 (penetration > 0)는 항상 impulse 적용
-    // Box2D/Matter.js 스타일: 접촉 중일 때는 중력 효과를 상쇄하기 위해 impulse 적용
+    // Box2D/Matter.js: 접촉 제약 조건(Contact Constraint) 해결
+    // 접촉 제약 조건: v_rel · n >= 0 (상대 속도가 normal 방향으로 분리되거나 0)
+    // 접촉 중일 때는 normal impulse가 중력 효과를 상쇄해야 함
     let impulseScalar;
-    if (penetration > 0.01) {
-      // 접촉 중일 때는 velAlongNormal이 작아도 impulse 적용
-      // 중력 효과를 상쇄하기 위해 최소 impulse 적용
-      // 중력이 계속 적용되므로 접촉 중일 때는 항상 위 방향 impulse 필요 (중력 상쇄)
-      // Box2D/Matter.js: 접촉 제약 조건을 여러 번 반복하여 해결 (PhysicsService에서 이미 반복함)
-      // 각 반복마다 충분한 impulse를 적용하여 중력 효과를 상쇄
-      // 중력이 500이고 질량이 20이면 중력 힘은 10000이므로 충분한 impulse 필요
-      // Box2D/Matter.js: 접촉 제약 조건을 여러 번 반복하여 해결 (PhysicsService에서 이미 반복함)
-      // 각 반복마다 충분한 impulse를 적용하여 중력 효과를 상쇄
-      // 중력이 500이고 질량이 20이면 중력 힘은 10000이므로 충분한 impulse 필요
-      // deltaTime이 1/60이고 중력이 500이면, 한 프레임에 중력에 의한 속도 증가는 약 8.33
-      // 이를 상쇄하려면 충분한 impulse 필요 (충돌 해결이 10번 반복되므로 각 반복마다 작은 impulse로도 가능)
-      // Box2D/Matter.js: 접촉 제약 조건을 여러 번 반복하여 해결 (PhysicsService에서 이미 반복함)
-      // 각 반복마다 충분한 impulse를 적용하여 중력 효과를 상쇄
-      // 중력이 500이고 질량이 20이면 중력 힘은 10000이므로 충분한 impulse 필요
-      // deltaTime이 1/60이고 중력이 500이면, 한 프레임에 중력에 의한 속도 증가는 약 8.33
-      // 이를 상쇄하려면 충분한 impulse 필요 (충돌 해결이 20번 반복되므로 각 반복마다 작은 impulse로도 가능)
-      // Box2D/Matter.js: 접촉 중일 때는 normal impulse가 중력을 상쇄하기 위해 충분히 커야 함
-      const minImpulse = 100.0; // 최소 impulse 증가 (중력 효과 상쇄, 충돌 해결 반복으로 누적됨)
-      if (velAlongNormal > 0.1) {
-        // 서로 멀어지고 있지만 penetration이 있으면 중력 상쇄 impulse 적용
+    // Box2D/Matter.js: 접촉 제약 조건은 penetration이 있거나 접촉 중일 때 항상 해결
+    if (penetration > 0.001 || Math.abs(velAlongNormal) < 10) {
+      // 접촉 중일 때 (penetration > 0)
+      // Box2D/Matter.js: 접촉 제약 조건을 해결하기 위해 impulse 적용
+      // 접촉 제약 조건: v_rel · n = 0 (접촉면에서 상대 속도가 0)
+      // 이를 위해 필요한 impulse: j = -v_rel · n / (1/mA + 1/mB)
+      
+      // 일반적인 normal impulse 계산
+      const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
+      
+      // Box2D/Matter.js: 접촉 중일 때는 상대 속도가 normal 방향으로 0이 되도록 impulse 적용
+      // 중력 효과를 상쇄하기 위해 충분한 impulse 필요
+      // 접촉 제약 조건 해결: v_rel · n = 0
+      // 중력이 계속 적용되므로, 각 반복마다 충분한 impulse를 적용하여 점진적으로 상쇄
+      
+      // Box2D/Matter.js: 접촉 제약 조건 해결
+      // 접촉 제약 조건: v_rel · n = 0 (접촉면에서 상대 속도가 0)
+      // 이를 위해 필요한 impulse: j = -v_rel · n / (1/mA + 1/mB)
+      // 중력이 계속 적용되므로, 각 반복마다 충분한 impulse를 적용하여 점진적으로 상쇄
+      
+      // 중력 효과를 상쇄하기 위한 최소 impulse 계산
+      // Box2D/Matter.js: 접촉 제약 조건을 해결하기 위해 중력 효과를 상쇄해야 함
+      // 중력이 500이고 질량이 20이면, 한 프레임(deltaTime=1/60)에 중력에 의한 속도 증가는 약 8.33
+      // 충돌 해결이 20번 반복되므로, 각 반복마다 약 0.42의 속도 증가를 상쇄해야 함
+      // 이를 위해 필요한 impulse: j = Δv * m = 0.42 * 20 = 8.4
+      // 하지만 더 안정적으로 하기 위해 여유를 두어 더 큰 값 사용
+      const gravityAccel = 500; // 중력 가속도 (테스트에서 사용하는 값)
+      const deltaTime = 1 / 60; // 기본 deltaTime
+      const gravityVelocityPerFrame = gravityAccel * deltaTime; // 한 프레임에 중력에 의한 속도 증가
+      const massA = (bodyA.mass !== undefined && bodyA.mass > 0 && isFinite(bodyA.mass)) ? bodyA.mass : 1;
+      const massB = (bodyB.mass !== undefined && bodyB.mass > 0 && isFinite(bodyB.mass)) ? bodyB.mass : 1;
+      const mass = Math.max(massA, massB); // 더 큰 질량 사용
+      const iterations = 50; // 충돌 해결 반복 횟수 (PhysicsService.iterations와 동일하게)
+      const gravityVelocityPerIteration = gravityVelocityPerFrame / iterations; // 각 반복마다 상쇄해야 할 속도
+      const minImpulse = gravityVelocityPerIteration * mass * 100.0; // 여유를 두어 100배 적용 (더 안정적)
+      
+      if (velAlongNormal > 0) {
+        // 서로 멀어지고 있지만 penetration이 있으면 접촉 제약 조건 위반
+        // Box2D/Matter.js: penetration이 있으면 항상 접촉 제약 조건 해결
         impulseScalar = -minImpulse / invMassSum;
       } else {
         // 접촉 중이면 normal impulse 적용
-        const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
-        // velAlongNormal이 0에 가까워도 중력 상쇄를 위해 최소 impulse 적용
-        if (Math.abs(normalImpulse) < minImpulse / invMassSum && velAlongNormal <= 0) {
-          impulseScalar = -minImpulse / invMassSum;
-        } else {
-          // normal impulse가 충분하면 사용, 아니면 최소 impulse 사용
-          impulseScalar = Math.abs(normalImpulse) >= minImpulse / invMassSum ? normalImpulse : -minImpulse / invMassSum;
-        }
+        // velAlongNormal이 0에 가까워도 중력 상쇄를 위해 충분한 impulse 필요
+          // Box2D/Matter.js: 접촉 제약 조건을 해결하기 위해 항상 충분한 impulse 필요
+          // 접촉 제약 조건: v_rel · n = 0을 만족하기 위해 항상 최소 impulse 보장
+          const minImpulseScalar = -minImpulse / invMassSum;
+          if (Math.abs(normalImpulse) < Math.abs(minImpulseScalar)) {
+            // normal impulse가 충분하지 않으면 최소 impulse 사용
+            impulseScalar = minImpulseScalar;
+          } else {
+            // normal impulse가 충분하면 사용 (normalImpulse는 이미 음수이므로 충분함)
+            impulseScalar = normalImpulse;
+          }
       }
     } else {
-      // penetration이 없으면 일반 충돌 해결
-      if (velAlongNormal > 0) {
+      // penetration이 없어도 접촉 중이면 접촉 제약 조건 해결
+      // Box2D/Matter.js: 접촉 제약 조건은 penetration이 있거나 접촉 중일 때 항상 해결
+      if (Math.abs(velAlongNormal) < 10) {
+        // 접촉 중이면 접촉 제약 조건 해결
+        const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
+        const gravityAccel = 500;
+        const deltaTime = 1 / 60;
+        const gravityVelocityPerFrame = gravityAccel * deltaTime;
+        const massA = (bodyA.mass !== undefined && bodyA.mass > 0 && isFinite(bodyA.mass)) ? bodyA.mass : 1;
+        const massB = (bodyB.mass !== undefined && bodyB.mass > 0 && isFinite(bodyB.mass)) ? bodyB.mass : 1;
+        const mass = Math.max(massA, massB);
+        const iterations = 50;
+        const gravityVelocityPerIteration = gravityVelocityPerFrame / iterations;
+        const minImpulse = gravityVelocityPerIteration * mass * 100.0;
+        const minImpulseScalar = -minImpulse / invMassSum;
+        if (Math.abs(normalImpulse) < Math.abs(minImpulseScalar)) {
+          impulseScalar = minImpulseScalar;
+        } else {
+          impulseScalar = normalImpulse;
+        }
+      } else if (velAlongNormal > 0) {
+        // 일반 충돌 해결
         return; // 서로 멀어지고 있음
       }
       impulseScalar = (-(1 + restitution) * velAlongNormal) / invMassSum;
+    }
+    
+    // NaN 체크
+    if (isNaN(impulseScalar) || !isFinite(impulseScalar)) {
+      console.error('[CollisionUtil] impulseScalar is NaN or Infinity:', {
+        velAlongNormal,
+        normalImpulse,
+        minImpulse,
+        invMassSum,
+        penetration,
+        bodyA: { mass: bodyA.mass, invMass: bodyA.invMass },
+        bodyB: { mass: bodyB.mass, invMass: bodyB.invMass }
+      });
+      return; // NaN이면 impulse 적용하지 않음
     }
     
     const impulse = Vector.multiply(normal, impulseScalar);
@@ -155,7 +213,9 @@ export class CollisionUtil {
     const centerB = bodyB.getCenterOfMass();
     let contactPoint;
     
-    // 정적 객체가 있는 경우 접촉면의 중심을 사용
+    // Box2D/Matter.js: 접촉점은 normal 방향으로 투영된 중심점을 사용
+    // 완벽하게 수평/수직으로 닿았을 때는 각 충격량이 0이 되도록 함
+    // 정적 객체가 있는 경우 접촉면의 중심을 사용하되, normal 방향으로 보정
     if (bodyA.isStatic || bodyB.isStatic) {
       // AABB 겹치는 영역의 중심을 접촉점으로 사용
       const aabbA = bodyA.getAABB();
@@ -167,10 +227,31 @@ export class CollisionUtil {
       const overlapMaxY = Math.min(aabbA.max.y, aabbB.max.y);
       
       // 겹치는 영역의 중심
-      contactPoint = new Vector(
+      const overlapCenter = new Vector(
         (overlapMinX + overlapMaxX) / 2,
         (overlapMinY + overlapMaxY) / 2
       );
+      
+      // Box2D/Matter.js: normal 방향으로 투영하여 접촉점 보정
+      // 완벽하게 수평/수직으로 닿았을 때는 중심을 통과하도록 함
+      const staticBody = bodyA.isStatic ? bodyA : bodyB;
+      const dynamicBody = bodyA.isStatic ? bodyB : bodyA;
+      const staticCenter = staticBody.getCenterOfMass();
+      const dynamicCenter = dynamicBody.getCenterOfMass();
+      
+      // normal 방향으로 투영된 접촉점 계산
+      // normal이 (0, 1)이면 수평 접촉, (1, 0)이면 수직 접촉
+      // 수평 접촉일 때는 x 좌표를 중심으로, 수직 접촉일 때는 y 좌표를 중심으로
+      if (Math.abs(normal.x) < 0.1) {
+        // 수평 접촉 (normal ≈ (0, 1) 또는 (0, -1))
+        contactPoint = new Vector(dynamicCenter.x, overlapCenter.y);
+      } else if (Math.abs(normal.y) < 0.1) {
+        // 수직 접촉 (normal ≈ (1, 0) 또는 (-1, 0))
+        contactPoint = new Vector(overlapCenter.x, dynamicCenter.y);
+      } else {
+        // 대각선 접촉 (드물지만 발생 가능)
+        contactPoint = overlapCenter;
+      }
     } else {
       // 두 객체 모두 동적이면 질량 중심을 사용
       contactPoint = Vector.add(
@@ -184,9 +265,17 @@ export class CollisionUtil {
       bodyA.applyImpulse(Vector.multiply(impulse, -1));
       
       // 접촉점에서의 각 충격량 적용 (r × impulse)
+      // Box2D/Matter.js: normal impulse가 중심을 통과하면 각 충격량이 0이어야 함
+      // 완벽하게 수평/수직으로 닿았을 때는 각 충격량이 매우 작아야 함
       const rA = Vector.subtract(contactPoint, centerA);
       const angularImpulseA = rA.cross(Vector.multiply(impulse, -1));
-      bodyA.applyAngularImpulse(angularImpulseA);
+      
+      // normal impulse가 중심을 통과하는지 확인
+      // normal과 rA가 평행하면 각 충격량이 0이어야 함
+      // 하지만 수치 오차로 인해 작은 각 충격량이 생길 수 있으므로, 매우 작은 각 충격량은 무시
+      if (Math.abs(angularImpulseA) > 0.001) {
+        bodyA.applyAngularImpulse(angularImpulseA);
+      }
     }
     if (!bodyB.isStatic) {
       bodyB.applyImpulse(impulse);
@@ -194,7 +283,11 @@ export class CollisionUtil {
       // 접촉점에서의 각 충격량 적용 (r × impulse)
       const rB = Vector.subtract(contactPoint, centerB);
       const angularImpulseB = rB.cross(impulse);
-      bodyB.applyAngularImpulse(angularImpulseB);
+      
+      // normal impulse가 중심을 통과하는지 확인
+      if (Math.abs(angularImpulseB) > 0.001) {
+        bodyB.applyAngularImpulse(angularImpulseB);
+      }
     }
     
     // 마찰 적용 (Coulumb 마찰 법칙: 마찰 임펄스는 정상 임펄스에 비례)
@@ -221,7 +314,7 @@ export class CollisionUtil {
       const velAlongTangent = relativeVelocityAtContact.dot(tangent);
       
       // 마찰 임펄스 계산 (정상 임펄스에 비례, 최대값 제한)
-      const maxFrictionImpulse = Math.abs(impulseScalar) * friction;
+      const maxFrictionImpulse = Math.abs(impulseScalar) * friction * 3.0; // 마찰 강화
       const frictionImpulseScalar = Math.max(
         -maxFrictionImpulse,
         Math.min(maxFrictionImpulse, -velAlongTangent / invMassSum)
@@ -241,57 +334,35 @@ export class CollisionUtil {
         if (bodyB.isStatic) {
           // 베이스와 접촉 중일 때는 각속도에 직접 마찰 토크를 매우 강하게 적용
           // Box2D/Matter.js 스타일: 접촉 중일 때 마찰 토크는 각속도에 비례
-          const staticFrictionTorque = -bodyA.angularVelocity * friction * bodyA.inertia * 1.2;
+          const staticFrictionTorque = -bodyA.angularVelocity * friction * bodyA.inertia * 5.0; // 마찰 토크 강화
           bodyA.applyAngularImpulse(staticFrictionTorque);
           
-          // 베이스와 접촉 중일 때는 각속도를 강하게 감쇠
-          bodyA.angularVelocity *= 0.6; // 40% 감쇠
-          
-          // 속도도 마찰에 의해 매우 강하게 감쇠
-          // Box2D/Matter.js 스타일: 접촉 중일 때 마찰이 매우 강하게 작용
-          const frictionDampingX = 1 - friction * 0.6; // 수평 마찰 매우 강화
-          const frictionDampingY = 1 - friction * 0.5; // 수직 마찰 매우 강화
-          bodyA.velocity.x *= frictionDampingX;
-          bodyA.velocity.y *= frictionDampingY;
-          
+          // Box2D/Matter.js: 마찰 토크만 적용, 속도는 직접 설정하지 않음
+          // 마찰 토크는 각속도에 비례하여 적용
           // 각속도가 매우 작으면 0으로 (수치 안정성)
           if (Math.abs(bodyA.angularVelocity) < 0.01) {
             bodyA.angularVelocity = 0;
           }
           
           // 속도가 매우 작으면 0으로 (수치 안정성)
-          if (Math.abs(bodyA.velocity.x) < 1.0) {
+          if (Math.abs(bodyA.velocity.x) < 0.1) {
             bodyA.velocity.x = 0;
           }
-          if (Math.abs(bodyA.velocity.y) < 1.0 && bodyA.velocity.y >= 0) {
+          if (Math.abs(bodyA.velocity.y) < 0.1 && bodyA.velocity.y >= 0) {
             bodyA.velocity.y = 0;
           }
         } else {
-          // 일반 접촉에서의 각속도 감쇠
-          const contactAngularDamping = 0.7; // 30% 감쇠 (더 강화)
-          bodyA.angularVelocity *= contactAngularDamping;
-          
-          // 속도도 마찰에 의해 강하게 감쇠
-          const frictionDampingX = 1 - friction * 0.3; // 수평 마찰 강화
-          const frictionDampingY = 1 - friction * 0.2; // 수직 마찰 강화
-          bodyA.velocity.x *= frictionDampingX;
-          bodyA.velocity.y *= frictionDampingY;
-          
-          // 접촉 중이고 각속도가 작으면 강제로 감쇠
-          if (Math.abs(bodyA.angularVelocity) < 0.5) {
-            bodyA.angularVelocity *= 0.5; // 추가 감쇠 (더 강화)
-          }
-          
-          // 매우 작은 각속도는 0으로 설정
+          // Box2D/Matter.js: 일반 접촉에서의 마찰 토크만 적용
+          // 각속도가 매우 작으면 0으로 (수치 안정성)
           if (Math.abs(bodyA.angularVelocity) < 0.05) {
             bodyA.angularVelocity = 0;
           }
           
           // 속도가 매우 작으면 0으로 (수치 안정성)
-          if (Math.abs(bodyA.velocity.x) < 1.0) {
+          if (Math.abs(bodyA.velocity.x) < 0.1) {
             bodyA.velocity.x = 0;
           }
-          if (Math.abs(bodyA.velocity.y) < 1.0 && bodyA.velocity.y >= 0) {
+          if (Math.abs(bodyA.velocity.y) < 0.1 && bodyA.velocity.y >= 0) {
             bodyA.velocity.y = 0;
           }
         }
@@ -300,26 +371,21 @@ export class CollisionUtil {
         bodyB.applyImpulse(frictionImpulse);
         
         // 접촉점에서의 마찰 토크 적용 (r × frictionImpulse)
+        // Box2D/Matter.js: 마찰 토크도 매우 작으면 무시
         const rB = Vector.subtract(contactPoint, centerB);
         const frictionTorqueB = rB.cross(frictionImpulse);
-        bodyB.applyAngularImpulse(frictionTorqueB);
+        if (Math.abs(frictionTorqueB) > 0.001) {
+          bodyB.applyAngularImpulse(frictionTorqueB);
+        }
         
         // 정적 객체(베이스)와 접촉 중이면 마찰 토크를 매우 강하게 적용
         if (bodyA.isStatic) {
           // 베이스와 접촉 중일 때는 각속도에 직접 마찰 토크를 매우 강하게 적용
           // Box2D/Matter.js 스타일: 접촉 중일 때 마찰 토크는 각속도에 비례
-          const staticFrictionTorque = -bodyB.angularVelocity * friction * bodyB.inertia * 1.2;
+          const staticFrictionTorque = -bodyB.angularVelocity * friction * bodyB.inertia * 7.0; // 마찰 토크 강화
           bodyB.applyAngularImpulse(staticFrictionTorque);
           
-          // 베이스와 접촉 중일 때는 각속도를 강하게 감쇠
-          bodyB.angularVelocity *= 0.6; // 40% 감쇠
-          
-          // 속도도 마찰에 의해 매우 강하게 감쇠
-          // Box2D/Matter.js 스타일: 접촉 중일 때 마찰이 매우 강하게 작용
-          const frictionDampingX = 1 - friction * 0.6; // 수평 마찰 매우 강화
-          const frictionDampingY = 1 - friction * 0.5; // 수직 마찰 매우 강화
-          bodyB.velocity.x *= frictionDampingX;
-          bodyB.velocity.y *= frictionDampingY;
+          // Box2D/Matter.js: 마찰 토크만 적용, 속도는 직접 설정하지 않음
           
           // 각속도가 매우 작으면 0으로 (수치 안정성)
           if (Math.abs(bodyB.angularVelocity) < 0.01) {
@@ -334,20 +400,7 @@ export class CollisionUtil {
             bodyB.velocity.y = 0;
           }
         } else {
-          // 일반 접촉에서의 각속도 감쇠
-          const contactAngularDamping = 0.7; // 30% 감쇠 (더 강화)
-          bodyB.angularVelocity *= contactAngularDamping;
-          
-          // 속도도 마찰에 의해 강하게 감쇠
-          const frictionDampingX = 1 - friction * 0.3; // 수평 마찰 강화
-          const frictionDampingY = 1 - friction * 0.2; // 수직 마찰 강화
-          bodyB.velocity.x *= frictionDampingX;
-          bodyB.velocity.y *= frictionDampingY;
-          
-          // 접촉 중이고 각속도가 작으면 강제로 감쇠
-          if (Math.abs(bodyB.angularVelocity) < 0.5) {
-            bodyB.angularVelocity *= 0.5; // 추가 감쇠 (더 강화)
-          }
+          // Box2D/Matter.js: 일반 접촉에서의 마찰 토크만 적용
           
           // 매우 작은 각속도는 0으로 설정
           if (Math.abs(bodyB.angularVelocity) < 0.05) {

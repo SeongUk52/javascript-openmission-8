@@ -20,7 +20,7 @@ export class PhysicsService {
     // 물리 설정
     this.timeStep = options.timeStep || 1 / 60; // 기본 60fps
     this.maxSubSteps = options.maxSubSteps || 10; // 최대 서브스텝
-    this.iterations = options.iterations || 10; // 충돌 해결 반복 횟수
+    this.iterations = options.iterations || 40; // 충돌 해결 반복 횟수 (Box2D/Matter.js: 접촉 제약 조건 해결, 더 많은 반복으로 안정성 향상)
     
     // 이벤트 콜백
     this.onCollision = options.onCollision || null;
@@ -90,10 +90,11 @@ export class PhysicsService {
     });
 
     // 3. 충돌 감지 및 해결 (여러 번 반복하여 안정성 향상)
+    // Box2D/Matter.js: 접촉 제약 조건(Contact Constraint)을 여러 번 반복하여 해결
+    // 각 반복마다 normal impulse를 적용하여 중력 효과를 점진적으로 상쇄
     // 충돌 해결은 여러 번 반복해야 블록이 베이스를 통과하지 않음
-    // Box2D/Matter.js: 접촉 제약 조건을 여러 번 반복하여 해결하여 중력 효과 상쇄
     if (this.bodies.length > 1) {
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < this.iterations; i++) {
         this.resolveCollisions();
       }
     }
@@ -220,16 +221,8 @@ export class PhysicsService {
           body.velocity.x *= frictionDampingX;
           body.velocity.y *= frictionDampingY;
           
-          // 수직 속도가 아래 방향이면 완전히 0으로 (베이스에 닿았을 때)
-          if (body.velocity.y > 0) {
-            body.velocity.y = 0;
-          }
-          
-          // 수평 속도도 완전히 멈춤
-          body.velocity.x = 0;
-          
-          // 각속도도 완전히 멈춤
-          body.angularVelocity = 0;
+          // Box2D/Matter.js: 속도를 직접 설정하지 않고 마찰과 impulse만으로 해결
+          // 마찰에 의한 감쇠만 적용
         } else {
           // 일반 접촉에서의 감쇠
           const contactDamping = 0.9; // 10% 감쇠
