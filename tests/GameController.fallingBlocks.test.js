@@ -50,9 +50,9 @@ describe('GameController - Falling Blocks Management', () => {
     controller.placeBlock(); // 첫 번째 블록 떨어뜨림
 
     expect(controller.fallingBlocks.has(firstBlock)).toBe(true);
-    expect(controller.currentBlock).toBeNull();
+    expect(controller.currentBlock).toBeNull(); // placeBlock 후 currentBlock은 null
 
-    // 떨어지는 중에 다시 placeBlock 호출
+    // 떨어지는 중에 다시 placeBlock 호출 (currentBlock이 null이므로 새 블록 생성)
     controller.placeBlock();
 
     // 새 블록이 생성되어야 함
@@ -67,14 +67,18 @@ describe('GameController - Falling Blocks Management', () => {
   test('여러 블록이 동시에 떨어질 수 있어야 함', () => {
     const firstBlock = controller.currentBlock;
     controller.placeBlock(); // 첫 번째 블록 떨어뜨림
+    expect(controller.currentBlock).toBeNull(); // placeBlock 후 currentBlock은 null
 
-    controller.placeBlock(); // 두 번째 블록 떨어뜨림
+    controller.placeBlock(); // 두 번째 블록 떨어뜨림 (새 블록 생성)
     const secondBlock = controller.currentBlock;
     expect(secondBlock).not.toBeNull();
+    controller.placeBlock(); // 두 번째 블록 떨어뜨림
+    expect(controller.currentBlock).toBeNull();
 
-    controller.placeBlock(); // 세 번째 블록 떨어뜨림
+    controller.placeBlock(); // 세 번째 블록 떨어뜨림 (새 블록 생성)
     const thirdBlock = controller.currentBlock;
     expect(thirdBlock).not.toBeNull();
+    controller.placeBlock(); // 세 번째 블록 떨어뜨림
 
     // 모든 블록이 fallingBlocks에 있어야 함
     expect(controller.fallingBlocks.size).toBe(3);
@@ -84,8 +88,12 @@ describe('GameController - Falling Blocks Management', () => {
   });
 
   test('블록이 타워에 고정되면 fallingBlocks에서 제거되어야 함', () => {
-    controller.placeBlock();
     const fallingBlock = controller.currentBlock;
+    controller.placeBlock(); // 블록 떨어뜨림
+    
+    // placeBlock 후 currentBlock은 null이 되고 fallingBlocks에 추가됨
+    expect(controller.fallingBlocks.has(fallingBlock)).toBe(true);
+    expect(controller.currentBlock).toBeNull();
     
     // 블록이 베이스에 닿도록 위치 강제 설정
     const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
@@ -93,8 +101,6 @@ describe('GameController - Falling Blocks Management', () => {
     const targetY = baseAABB.min.y - fallingBlock.height / 2;
     fallingBlock.position.y = targetY;
     fallingBlock.velocity.y = 0;
-
-    expect(controller.fallingBlocks.has(fallingBlock)).toBe(true);
 
     // 물리 업데이트를 통해 충돌 감지 및 고정 로직 실행
     controller.update(1 / 60);
@@ -105,11 +111,12 @@ describe('GameController - Falling Blocks Management', () => {
   });
 
   test('_fixBlockToTower는 currentBlock이 아니어도 작동해야 함', () => {
-    controller.placeBlock();
     const fallingBlock = controller.currentBlock;
+    controller.placeBlock(); // 블록 떨어뜨림
     
-    // currentBlock을 null로 설정 (실제로는 placeBlock에서 자동으로 null이 됨)
-    controller.currentBlock = null;
+    // placeBlock 후 currentBlock은 null이 됨
+    expect(controller.currentBlock).toBeNull();
+    expect(controller.fallingBlocks.has(fallingBlock)).toBe(true);
     
     // 블록이 베이스에 닿도록 위치 강제 설정
     const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
@@ -130,13 +137,17 @@ describe('GameController - Falling Blocks Management', () => {
     // 첫 번째 블록 떨어뜨림
     const firstBlock = controller.currentBlock;
     controller.placeBlock();
+    expect(controller.fallingBlocks.has(firstBlock)).toBe(true);
 
     // 두 번째 블록 떨어뜨림
-    controller.placeBlock();
+    controller.placeBlock(); // 새 블록 생성
     const secondBlock = controller.currentBlock;
-    controller.placeBlock();
+    expect(secondBlock).not.toBeNull();
+    controller.placeBlock(); // 두 번째 블록 떨어뜨림
 
     expect(controller.fallingBlocks.size).toBe(2);
+    expect(controller.fallingBlocks.has(firstBlock)).toBe(true);
+    expect(controller.fallingBlocks.has(secondBlock)).toBe(true);
 
     // 첫 번째 블록이 베이스에 닿도록 설정
     const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
