@@ -211,7 +211,14 @@ export class GameController {
    * @private
    */
   _spawnNextBlock() {
-    if (this.currentBlock) return;
+    if (this.currentBlock) {
+      console.warn('[GameController] _spawnNextBlock: currentBlock already exists', {
+        currentBlockId: this.currentBlock.id,
+        currentBlockIsFalling: this.currentBlock.isFalling,
+        currentBlockIsPlaced: this.currentBlock.isPlaced,
+      });
+      return;
+    }
 
     const spawnY = 50; // 화면 상단
     
@@ -221,6 +228,7 @@ export class GameController {
     const blockHalfWidth = this.blockWidth / 2;
     const clampedX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
     
+    // 새로운 블록 생성 (독립적인 인스턴스)
     const block = new Block({
       position: new Vector(clampedX, spawnY),
       width: this.blockWidth,
@@ -237,6 +245,7 @@ export class GameController {
     block.velocity.y = 0;
     block.angularVelocity = 0;
     block.isFalling = false; // 소환 시에는 떨어지지 않음
+    block.isPlaced = false; // 명시적으로 설정
 
     // 배치 전에는 물리 엔진에 추가하지 않음 (떨어지지 않도록)
     // 배치할 때 물리 엔진에 추가하여 떨어지도록 함
@@ -244,10 +253,15 @@ export class GameController {
     this.nextBlockX = clampedX; // nextBlockX도 업데이트
     
     console.log('[GameController] Block spawned:', {
+      blockId: block.id,
       position: { x: block.position.x, y: block.position.y },
       size: { width: block.width, height: block.height },
       aabb: block.getAABB(),
       nextBlockX: this.nextBlockX,
+      isFalling: block.isFalling,
+      isPlaced: block.isPlaced,
+      towerBlocks: this.tower.getBlockCount(),
+      currentBlockSet: this.currentBlock === block,
     });
   }
 
@@ -419,11 +433,15 @@ export class GameController {
       blockAABB: block.getAABB(),
       blockIsPlaced: block.isPlaced,
       blockIsFalling: block.isFalling,
-      towerBlocksArray: this.tower.blocks.map(b => ({ id: b.id, position: b.position })),
+      towerBlocksArray: this.tower.blocks.map(b => ({ id: b.id, position: b.position, isPlaced: b.isPlaced })),
     });
     
     // 현재 블록 초기화 (다음 블록 소환을 위해)
+    // 중요: currentBlock을 null로 설정하기 전에 블록이 타워에 제대로 추가되었는지 확인
+    const wasCurrentBlock = this.currentBlock === block;
     this.currentBlock = null;
+    
+    console.log('[GameController] Current block cleared, was current:', wasCurrentBlock);
 
     // 점수 계산 및 추가
     this._calculateAndAddScore();
