@@ -177,6 +177,8 @@ export class PhysicsService {
   checkBalance(enabled = true) {
     if (!enabled) return;
     
+    // 배치된 블록들만 균형 판정 (떨어지는 중인 블록도 포함)
+    // 위에 있는 블록이 무너지면 아래 블록도 영향을 받아야 함
     this.bodies.forEach(body => {
       if (body.isStatic) return;
       if (!body.isPlaced) return; // 배치되지 않은 블록은 균형 판정하지 않음
@@ -187,18 +189,6 @@ export class PhysicsService {
       const result = BalanceUtil.evaluate(body, { supportBounds });
       
       if (!result.stable && this.onTopple) {
-        // 디버그: 블록이 무너지는지 확인
-        console.log('[PhysicsService] Block toppling:', {
-          blockId: body.id ? body.id.substring(0, 20) : 'unknown',
-          centerOfMass: { x: result.centerOfMass.x, y: result.centerOfMass.y },
-          supportBounds: { 
-            left: supportBounds.min.x, 
-            right: supportBounds.max.x,
-            y: supportBounds.min.y
-          },
-          offset: result.offset,
-          stable: result.stable,
-        });
         this.onTopple(body, result);
       }
     });
@@ -231,6 +221,7 @@ export class PhysicsService {
     this.bodies.forEach(otherBody => {
       if (otherBody === body) return;
       if (!otherBody.isPlaced) return; // 배치되지 않은 블록은 지지할 수 없음
+      if (otherBody.isFalling && !otherBody.isPlaced) return; // 떨어지는 중이고 배치되지 않은 블록은 지지할 수 없음
       
       const otherAABB = otherBody.getAABB();
       if (!otherAABB || !otherAABB.min || !otherAABB.max) return;

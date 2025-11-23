@@ -189,20 +189,14 @@ export class GameController {
       }
       
       if (body instanceof Block && body.isPlaced) {
-        console.log('[GameController] Block toppling detected:', {
-          blockId: body.id ? body.id.substring(0, 20) : 'unknown',
-          offset: result.offset,
-          centerOfMass: { x: result.centerOfMass.x, y: result.centerOfMass.y },
-          supportBounds: result.supportBounds,
-        });
-        
         // 블록이 무너지면 물리적으로 움직이도록 함
         // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
-        const torque = result.offset * 500; // 토크 증가 (더 강하게)
+        const torque = result.offset * 50; // 토크 감소 (너무 강하지 않게)
         body.angularVelocity += torque;
         
         // 블록이 무너지면 떨어지도록 함
-        body.isPlaced = false;
+        // 하지만 isPlaced는 유지하여 계속 균형 판정하도록 함
+        // (위에 있는 블록이 무너지면 아래 블록도 영향을 받아야 함)
         body.isFalling = true;
         
         // 블록이 무너지는 것만으로는 게임 오버가 되지 않음
