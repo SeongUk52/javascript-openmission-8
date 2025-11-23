@@ -724,8 +724,9 @@ export class GameController {
         const blockBottom = blockAABB.max.y; // 블록의 하단
         // 블록의 하단이 타워 최상단에 닿았는지 확인
         const distanceY = blockBottom - towerTopY;
-        isTouchingTower = distanceY <= 30 && 
-                         distanceY >= -30 &&
+        // 더 넓은 범위로 확인 (블록이 타워에 닿을 수 있도록)
+        isTouchingTower = distanceY <= 50 && 
+                         distanceY >= -50 &&
                          Math.abs(block.velocity.y) < 500;
       }
       
@@ -773,7 +774,8 @@ export class GameController {
         const baseRight = baseAABB.max.x;
         isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
         
-        isNearTower = distanceY <= 100 && distanceY >= -20 && isInBaseRangeX; // 베이스 위 100픽셀 이내 또는 겹침, 그리고 X 범위 내
+        // 베이스 위 200픽셀 이내 또는 겹침, 그리고 X 범위 내 (더 넓은 범위로 허용)
+        isNearTower = distanceY <= 200 && distanceY >= -50 && isInBaseRangeX;
       } else if (this.tower.getBlockCount() > 0) {
         // 이후 블록: 타워 최상단과의 거리 확인
         towerTopY = this.tower.getTopY();
@@ -786,14 +788,14 @@ export class GameController {
         const baseRight = this.tower.basePosition.x + this.tower.baseWidth / 2;
         isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
         
-        isNearTower = distanceY <= 100 && distanceY >= -20 && isInBaseRangeX;
+        // 타워 위 200픽셀 이내 또는 겹침 (더 넓은 범위로 허용)
+        isNearTower = distanceY <= 200 && distanceY >= -50 && isInBaseRangeX;
       }
       
-      // 화면 아래쪽으로 나갔고, 타워 근처에 없을 때만 게임 오버
-      // 또는 베이스 범위 밖으로 떨어졌을 때도 게임 오버
-      // 베이스 범위 밖으로 떨어지면 즉시 게임 오버 (베이스 위에 떨어지지 않으면 게임 오버)
-      const isOutOfBounds = (aabb.min.y > this.canvasHeight + 50 && !isNearTower) || 
-                            (!isInBaseRangeX && aabb.min.y > this.canvasHeight - 200); // 베이스 범위 밖으로 떨어지면 게임 오버 (더 빠르게 감지)
+      // 게임 오버 조건: 블록이 실제로 화면 밖으로 나갔을 때만 게임 오버
+      // 블록이 타워 근처에 있으면 게임 오버하지 않음 (타워에 닿을 수 있도록 기다림)
+      // 화면 아래쪽으로 충분히 나갔고, 타워 근처에 없을 때만 게임 오버
+      const isOutOfBounds = aabb.min.y > this.canvasHeight + 100 && !isNearTower;
       
       if (isOutOfBounds) {
         console.log('[GameController] Block out of bounds (bottom):', {
@@ -809,6 +811,7 @@ export class GameController {
           velocity: { x: block.velocity.x, y: block.velocity.y },
           towerTopY,
           isNearTower,
+          isInBaseRangeX,
           baseBlock: baseBlock ? { position: baseBlock.position, aabb: baseBlock.getAABB() } : null,
         });
         this._handleGameOver();
