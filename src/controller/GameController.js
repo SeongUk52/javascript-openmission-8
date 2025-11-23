@@ -49,7 +49,7 @@ export class GameController {
     const baseY = canvasHeight; // 베이스는 바닥에 붙어있음 (베이스의 하단 Y 좌표)
     this.tower = new Tower({
       basePosition: new Vector(baseX, baseY),
-      baseWidth: 200,
+      baseWidth: 400, // 베이스 너비 증가 (200 -> 400)
     });
 
     // 현재 떨어지는 블록
