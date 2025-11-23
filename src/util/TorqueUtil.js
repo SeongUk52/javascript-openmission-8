@@ -54,6 +54,17 @@ export class TorqueUtil {
 
     body.angularAcceleration = body.torque * body.invInertia;
     body.angularVelocity += body.angularAcceleration * deltaTime;
+    
+    // 각속도 감쇠 (공기 저항 효과)
+    // 작은 각속도는 더 빠르게 감쇠시켜 자연스럽게 멈추도록
+    const angularDamping = 0.95; // 매 프레임 5% 감쇠
+    if (Math.abs(body.angularVelocity) < 0.1) {
+      // 매우 작은 각속도는 더 빠르게 감쇠
+      body.angularVelocity *= 0.9;
+    } else {
+      body.angularVelocity *= angularDamping;
+    }
+    
     body.angle += body.angularVelocity * deltaTime;
 
     // 다음 프레임을 위해 토크 초기화

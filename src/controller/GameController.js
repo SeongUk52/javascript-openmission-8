@@ -535,8 +535,8 @@ export class GameController {
     block.velocity.y = 0;
     block.angularVelocity = 0;
     
-    // nextBlockX를 중앙으로 초기화 (다음 블록이 중앙에서 시작하도록)
-    this.nextBlockX = this.basePosition.x;
+    // nextBlockX는 유지 (블록이 떨어지고 나서도 위치 초기화하지 않음)
+    // 사용자가 조작한 위치를 유지하여 다음 블록도 같은 위치에서 시작
     
     // 마찰과 반발 계수 조정 (안정적으로 쌓이도록)
     block.friction = 0.8; // 높은 마찰
