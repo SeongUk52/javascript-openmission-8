@@ -499,12 +499,15 @@ export class GameController {
     // 떨어지는 블록 목록에서 제거
     this.fallingBlocks.delete(block);
     
-    // currentBlock이 이 블록이면 초기화하고 다음 블록 생성
-    // currentBlock이 아니어도 정상 동작 (떨어지는 블록일 수 있음)
+    // currentBlock이 이 블록이면 초기화
     if (this.currentBlock === block) {
       this.currentBlock = null;
-      console.log('[GameController] Current block cleared, spawning next block');
-      // 다음 블록 생성 (자동 배치하지 않음 - 사용자가 스페이스바를 눌러야 함)
+      console.log('[GameController] Current block cleared');
+    }
+    
+    // 블록이 고정되면 다음 블록 생성 (자동 배치하지 않음 - 사용자가 스페이스바를 눌러야 함)
+    // currentBlock이 null이면 새 블록 생성
+    if (!this.currentBlock) {
       this._spawnNextBlock();
     }
 

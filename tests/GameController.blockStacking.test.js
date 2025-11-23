@@ -183,6 +183,10 @@ describe('GameController - Block Stacking', () => {
     
     // 5개 블록 순차적으로 배치
     for (let i = 0; i < 5; i++) {
+      // currentBlock이 null이면 새 블록 생성
+      if (!controller.currentBlock) {
+        controller._spawnNextBlock();
+      }
       const block = controller.currentBlock;
       expect(block).not.toBeNull();
       
