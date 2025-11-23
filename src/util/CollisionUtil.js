@@ -97,7 +97,7 @@ export class CollisionUtil {
       return; // 서로 멀어지고 있음
     }
 
-    const restitution = Math.min(bodyA.restitution, bodyB.restitution);
+    const restitution = Math.min(bodyA.restitution || 0, bodyB.restitution || 0);
     const invMassSum = bodyA.invMass + bodyB.invMass;
     if (invMassSum === 0) return;
 
@@ -117,6 +117,30 @@ export class CollisionUtil {
       // 반발 계수가 0이면 속도를 더 감쇠시킴
       if (restitution === 0) {
         bodyB.velocity.multiply(0.95); // 추가 감쇠
+      }
+    }
+    
+    // 마찰 적용 (접촉 중인 블록의 속도 감쇠)
+    const friction = Math.min(bodyA.friction || 0.6, bodyB.friction || 0.6);
+    if (friction > 0) {
+      // 접선 속도 계산 (normal에 수직인 방향)
+      const tangent = new Vector(-normal.y, normal.x);
+      const velAlongTangent = relativeVelocity.dot(tangent);
+      
+      // 마찰 임펄스 계산
+      const frictionImpulseScalar = -velAlongTangent * friction / invMassSum;
+      const frictionImpulse = Vector.multiply(tangent, frictionImpulseScalar);
+      
+      // 마찰 적용 (속도 감쇠)
+      if (!bodyA.isStatic) {
+        bodyA.velocity.add(Vector.multiply(frictionImpulse, -bodyA.invMass));
+        // 각속도도 마찰에 의해 감쇠
+        bodyA.angularVelocity *= (1 - friction * 0.1);
+      }
+      if (!bodyB.isStatic) {
+        bodyB.velocity.add(Vector.multiply(frictionImpulse, bodyB.invMass));
+        // 각속도도 마찰에 의해 감쇠
+        bodyB.angularVelocity *= (1 - friction * 0.1);
       }
     }
   }

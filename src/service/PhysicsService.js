@@ -82,9 +82,16 @@ export class PhysicsService {
     this.gravity.applyToBodies(this.bodies);
 
     // 2. 물리 업데이트 (힘 → 가속도 → 속도 → 위치)
+    // 모든 동적 블록에 중력이 적용되도록 함
     this.bodies.forEach(body => {
       if (!body.isStatic) {
         body.update(deltaTime);
+        // 블록이 바닥이나 다른 블록에 닿아있으면 각속도 감쇠 강화
+        // (마찰 효과)
+        if (Math.abs(body.velocity.y) < 10 && Math.abs(body.velocity.x) < 10) {
+          // 거의 정지 상태면 각속도도 빠르게 감쇠
+          body.angularVelocity *= 0.9;
+        }
       }
     });
 
