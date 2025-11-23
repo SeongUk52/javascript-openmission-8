@@ -182,14 +182,23 @@ export class GameController {
       }
     };
     
-    this.physicsService.onTopple = (body) => {
+    this.physicsService.onTopple = (body, result) => {
       // 게임이 시작되지 않았으면 무시
       if (!this.gameState.isPlaying) {
         return;
       }
       
       if (body instanceof Block && body.isPlaced) {
-        // 배치된 블록이 무너지면 게임 오버
+        // 블록이 무너지면 물리적으로 움직이도록 함
+        // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
+        const torque = result.offset * 100; // 토크 적용
+        body.angularVelocity += torque;
+        
+        // 블록이 무너지면 떨어지도록 함
+        body.isPlaced = false;
+        body.isFalling = true;
+        
+        // 블록이 무너지면 게임 오버
         this._handleGameOver();
       }
     };

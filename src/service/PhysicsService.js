@@ -3,6 +3,7 @@ import { GravityService } from './GravityService.js';
 import { CollisionUtil } from '../util/CollisionUtil.js';
 import { TorqueUtil } from '../util/TorqueUtil.js';
 import { BalanceUtil } from '../util/BalanceUtil.js';
+import { Vector } from '../domain/Vector.js';
 
 /**
  * 물리 시뮬레이션 서비스
@@ -178,13 +179,106 @@ export class PhysicsService {
     
     this.bodies.forEach(body => {
       if (body.isStatic) return;
+      if (!body.isPlaced) return; // 배치되지 않은 블록은 균형 판정하지 않음
 
-      const result = BalanceUtil.evaluate(body);
+      // 블록이 어떤 블록 위에 있는지 확인
+      const supportBounds = this._getSupportBounds(body);
+      
+      const result = BalanceUtil.evaluate(body, { supportBounds });
       
       if (!result.stable && this.onTopple) {
         this.onTopple(body, result);
       }
     });
+  }
+
+  /**
+   * 블록의 지지 영역 계산
+   * 블록이 어떤 블록 위에 있는지 확인하고 그 블록의 지지 영역을 반환
+   * @param {Body} body
+   * @returns {{min: Vector, max: Vector}}
+   * @private
+   */
+  _getSupportBounds(body) {
+    if (!body || !body.getAABB) {
+      return BalanceUtil.getDefaultSupportBounds(body);
+    }
+    
+    const bodyAABB = body.getAABB();
+    if (!bodyAABB || !bodyAABB.min || !bodyAABB.max) {
+      return BalanceUtil.getDefaultSupportBounds(body);
+    }
+    
+    const bodyBottom = bodyAABB.max.y;
+    const bodyCenterX = body.position.x;
+    
+    // 블록 바로 아래에 있는 블록 찾기
+    let supportBody = null;
+    let minDistance = Infinity;
+    
+    this.bodies.forEach(otherBody => {
+      if (otherBody === body) return;
+      if (!otherBody.isPlaced) return; // 배치되지 않은 블록은 지지할 수 없음
+      
+      const otherAABB = otherBody.getAABB();
+      if (!otherAABB || !otherAABB.min || !otherAABB.max) return;
+      
+      const otherTop = otherAABB.min.y;
+      
+      // 블록이 다른 블록 위에 있는지 확인
+      // 블록의 하단이 다른 블록의 상단 근처에 있어야 함
+      const distanceY = bodyBottom - otherTop;
+      
+      if (distanceY >= -5 && distanceY <= 5) { // 5픽셀 이내
+        // X 위치도 확인: 블록이 다른 블록 위에 있어야 함
+        const otherLeft = otherAABB.min.x;
+        const otherRight = otherAABB.max.x;
+        
+        // 블록의 중심이 다른 블록 위에 있거나, 블록이 다른 블록과 겹치면
+        if (bodyCenterX >= otherLeft && bodyCenterX <= otherRight) {
+          if (distanceY < minDistance) {
+            minDistance = distanceY;
+            supportBody = otherBody;
+          }
+        }
+      }
+    });
+    
+    // 지지 블록이 있으면 그 블록의 상단을 지지 영역으로 사용
+    if (supportBody) {
+      const supportAABB = supportBody.getAABB();
+      if (!supportAABB || !supportAABB.min || !supportAABB.max) {
+        // AABB가 없으면 기본값 사용
+        return BalanceUtil.getDefaultSupportBounds(body);
+      }
+      return {
+        min: new Vector(supportAABB.min.x, supportAABB.min.y),
+        max: new Vector(supportAABB.max.x, supportAABB.min.y),
+      };
+    }
+    
+    // 베이스 블록 찾기
+    const baseBody = this.bodies.find(b => b.isStatic && b.isPlaced);
+    if (baseBody) {
+      const baseAABB = baseBody.getAABB();
+      if (!baseAABB || !baseAABB.min || !baseAABB.max) {
+        // AABB가 없으면 기본값 사용
+        return BalanceUtil.getDefaultSupportBounds(body);
+      }
+      const baseTop = baseAABB.min.y;
+      
+      // 블록이 베이스 위에 있는지 확인
+      const distanceY = bodyBottom - baseTop;
+      if (distanceY >= -5 && distanceY <= 5) {
+        return {
+          min: new Vector(baseAABB.min.x, baseAABB.min.y),
+          max: new Vector(baseAABB.max.x, baseAABB.min.y),
+        };
+      }
+    }
+    
+    // 지지 블록이 없으면 기본값 사용 (블록 자신의 AABB 하단)
+    return BalanceUtil.getDefaultSupportBounds(body);
   }
 
   /**
