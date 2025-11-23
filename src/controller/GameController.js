@@ -493,41 +493,8 @@ export class GameController {
     // currentBlock이 이 블록이면 초기화 (다음 블록을 위해)
     // currentBlock이 아니어도 정상 동작 (떨어지는 블록일 수 있음)
 
-    // 블록 상태 변경 (배치됨) - 물리 엔진에서 계속 시뮬레이션되도록
+    // 블록 상태만 변경 (위치는 물리 엔진이 자연스럽게 처리)
     block.place(); // isPlaced = true, isFalling = false
-    
-    // 블록은 정적이 아니어야 함 (무게 균형에 따라 움직일 수 있음)
-    // 블록의 위치는 물리 엔진이 자연스럽게 처리하도록 함
-    // 충돌 해결을 통해 블록이 타워 위에 올라가도록 함
-    
-    // 타워 최상단 계산 (블록이 타워 안으로 들어가지 않도록 약간의 위치 조정)
-    const placedBlocks = this._getPlacedBlocks().filter(b => b !== block);
-    let maxBlockBottomY = -Infinity;
-    
-    placedBlocks.forEach(placedBlock => {
-      const blockBottomY = placedBlock.position.y + placedBlock.height / 2;
-      maxBlockBottomY = Math.max(maxBlockBottomY, blockBottomY);
-    });
-    
-    if (maxBlockBottomY === -Infinity) {
-      maxBlockBottomY = this.basePosition.y - 30; // 베이스 상단
-    }
-    
-    const towerTopY = maxBlockBottomY;
-    
-    // 블록이 타워 안으로 들어갔으면 약간 위로 조정 (충돌 해결을 돕기 위해)
-    const blockBottom = block.position.y + block.height / 2;
-    if (blockBottom > towerTopY) {
-      const epsilon = 0.1;
-      block.position.y = towerTopY + epsilon - block.height / 2;
-    }
-    
-    // 속도는 0으로 설정 (충돌 해결 후 안정화)
-    block.velocity.y = 0;
-    block.angularVelocity = 0;
-    
-    // nextBlockX는 유지 (블록이 떨어지고 나서도 위치 초기화하지 않음)
-    // 사용자가 조작한 위치를 유지하여 다음 블록도 같은 위치에서 시작
     
     // 마찰과 반발 계수 조정 (안정적으로 쌓이도록)
     block.friction = 0.8; // 높은 마찰
@@ -538,37 +505,6 @@ export class GameController {
     if (!wasInPhysics) {
       this.physicsService.addBody(block);
     }
-    
-    // 블록은 이미 물리 엔진에 있고 isPlaced=true, isStatic=true로 설정됨
-    // 별도 배열 관리 불필요
-    
-    const placedBlocksForDebug = this._getPlacedBlocks();
-    const currentTowerTopY = this._getTopY();
-    const blockAABB = block.getAABB();
-    
-    // 디버그: 모든 배치된 블록의 위치 확인
-    const blockPositions = placedBlocksForDebug.map(b => ({
-      id: b.id.substring(0, 20),
-      position: { x: b.position.x, y: b.position.y },
-      aabb: { min: { y: b.getAABB().min.y }, max: { y: b.getAABB().max.y } },
-      isStatic: b.isStatic,
-      angle: b.angle,
-    }));
-    
-    console.log('[GameController] Block fixed to tower:', {
-      blockId: block.id.substring(0, 20),
-      position: { x: block.position.x, y: block.position.y },
-      blockAABB: { min: { y: blockAABB.min.y }, max: { y: blockAABB.max.y } },
-      towerBlocks: placedBlocksForDebug.length,
-      towerTopY: currentTowerTopY,
-      blockIsPlaced: block.isPlaced,
-      blockIsFalling: block.isFalling,
-      isStatic: block.isStatic,
-      angle: block.angle,
-      allPlacedBlocks: blockPositions,
-      inPlacedBlocks: placedBlocksForDebug.includes(block),
-      inPhysicsBodies: this.physicsService.bodies.includes(block),
-    });
     
     // 떨어지는 블록 목록에서 제거
     this.fallingBlocks.delete(block);
