@@ -299,12 +299,9 @@ export class GameController {
 
     const blockToPlace = this.currentBlock;
     
-    // 블록을 물리 엔진에 추가하여 떨어지도록 함
-    // (이미 추가되어 있으면 중복 추가 방지)
-    if (!this.physicsService.bodies.includes(blockToPlace)) {
-      this.physicsService.addBody(blockToPlace);
-      console.log('[GameController] Block added to physics for falling');
-    }
+    // 블록 상태 설정 (떨어지는 상태로 변경)
+    blockToPlace.isFalling = true;
+    blockToPlace.isPlaced = false;
     
     // 블록이 타워 위에 떨어지도록 위치 설정
     // 블록을 타워 위에 배치하는 것이 아니라, 블록이 떨어져서 타워에 닿도록 함
@@ -313,11 +310,11 @@ export class GameController {
     let spawnY;
     if (this.tower.getBlockCount() === 0) {
       // 첫 번째 블록: 베이스 위쪽에 배치 (화면 상단 근처)
-      spawnY = 100; // 화면 상단에서 100픽셀 아래
+      spawnY = 200; // 화면 상단에서 200픽셀 아래
     } else {
       // 이후 블록: 타워 최상단 위쪽에 배치
       const towerTopY = this.tower.getTopY();
-      spawnY = Math.max(50, towerTopY - 150); // 타워 위 150픽셀 (최소 50픽셀)
+      spawnY = Math.max(100, towerTopY - 300); // 타워 위 300픽셀 (최소 100픽셀)
     }
     
     // 블록의 X 위치를 베이스 범위 내로 제한
@@ -326,12 +323,27 @@ export class GameController {
     const blockHalfWidth = blockToPlace.width / 2;
     const clampedX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
     
+    // 위치와 속도 설정 (물리 엔진에 추가하기 전에 설정)
     blockToPlace.position.y = spawnY;
     blockToPlace.position.x = clampedX;
     blockToPlace.velocity.x = 0;
     blockToPlace.velocity.y = 0;
     blockToPlace.angularVelocity = 0;
     blockToPlace.angle = 0;
+    
+    // 블록을 물리 엔진에 추가하여 떨어지도록 함
+    // (이미 추가되어 있으면 중복 추가 방지)
+    if (!this.physicsService.bodies.includes(blockToPlace)) {
+      this.physicsService.addBody(blockToPlace);
+      console.log('[GameController] Block added to physics for falling:', {
+        blockId: blockToPlace.id,
+        position: { x: blockToPlace.position.x, y: blockToPlace.position.y },
+        isFalling: blockToPlace.isFalling,
+        isPlaced: blockToPlace.isPlaced,
+        spawnY,
+        clampedX,
+      });
+    }
     
     console.log('[GameController] Block positioned for falling:', {
       spawnY,
