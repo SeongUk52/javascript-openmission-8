@@ -68,7 +68,7 @@ export class CollisionUtil {
    * @private
    */
   static _positionalCorrection(bodyA, bodyB, normal, penetration) {
-    const percent = 0.8; // 보정 비율
+    const percent = 0.2; // 보정 비율 (낮춰서 더 부드럽게)
     const slop = 0.01; // 허용 오차
     const correctedPenetration = Math.max(penetration - slop, 0);
 
