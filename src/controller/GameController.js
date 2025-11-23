@@ -340,7 +340,18 @@ export class GameController {
    * @private
    */
   _fixBlockToTower(block) {
-    if (!block || !block.isFalling) return;
+    if (!block) {
+      console.warn('[GameController] _fixBlockToTower: block is null');
+      return;
+    }
+    if (!block.isFalling) {
+      console.warn('[GameController] _fixBlockToTower: block is not falling', {
+        blockId: block.id,
+        isFalling: block.isFalling,
+        isPlaced: block.isPlaced,
+      });
+      return;
+    }
 
     const blockHeight = block.height;
     
@@ -402,6 +413,9 @@ export class GameController {
       towerBlocks: this.tower.getBlockCount(),
       towerTopY: this.tower.getTopY(),
       blockAABB: block.getAABB(),
+      blockIsPlaced: block.isPlaced,
+      blockIsFalling: block.isFalling,
+      towerBlocksArray: this.tower.blocks.map(b => ({ id: b.id, position: b.position })),
     });
     
     // 현재 블록 초기화 (다음 블록 소환을 위해)
