@@ -158,27 +158,12 @@ export class GameController {
       //   towerTopY: baseBody ? null : this._getTopY(),
       // });
       
-      // 블록이 충돌했으면 즉시 고정 (속도 조건 완화)
-      // 속도가 너무 빠르면(떨어지는 중) 잠시 기다렸다가 고정
-      const absVelocityY = Math.abs(dynamicBody.velocity.y);
-      if (absVelocityY < 1000) {
-        // 디버그 로그 제거 (성능 향상)
-        // console.log('[GameController] Fixing block immediately after collision', {
-        //   blockId: dynamicBody.id,
-        //   velocityY: dynamicBody.velocity.y,
-        //   absVelocityY,
-        // });
-        // 속도를 0으로 설정하여 완전히 멈춤
-        dynamicBody.velocity.x = 0;
-        dynamicBody.velocity.y = 0;
-        dynamicBody.angularVelocity = 0;
-        this._fixBlockToTower(dynamicBody);
-      } else {
-        // 디버그 로그 제거 (성능 향상)
-        // console.log('[GameController] Block moving too fast, waiting...', {
-        //   blockId: dynamicBody.id,
-        //   velocityY: dynamicBody.velocity.y,
-        // });
+      // 블록이 충돌하면 물리 엔진이 자연스럽게 처리하도록 함
+      // 자동 고정하지 않음 - 충돌 해결을 통해 블록이 타워 위에 올라가도록 함
+      // 블록이 충돌하면 isPlaced로 표시만 하고, 물리 엔진이 계속 시뮬레이션하도록 함
+      if (!dynamicBody.isPlaced) {
+        dynamicBody.place(); // isPlaced = true, isFalling = false
+        // 물리 엔진이 자연스럽게 처리하도록 함 (자동 고정하지 않음)
       }
     };
     
@@ -758,53 +743,8 @@ export class GameController {
     // 블록은 물리 엔진에서 자연스럽게 시뮬레이션됨
     // 위치를 강제로 고정하지 않음 (무게 균형에 따라 움직일 수 있음)
 
-    // 떨어지는 블록들이 타워에 닿았는지 확인 (자동 고정)
-    // 충돌 이벤트로도 처리하지만, 여기서도 직접 확인
-    const blocksToCheck = this.currentBlock && this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)
-      ? [this.currentBlock, ...this.fallingBlocks]
-      : Array.from(this.fallingBlocks);
-    
-    for (const block of blocksToCheck) {
-      if (!block || !block.isFalling || !this.physicsService.bodies.includes(block)) continue;
-      const blockAABB = block.getAABB();
-      
-      // 베이스 또는 타워 블록과 충돌했는지 확인
-      let isTouchingTower = false;
-      
-      // 모든 블록에 대해 동일한 로직 적용 (첫 번째 블록 특별 처리 제거)
-      // 타워 최상단과 충돌 확인 (블록이 없으면 베이스 상단)
-      const towerTopY = this._getTopY();
-      
-      const blockBottom = blockAABB.max.y; // 블록의 하단
-      // 블록의 하단이 타워 최상단에 닿았는지 확인
-      const distanceY = blockBottom - towerTopY;
-      
-      // X 위치도 확인 (베이스 범위 내에 있어야 함)
-      const blockCenterX = block.position.x;
-      const baseLeft = this.basePosition.x - this.baseWidth / 2;
-      const baseRight = this.basePosition.x + this.baseWidth / 2;
-      const isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
-      
-      // 블록이 실제로 타워에 닿았는지 확인
-      // 블록의 하단이 타워 최상단에 닿았거나 약간 겹쳤을 때만 고정
-      isTouchingTower = distanceY <= 5 && 
-                       distanceY >= -5 && // 블록이 타워 위에 있거나 약간 겹치면 (5픽셀 이내)
-                       Math.abs(block.velocity.y) < 1000 && // 속도 조건
-                       isInBaseRangeX; // X 범위 내에 있어야 함
-      
-      if (isTouchingTower) {
-        console.log('[GameController] Block touching tower, fixing...', {
-          blockId: block.id,
-          blockBottom: blockAABB.max.y,
-          towerTopY,
-          velocityY: block.velocity.y,
-          towerBlocks: this._getPlacedBlocks().length,
-        });
-        // 블록을 타워에 고정
-        this._fixBlockToTower(block);
-        break; // 하나씩 처리
-      }
-    }
+    // 블록은 물리 엔진이 자연스럽게 처리하도록 함
+    // 자동 고정하지 않음 - 충돌 해결을 통해 블록이 타워 위에 올라가도록 함
 
     // 떨어지는 블록들이 화면 밖으로 나갔는지 확인
     // 단, 블록이 떨어지는 중일 때만 체크 (타워에 닿기 전까지는 기다림)
