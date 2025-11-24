@@ -43,38 +43,38 @@ describe('GameController - All Methods Test', () => {
 
     test('배치된 블록들을 올바르게 반환', () => {
       {
-      controller.start();
-      
-      // 블록 생성 및 배치
-      const block1 = new Block({
-        position: new Vector(400, 950),
-        width: blockWidth,
-        height: blockHeight,
-      });
-      block1.isPlaced = true;
-      block1.isFalling = false;
-      block1.isStatic = false; // 정적이 아님 (무게 균형에 따라 움직일 수 있음)
-      controller.physicsService.addBody(block1);
+        controller.start();
+        
+        // 블록 생성 및 배치
+        const block1 = new Block({
+          position: new Vector(400, 950),
+          width: blockWidth,
+          height: blockHeight,
+        });
+        block1.isPlaced = true;
+        block1.isFalling = false;
+        block1.isStatic = false; // 정적이 아님 (무게 균형에 따라 움직일 수 있음)
+        controller.physicsService.addBody(block1);
 
-      const block2 = new Block({
-        position: new Vector(400, 910),
-        width: blockWidth,
-        height: blockHeight,
-      });
-      block2.isPlaced = true;
-      block2.isFalling = false;
-      block2.isStatic = false;
-      controller.physicsService.addBody(block2);
+        const block2 = new Block({
+          position: new Vector(400, 910),
+          width: blockWidth,
+          height: blockHeight,
+        });
+        block2.isPlaced = true;
+        block2.isFalling = false;
+        block2.isStatic = false;
+        controller.physicsService.addBody(block2);
 
-      // 떨어지는 블록은 제외되어야 함
-      const fallingBlock = new Block({
-        position: new Vector(400, 200),
-        width: blockWidth,
-        height: blockHeight,
-      });
-      fallingBlock.isPlaced = false;
-      fallingBlock.isFalling = true;
-      controller.physicsService.addBody(fallingBlock);
+        // 떨어지는 블록은 제외되어야 함
+        const fallingBlock = new Block({
+          position: new Vector(400, 200),
+          width: blockWidth,
+          height: blockHeight,
+        });
+        fallingBlock.isPlaced = false;
+        fallingBlock.isFalling = true;
+        controller.physicsService.addBody(fallingBlock);
 
         const result = controller._getPlacedBlocks();
         expect(result.length).toBe(2);
