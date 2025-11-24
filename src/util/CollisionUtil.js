@@ -133,6 +133,17 @@ export class CollisionUtil {
     let impulseScalar;
     // normalImpulse를 함수 상단에서 계산 (모든 경로에서 사용 가능하도록)
     const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
+    
+    // minImpulse를 함수 상단에서 계산 (모든 경로에서 사용 가능하도록)
+    const gravityAccel = 500; // 중력 가속도
+    const deltaTime = 1 / 60; // 기본 deltaTime
+    const gravityVelocityPerFrame = gravityAccel * deltaTime; // 한 프레임에 중력에 의한 속도 증가
+    const massA = (bodyA.mass !== undefined && bodyA.mass > 0 && isFinite(bodyA.mass)) ? bodyA.mass : 1;
+    const massB = (bodyB.mass !== undefined && bodyB.mass > 0 && isFinite(bodyB.mass)) ? bodyB.mass : 1;
+    const mass = Math.max(massA, massB); // 더 큰 질량 사용
+    const iterations = 50; // 충돌 해결 반복 횟수 (PhysicsService.iterations와 동일하게)
+    const gravityVelocityPerIteration = gravityVelocityPerFrame / iterations; // 각 반복마다 상쇄해야 할 속도
+    const minImpulse = gravityVelocityPerIteration * mass * 100.0; // 여유를 두어 100배 적용 (더 안정적)
     // Box2D/Matter.js: 접촉 제약 조건은 penetration이 있거나 접촉 중일 때 항상 해결
     // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록 접촉 제약 조건 강화
     if (penetration > 0.001 || Math.abs(velAlongNormal) < 20) {
@@ -150,22 +161,6 @@ export class CollisionUtil {
       // 접촉 제약 조건: v_rel · n = 0 (접촉면에서 상대 속도가 0)
       // 이를 위해 필요한 impulse: j = -v_rel · n / (1/mA + 1/mB)
       // 중력이 계속 적용되므로, 각 반복마다 충분한 impulse를 적용하여 점진적으로 상쇄
-      
-      // 중력 효과를 상쇄하기 위한 최소 impulse 계산
-      // Box2D/Matter.js: 접촉 제약 조건을 해결하기 위해 중력 효과를 상쇄해야 함
-      // 중력이 500이고 질량이 1이면, 한 프레임(deltaTime=1/60)에 중력에 의한 속도 증가는 약 8.33
-      // 충돌 해결이 50번 반복되므로, 각 반복마다 약 0.17의 속도 증가를 상쇄해야 함
-      // 이를 위해 필요한 impulse: j = Δv * m = 0.17 * 1 = 0.17
-      // 하지만 더 안정적으로 하기 위해 여유를 두어 더 큰 값 사용
-      const gravityAccel = 500; // 중력 가속도 (테스트에서 사용하는 값)
-      const deltaTime = 1 / 60; // 기본 deltaTime
-      const gravityVelocityPerFrame = gravityAccel * deltaTime; // 한 프레임에 중력에 의한 속도 증가
-      const massA = (bodyA.mass !== undefined && bodyA.mass > 0 && isFinite(bodyA.mass)) ? bodyA.mass : 1;
-      const massB = (bodyB.mass !== undefined && bodyB.mass > 0 && isFinite(bodyB.mass)) ? bodyB.mass : 1;
-      const mass = Math.max(massA, massB); // 더 큰 질량 사용
-      const iterations = 50; // 충돌 해결 반복 횟수 (PhysicsService.iterations와 동일하게)
-      const gravityVelocityPerIteration = gravityVelocityPerFrame / iterations; // 각 반복마다 상쇄해야 할 속도
-      const minImpulse = gravityVelocityPerIteration * mass * 100.0; // 여유를 두어 100배 적용 (더 안정적)
       
       if (velAlongNormal > 0) {
         // 서로 멀어지고 있지만 penetration이 있으면 접촉 제약 조건 위반
@@ -194,15 +189,6 @@ export class CollisionUtil {
       // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록 접촉 제약 조건 강화
       if (Math.abs(velAlongNormal) < 20) {
         // 접촉 중이면 접촉 제약 조건 해결
-        const gravityAccel = 500;
-        const deltaTime = 1 / 60;
-        const gravityVelocityPerFrame = gravityAccel * deltaTime;
-        const massA = (bodyA.mass !== undefined && bodyA.mass > 0 && isFinite(bodyA.mass)) ? bodyA.mass : 1;
-        const massB = (bodyB.mass !== undefined && bodyB.mass > 0 && isFinite(bodyB.mass)) ? bodyB.mass : 1;
-        const mass = Math.max(massA, massB);
-        const iterations = 50;
-        const gravityVelocityPerIteration = gravityVelocityPerFrame / iterations;
-        const minImpulse = gravityVelocityPerIteration * mass * 100.0;
         const minImpulseScalar = -minImpulse / invMassSum;
         if (Math.abs(normalImpulse) < Math.abs(minImpulseScalar)) {
           impulseScalar = minImpulseScalar;
