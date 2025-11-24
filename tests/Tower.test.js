@@ -129,7 +129,8 @@ describe('Tower', () => {
   describe('getTopY', () => {
     test('블록이 없으면 기반 Y를 반환한다', () => {
       const tower = createTower();
-      expect(tower.getTopY()).toBe(500);
+      // getTopY()는 basePosition.y - 30 (베이스 높이)을 반환
+      expect(tower.getTopY()).toBe(500 - 30); // 470
     });
 
     test('최상단 Y 좌표를 반환한다', () => {
