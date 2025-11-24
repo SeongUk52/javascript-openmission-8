@@ -237,11 +237,6 @@ export class UI {
       this.drawScore(gameState.score || 0, gameState.highScore || 0);
     }
 
-    // 라운드 표시 (게임 중일 때만)
-    if (gameState.isPlaying && !gameState.isPaused) {
-      this.drawRound(gameState.round || 0);
-    }
-
     // 조작 안내 (게임 중일 때만)
     if (gameState.isPlaying && !gameState.isPaused && !gameState.isGameOver) {
       this.drawControls();
