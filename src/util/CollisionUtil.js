@@ -422,21 +422,21 @@ export class CollisionUtil {
         if (bodyA.isStatic) {
           // 베이스와 접촉 중일 때는 각속도에 직접 마찰 토크를 매우 강하게 적용
           // Box2D/Matter.js 스타일: 접촉 중일 때 마찰 토크는 각속도에 비례
-          const staticFrictionTorque = -bodyB.angularVelocity * friction * bodyB.inertia * 7.0; // 마찰 토크 강화
+          const staticFrictionTorque = -bodyB.angularVelocity * friction * bodyB.inertia * 8.0; // 마찰 토크 강화
           bodyB.applyAngularImpulse(staticFrictionTorque);
           
           // Box2D/Matter.js: 마찰 토크만 적용, 속도는 직접 설정하지 않음
           
           // 각속도가 매우 작으면 0으로 (수치 안정성)
-          if (Math.abs(bodyB.angularVelocity) < 0.01) {
+          if (Math.abs(bodyB.angularVelocity) < 0.05) {
             bodyB.angularVelocity = 0;
           }
           
           // 속도가 매우 작으면 0으로 (수치 안정성)
-          if (Math.abs(bodyB.velocity.x) < 1.0) {
+          if (Math.abs(bodyB.velocity.x) < 0.5) {
             bodyB.velocity.x = 0;
           }
-          if (Math.abs(bodyB.velocity.y) < 1.0 && bodyB.velocity.y >= 0) {
+          if (Math.abs(bodyB.velocity.y) < 0.5 && bodyB.velocity.y >= 0) {
             bodyB.velocity.y = 0;
           }
         } else {
