@@ -148,22 +148,45 @@ export class GameController {
       }
       
       if (body instanceof Block) {
-        // 블록이 무너지면 물리적으로 움직이도록 함
+        // Box2D/Matter.js: 무너질 때 점진적으로 토크를 적용
+        // offset이 클수록 더 강한 토크를 적용하되, 한 번에 큰 토크를 주지 않음
+        // offset이 블록 너비의 일정 비율 이상 벗어나야 무너짐
+        const blockWidth = body.width || 50;
+        const offsetRatio = Math.abs(result.offset) / blockWidth;
+        
+        // Box2D/Matter.js: 무게 중심이 지지 영역 밖으로 많이 벗어나야 무너짐
+        // offset이 블록 너비의 20% 이상 벗어나야 무너지도록 함
+        const toppleThreshold = 0.2; // 블록 너비의 20%
+        
+        if (offsetRatio < toppleThreshold) {
+          // 아직 무너지지 않음 - 점진적으로 토크만 적용
+          const gradualTorque = result.offset * 5; // 매우 작은 토크로 점진적 기울임
+          body.angularVelocity += gradualTorque;
+          
+          // 각속도 최대값 제한
+          const maxAngularVelocity = 0.5; // 매우 작은 각속도
+          if (Math.abs(body.angularVelocity) > maxAngularVelocity) {
+            body.angularVelocity = Math.sign(body.angularVelocity) * maxAngularVelocity;
+          }
+          return; // 아직 완전히 무너지지 않음
+        }
+        
+        // Box2D/Matter.js: 무너질 때 자연스럽게 토크 적용
         // offset이 양수면 오른쪽으로, 음수면 왼쪽으로 기울어짐
-        const torque = result.offset * 50; // 토크 감소 (너무 빠른 회전 방지)
+        const torque = result.offset * 20; // 토크 감소 (더 자연스러운 무너짐)
         body.angularVelocity += torque;
         
         // 각속도 최대값 제한 (너무 빠른 회전 방지)
-        const maxAngularVelocity = 2.0; // 라디안/초 (감소)
+        const maxAngularVelocity = 1.5; // 라디안/초
         if (Math.abs(body.angularVelocity) > maxAngularVelocity) {
           body.angularVelocity = Math.sign(body.angularVelocity) * maxAngularVelocity;
         }
         
         // 블록이 무너지면 아래로 떨어지도록 함
         body.isFalling = true;
-        // 아래로 떨어지도록 velocity.y 증가
+        // Box2D/Matter.js: 자연스럽게 떨어지도록 작은 속도만 추가
         if (body.velocity.y < 50) {
-          body.velocity.y += 100; // 아래로 떨어지도록 속도 추가
+          body.velocity.y += 50; // 아래로 떨어지도록 속도 추가 (감소)
         }
         
         // 위에 있는 블록들도 영향을 받도록 함 (연쇄 반응)
@@ -186,12 +209,12 @@ export class GameController {
             if (xOverlap) {
               // 위에 있는 블록도 무너지도록 함
               otherBlock.isFalling = true;
-              // 위 블록에도 토크 전달 (연쇄 반응)
-              const relativeTorque = result.offset * 30; // 토크 감소
+              // 위 블록에도 토크 전달 (연쇄 반응) - 더 작은 토크
+              const relativeTorque = result.offset * 15; // 토크 감소
               otherBlock.angularVelocity += relativeTorque;
-              // 아래로 떨어지도록 velocity.y 증가
+              // 아래로 떨어지도록 velocity.y 증가 - 더 작은 속도
               if (otherBlock.velocity.y < 50) {
-                otherBlock.velocity.y += 100; // 아래로 떨어지도록 속도 추가
+                otherBlock.velocity.y += 50; // 아래로 떨어지도록 속도 추가 (감소)
               }
             }
           }

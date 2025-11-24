@@ -25,7 +25,10 @@ export class BalanceUtil {
    */
   static evaluate(body, options = {}) {
     const supportBounds = options.supportBounds || BalanceUtil.getDefaultSupportBounds(body);
-    const tolerance = options.tolerance ?? 0;
+    // Box2D/Matter.js: tolerance를 블록 크기의 일정 비율로 설정
+    // 블록이 조금만 벗어나도 안정적으로 유지되도록 관대한 tolerance 적용
+    const defaultTolerance = body.width ? body.width * 0.3 : 15; // 블록 너비의 30% 또는 15픽셀
+    const tolerance = options.tolerance ?? defaultTolerance;
     const com = body.getCenterOfMass();
 
     const rawLeft = Math.min(supportBounds.min.x, supportBounds.max.x);
@@ -33,25 +36,29 @@ export class BalanceUtil {
     const left = rawLeft - tolerance;
     const right = rawRight + tolerance;
 
+    // Box2D/Matter.js: 무게 중심이 지지 영역 밖으로 많이 벗어나야 무너짐
     // 블록의 각도도 고려하여 균형 판정
     // 블록이 기울어져 있으면 더 쉽게 무너짐
     const angleFactor = Math.abs(body.angle || 0);
-    const angleThreshold = 0.1; // 약 5.7도
+    const angleThreshold = Math.PI / 6; // 약 30도 (더 관대하게)
     
-    // 블록이 기울어져 있으면 안정성 감소
+    // Box2D/Matter.js: 무게 중심이 지지 영역 내에 있고, 각도가 임계값 이하면 안정적
+    // tolerance를 적용하여 조금만 벗어나도 안정적으로 유지
     const stable = com.x >= left && com.x <= right && angleFactor < angleThreshold;
     let offset = 0;
 
     if (!stable) {
-      if (com.x < left) {
-        offset = com.x - left;
-      } else if (com.x > right) {
-        offset = com.x - right;
+      // Box2D/Matter.js: offset은 무게 중심이 지지 영역 밖으로 벗어난 거리
+      // tolerance를 고려한 실제 벗어난 거리 계산
+      if (com.x < rawLeft) {
+        offset = com.x - rawLeft; // tolerance를 제외한 실제 벗어난 거리
+      } else if (com.x > rawRight) {
+        offset = com.x - rawRight; // tolerance를 제외한 실제 벗어난 거리
       }
       
-      // 블록이 기울어져 있으면 offset 증가
+      // 블록이 기울어져 있으면 offset 증가 (더 쉽게 무너짐)
       if (angleFactor > angleThreshold) {
-        offset += angleFactor * 10; // 각도에 따라 offset 증가
+        offset += angleFactor * 5; // 각도에 따라 offset 증가 (계수 감소)
       }
     }
 
