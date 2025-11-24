@@ -87,6 +87,16 @@ export class GameState {
   }
 
   /**
+   * 점수 설정
+   * @param {number} score - 설정할 점수
+   */
+  setScore(score) {
+    if (this.isPlaying && !this.isGameOver) {
+      this.score = Math.max(0, score);
+    }
+  }
+
+  /**
    * 라운드 증가
    */
   incrementRound() {

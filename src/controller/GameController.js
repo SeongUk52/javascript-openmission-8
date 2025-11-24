@@ -141,8 +141,9 @@ export class GameController {
         shouldFix = true;
       }
       
-      // 블록이 충돌해도 자동으로 멈추지 않음 - 물리 엔진이 자연스럽게 처리
-      // isPlaced를 사용하지 않음
+      // 블록이 충돌하고 속도가 충분히 느려졌을 때 타워에 고정
+      // (update 메서드에서도 확인하므로 여기서는 플래그만 설정)
+      // 실제 고정은 update 메서드에서 처리
     };
     
     this.physicsService.onTopple = (body, result) => {
@@ -234,9 +235,7 @@ export class GameController {
    * 게임 시작
    */
   start() {
-    console.log('[GameController] start() called');
     this.gameState.start();
-    console.log('[GameController] gameState.isPlaying:', this.gameState.isPlaying);
     // 물리 엔진의 배치된 블록들은 게임 재시작 시 자동으로 제거됨
     this.consecutivePlacements = 0;
     this.nextBlockX = this.canvasWidth / 2;
@@ -264,21 +263,8 @@ export class GameController {
     baseBlock.isFalling = false;
     this.physicsService.addBody(baseBlock);
     
-    console.log('[GameController] Base added to physics:', {
-      basePosition: { x: this.basePosition.x, y: this.basePosition.y },
-      baseCenter: { x: baseBlock.position.x, y: baseBlock.position.y },
-      baseSize: { width: this.baseWidth, height: baseHeight },
-      baseAABB: baseBlock.getAABB(),
-      baseId: baseBlock.id,
-      isStatic: baseBlock.isStatic,
-      mass: baseBlock.mass,
-      invMass: baseBlock.invMass,
-    });
-    
     this._spawnNextBlock();
-    console.log('[GameController] currentBlock spawned:', !!this.currentBlock);
     this._startGameLoop();
-    console.log('[GameController] game loop started');
   }
 
   /**
@@ -315,11 +301,6 @@ export class GameController {
   _spawnNextBlock() {
     // currentBlock이 있고 떨어지지 않는 중이면 새로 생성하지 않음
     if (this.currentBlock && !this.currentBlock.isFalling && !this.physicsService.bodies.includes(this.currentBlock)) {
-      console.log('[GameController] _spawnNextBlock: currentBlock already exists and not falling', {
-        currentBlockId: this.currentBlock.id,
-        isFalling: this.currentBlock.isFalling,
-        inPhysics: this.physicsService.bodies.includes(this.currentBlock),
-      });
       return;
     }
 
@@ -399,17 +380,7 @@ export class GameController {
    * 블록 배치 (스페이스바 또는 클릭)
    */
   placeBlock() {
-    console.log('[GameController] placeBlock() called', {
-      hasCurrentBlock: !!this.currentBlock,
-      isPlaying: this.gameState.isPlaying,
-      isPaused: this.gameState.isPaused,
-      currentBlockIsFalling: this.currentBlock?.isFalling,
-      currentBlockInPhysics: this.currentBlock ? this.physicsService.bodies.includes(this.currentBlock) : false,
-      fallingBlocksCount: this.fallingBlocks.size,
-    });
-    
     if (!this.gameState.isPlaying || this.gameState.isPaused) {
-      console.log('[GameController] placeBlock() early return - game not playing or paused');
       return;
     }
 
@@ -417,7 +388,6 @@ export class GameController {
     if (!this.currentBlock) {
       this._spawnNextBlock();
       if (!this.currentBlock) {
-        console.log('[GameController] placeBlock() - failed to spawn block');
         return;
       }
     }
@@ -427,7 +397,6 @@ export class GameController {
     // 단, 블록이 아직 물리 엔진에 추가되지 않았으면 떨어뜨림
     if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
       // 이미 떨어지는 중이면 아무것도 하지 않음 (조작은 계속 가능)
-      console.log('[GameController] Current block is already falling, ignoring placeBlock call');
       return;
     }
 
@@ -444,21 +413,9 @@ export class GameController {
     const blockCount = this._getPlacedBlocks().length;
     let spawnY;
     
-    console.log('[GameController] Calculating spawnY:', {
-      blockCount,
-      towerTopY: blockCount === 0 ? null : this._getTopY(),
-      basePositionY: this.basePosition.y,
-    });
-    
     // 모든 블록은 화면 상단 근처에서 떨어지도록 설정 (일관된 위치)
     // 첫 번째 블록과 이후 블록 모두 같은 높이에서 시작
     spawnY = 200; // 화면 상단에서 200픽셀 아래 (일관된 위치)
-    
-    console.log('[GameController] Block spawnY:', {
-      blockCount,
-      spawnY,
-      towerTopY: blockCount === 0 ? null : this._getTopY(),
-    });
     
     // 블록의 X 위치를 베이스 범위 내로 제한
     const baseLeft = this.basePosition.x - this.baseWidth / 2;
@@ -488,19 +445,6 @@ export class GameController {
     // currentBlock을 null로 설정하고 바로 다음 블록 생성 (떨어지는 블록은 조작 불가, 다음 블록만 조작 가능)
     this.currentBlock = null;
     this._spawnNextBlock();
-    
-    console.log('[GameController] Block positioned for falling:', {
-      blockId: blockToPlace.id,
-      spawnY,
-      nextBlockX: this.nextBlockX,
-      towerTopY: this._getPlacedBlocks().length === 0 ? this.basePosition.y - 30 : this._getTopY(),
-      blockPosition: { x: blockToPlace.position.x, y: blockToPlace.position.y },
-      blockAABB: blockToPlace.getAABB(),
-      physicsBodiesCount: this.physicsService.bodies.length,
-      fallingBlocksCount: this.fallingBlocks.size,
-      isFalling: blockToPlace.isFalling,
-      // isPlaced는 로그에서 제거 (사용하지 않음)
-    });
   }
 
   /**
@@ -510,17 +454,12 @@ export class GameController {
    */
   _fixBlockToTower(block) {
     if (!block) {
-      console.warn('[GameController] _fixBlockToTower: block is null');
       return;
     }
     
     // 블록이 이미 배치되었으면 무시 (_getPlacedBlocks로 확인)
     const placedBlocks = this._getPlacedBlocks();
     if (placedBlocks.includes(block)) {
-      console.warn('[GameController] _fixBlockToTower: block is already placed', {
-        blockId: block.id,
-        isFalling: block.isFalling,
-      });
       return;
     }
     
@@ -568,16 +507,22 @@ export class GameController {
 
   /**
    * 점수 계산 및 추가
-   * 점수는 쌓은 블록의 최대 높이로 계산
+   * 점수는 타워의 최대 높이로 계산 (블록 높이 1개 = 1점)
    * @private
    */
   _calculateAndAddScore() {
-    const height = this._getHeight();
+    // 베이스 상단부터 타워 최상단까지의 높이 계산
+    const baseTopY = this.basePosition.y - 30; // 베이스 높이 30
+    const towerTopY = this._getTopY();
     
-    // 점수 = 최대 높이 (픽셀 단위)
-    const score = Math.floor(height);
+    // 타워 높이 = 타워 최상단 Y - 베이스 상단 Y
+    const towerHeight = towerTopY - baseTopY;
+    
+    // 점수 = 타워 높이 / 블록 높이 (블록 높이 1개 = 1점)
+    const score = Math.floor(towerHeight / this.blockHeight);
 
-    this.gameState.addScore(score);
+    // 점수를 직접 설정 (매번 전체 높이 기준으로 계산)
+    this.gameState.setScore(score);
 
     if (this.onScoreChanged) {
       this.onScoreChanged(this.gameState.score);
@@ -589,24 +534,15 @@ export class GameController {
    * @private
    */
   _handleGameOver() {
-    console.log('[GameController] _handleGameOver() called', {
-      isPlaying: this.gameState.isPlaying,
-      isGameOver: this.gameState.isGameOver,
-      stack: new Error().stack,
-    });
-    
     // 게임이 시작되지 않았으면 무시
     if (!this.gameState.isPlaying) {
-      console.log('[GameController] _handleGameOver() ignored - game not playing');
       return;
     }
     
     if (this.gameState.isGameOver) {
-      console.log('[GameController] _handleGameOver() ignored - already game over');
       return;
     }
 
-    console.log('[GameController] Game Over!');
     this.gameState.end();
     this.stop();
 
@@ -755,6 +691,15 @@ export class GameController {
       // 타워 위 200픽셀 이내 또는 겹침 (더 넓은 범위로 허용)
       isNearTower = distanceY <= 200 && distanceY >= -50 && isInBaseRangeX;
       
+      // 블록이 타워에 닿았고 속도가 충분히 느려졌을 때 고정
+      if (isNearTower && Math.abs(block.velocity.y) < 50 && Math.abs(block.velocity.x) < 50) {
+        // 블록이 이미 배치되었는지 확인 (중복 호출 방지)
+        if (!placedBlocks.includes(block)) {
+          this._fixBlockToTower(block);
+          continue; // 고정했으면 다음 블록으로
+        }
+      }
+      
       // 게임 오버 조건: 블록이 베이스 바닥 아래로 떨어졌을 때만 게임 오버
       // 베이스의 하단 = basePosition.y (베이스 높이 30)
       // 블록의 상단이 베이스의 하단보다 아래에 있으면 게임 오버
@@ -762,22 +707,6 @@ export class GameController {
       const isOutOfBounds = aabb.min.y > baseBottom;
       
       if (isOutOfBounds) {
-        console.log('[GameController] Block out of bounds (bottom):', {
-          blockId: block.id,
-          position: { x: block.position.x, y: block.position.y },
-          aabb: { 
-            min: { x: aabb.min.x, y: aabb.min.y }, 
-            max: { x: aabb.max.x, y: aabb.max.y } 
-          },
-          canvasSize: { width: this.canvasWidth, height: this.canvasHeight },
-          blockSize: { width: block.width, height: block.height },
-          angle: block.angle,
-          velocity: { x: block.velocity.x, y: block.velocity.y },
-          towerTopY,
-          isNearTower,
-          isInBaseRangeX,
-          baseBlock: baseBlock ? { position: baseBlock.position, aabb: baseBlock.getAABB() } : null,
-        });
         this._handleGameOver();
         return;
       }
@@ -822,12 +751,9 @@ export class GameController {
    * @param {string} key - 키 코드
    */
   handleKeyDown(key) {
-    console.log('[GameController] handleKeyDown:', key, 'isPlaying:', this.gameState.isPlaying);
-    
     // 게임이 시작되지 않았으면 스페이스바로 시작
     if (!this.gameState.isPlaying && !this.gameState.isGameOver) {
       if (key === ' ' || key === 'Space') {
-        console.log('[GameController] Starting game from keydown');
         this.start();
         return;
       }
@@ -858,11 +784,8 @@ export class GameController {
    * @param {number} y - Y 좌표
    */
   handleClick(x, y) {
-    console.log('[GameController] handleClick:', x, y, 'isPlaying:', this.gameState.isPlaying);
-    
     // 게임이 시작되지 않았으면 시작
     if (!this.gameState.isPlaying && !this.gameState.isGameOver) {
-      console.log('[GameController] Starting game from click');
       this.start();
       return;
     }

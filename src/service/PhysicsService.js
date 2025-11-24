@@ -20,7 +20,7 @@ export class PhysicsService {
     // 물리 설정
     this.timeStep = options.timeStep || 1 / 60; // 기본 60fps
     this.maxSubSteps = options.maxSubSteps || 10; // 최대 서브스텝
-    this.iterations = options.iterations || 40; // 충돌 해결 반복 횟수 (Box2D/Matter.js: 접촉 제약 조건 해결, 더 많은 반복으로 안정성 향상)
+    this.iterations = options.iterations || 20; // 충돌 해결 반복 횟수 (성능 최적화: 40 -> 20)
     
     // 이벤트 콜백
     this.onCollision = options.onCollision || null;
@@ -110,13 +110,14 @@ export class PhysicsService {
    * 충돌 감지 및 해결
    */
   resolveCollisions() {
-    // 디버그: resolveCollisions 호출 확인
-    // console.log('[PhysicsService] resolveCollisions called, bodies:', this.bodies.length);
-    
     // 모든 Body 쌍에 대해 충돌 검사
     for (let i = 0; i < this.bodies.length; i++) {
+      const bodyA = this.bodies[i];
+      
+      // 빠르게 떨어지는 블록은 충돌 해결을 간소화 (성능 최적화)
+      const isFastFallingA = !bodyA.isStatic && bodyA.isFalling && bodyA.velocity.y > 200;
+      
       for (let j = i + 1; j < this.bodies.length; j++) {
-        const bodyA = this.bodies[i];
         const bodyB = this.bodies[j];
 
         // 정적 객체끼리는 충돌 검사 안 함
@@ -124,43 +125,27 @@ export class PhysicsService {
           continue;
         }
 
+        // 빠르게 떨어지는 블록끼리는 충돌 해결 간소화 (성능 최적화)
+        const isFastFallingB = !bodyB.isStatic && bodyB.isFalling && bodyB.velocity.y > 200;
+        if (isFastFallingA && isFastFallingB) {
+          // 빠르게 떨어지는 블록끼리는 충돌 해결을 한 번만 수행
+          const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
+          if (isColliding) {
+            CollisionUtil.resolveCollision(bodyA, bodyB);
+          }
+          continue;
+        }
+
         // 충돌 감지
         const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
         
-        // 디버그 로그 제거 (성능에 영향)
-        // 충돌 감지는 정상 작동하지만 로그는 제거
-        
         if (isColliding) {
-          // 디버그 로그 제거 (성능 향상 및 콘솔 스팸 방지)
-          // const baseBody = bodyA.isStatic && bodyA.isPlaced ? bodyA : (bodyB.isStatic && bodyB.isPlaced ? bodyB : null);
-          // const placedBody = !bodyA.isStatic && bodyA.isPlaced ? bodyA : (!bodyB.isStatic && bodyB.isPlaced ? bodyB : null);
-          // const fallingBody = (bodyA.isFalling && !bodyA.isPlaced) ? bodyA : ((bodyB.isFalling && !bodyB.isPlaced) ? bodyB : null);
-          
-          // if ((baseBody || placedBody) && fallingBody) {
-          //   const supportBody = baseBody || placedBody;
-          //   console.log('[PhysicsService] Collision detected (base/placed vs falling):', {
-          //     supportBody: { 
-          //       id: supportBody.id, 
-          //       isStatic: supportBody.isStatic,
-          //       isPlaced: supportBody.isPlaced,
-          //       position: supportBody.position, 
-          //       aabb: supportBody.getAABB() 
-          //     },
-          //     fallingBody: { 
-          //       id: fallingBody.id, 
-          //       isStatic: fallingBody.isStatic,
-          //       isPlaced: fallingBody.isPlaced,
-          //       isFalling: fallingBody.isFalling,
-          //       position: fallingBody.position, 
-          //       velocity: fallingBody.velocity, 
-          //       aabb: fallingBody.getAABB() 
-          //     },
-          //   });
-          // }
-          
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
           // 접촉 중일 때는 더 많이 반복하여 안정성 향상
-          const iterations = (bodyA.isStatic || bodyB.isStatic) ? this.iterations * 2 : this.iterations;
+          // 빠르게 떨어지는 블록은 반복 횟수 감소 (성능 최적화)
+          const baseIterations = (bodyA.isStatic || bodyB.isStatic) ? this.iterations * 2 : this.iterations;
+          const iterations = (isFastFallingA || isFastFallingB) ? Math.max(1, Math.floor(baseIterations / 2)) : baseIterations;
+          
           for (let k = 0; k < iterations; k++) {
             CollisionUtil.resolveCollision(bodyA, bodyB);
           }
