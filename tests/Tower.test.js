@@ -53,7 +53,7 @@ describe('Tower', () => {
 
       expect(tower.blocks).toHaveLength(1);
       expect(tower.blocks[0]).toBe(block);
-      expect(block.isPlaced).toBe(true);
+      // isPlaced는 사용하지 않으므로 체크하지 않음 (Tower.addBlock에서 place() 호출)
     });
 
     test('여러 블록을 추가한다', () => {

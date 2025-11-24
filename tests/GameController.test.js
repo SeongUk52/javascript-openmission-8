@@ -102,7 +102,9 @@ describe('GameController', () => {
       expect(controller.tower.getBlockCount()).toBe(1);
       expect(controller.tower.blocks[0]).toBe(block);
       expect(controller.currentBlock).not.toBe(block);
-      expect(block.isPlaced).toBe(true);
+      // isPlaced는 사용하지 않으므로 _getPlacedBlocks로 확인
+      const placedBlocks = controller._getPlacedBlocks();
+      expect(placedBlocks).toContain(block);
     });
 
     test('블록 배치 시 점수를 추가한다', () => {

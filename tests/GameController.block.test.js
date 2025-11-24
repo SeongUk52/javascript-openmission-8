@@ -29,7 +29,7 @@ describe('GameController - Block Management', () => {
     expect(gameController.currentBlock).not.toBeNull();
     expect(gameController.currentBlock).toBeInstanceOf(Block);
     expect(gameController.currentBlock.isFalling).toBe(false);
-    expect(gameController.currentBlock.isPlaced).toBe(false);
+    // isPlaced는 사용하지 않으므로 체크하지 않음
     expect(gameController.tower.getBlockCount()).toBe(0);
   });
 
@@ -93,8 +93,10 @@ describe('GameController - Block Management', () => {
     expect(gameController.tower.getBlockCount()).toBe(2);
     expect(gameController.tower.blocks[0]).toBe(firstBlock);
     expect(gameController.tower.blocks[1]).toBe(secondBlock);
-    expect(gameController.tower.blocks[0].isPlaced).toBe(true);
-    expect(gameController.tower.blocks[1].isPlaced).toBe(true);
+    // isPlaced는 사용하지 않으므로 _getPlacedBlocks로 확인
+    const placedBlocks = gameController._getPlacedBlocks();
+    expect(placedBlocks).toContain(gameController.tower.blocks[0]);
+    expect(placedBlocks).toContain(gameController.tower.blocks[1]);
   });
 
   test('블록 3개를 타워에 추가할 수 있어야 함', () => {
@@ -159,7 +161,9 @@ describe('GameController - Block Management', () => {
     
     expect(collisionDetected).toBe(true);
     expect(gameController.tower.getBlockCount()).toBe(1);
-    expect(block.isPlaced).toBe(true);
+    // isPlaced는 사용하지 않으므로 _getPlacedBlocks로 확인
+    const placedBlocks = gameController._getPlacedBlocks();
+    expect(placedBlocks).toContain(block);
     expect(block.isFalling).toBe(false);
   });
 
