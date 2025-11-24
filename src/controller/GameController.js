@@ -58,7 +58,7 @@ export class GameController {
     // 다음 블록 위치 (자동으로 좌우 이동)
     this.nextBlockX = baseX;
     this.blockMoveDirection = 1; // 1: 오른쪽, -1: 왼쪽
-    this.blockMoveSpeed = 50; // 픽셀/초
+    this.blockMoveSpeed = 500; // 픽셀/초 (10배 증가)
     this.blockMoveTime = 0; // 이동 시간 추적
 
     // 게임 루프 관련
@@ -568,30 +568,19 @@ export class GameController {
 
   /**
    * 점수 계산 및 추가
+   * 점수는 쌓은 블록의 최대 높이로 계산
    * @private
    */
   _calculateAndAddScore() {
-    const placedBlocks = this._getPlacedBlocks();
-    const blockCount = placedBlocks.length;
     const height = this._getHeight();
-    const stability = this._evaluateStability();
-
-    const score = ScoreService.calculateTotalScore({
-      blockCount,
-      height,
-      isStable: stability.stable,
-      consecutivePlacements: this.consecutivePlacements,
-    });
+    
+    // 점수 = 최대 높이 (픽셀 단위)
+    const score = Math.floor(height);
 
     this.gameState.addScore(score);
 
     if (this.onScoreChanged) {
       this.onScoreChanged(this.gameState.score);
-    }
-
-    // 타워가 무너지면 연속 배치 리셋
-    if (!stability.stable) {
-      this.consecutivePlacements = 0;
     }
   }
 
