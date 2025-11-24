@@ -334,14 +334,15 @@ src/
   4. "Deploy" 클릭
   5. 배포 완료 후 URL 확인
 
-#### 2. **Netlify**
-- **장점**: GitHub 연동 자동 배포, 무료, 쉬운 설정
+#### 2. **Netlify** (추천 - 더 간단함) ⭐
+- **장점**: GitHub 연동 자동 배포, 무료, 쉬운 설정, `netlify.toml` 자동 인식
 - **배포 링크**: [https://netlify.com](https://netlify.com)
 - **배포 방법**:
   1. Netlify에 GitHub 계정으로 로그인
   2. "Add new site" → "Import an existing project"
-  3. Publish directory: `web`
-  4. Deploy!
+  3. 저장소 선택
+  4. **자동으로 `netlify.toml` 설정 인식됨** (Build command: `npm run build`, Publish directory: `dist`)
+  5. "Deploy site" 클릭!
 
 #### 3. **GitHub Pages**
 - **장점**: 완전 무료, GitHub과 통합
