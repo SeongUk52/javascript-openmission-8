@@ -325,10 +325,14 @@ src/
 - **배포 링크**: [https://vercel.com](https://vercel.com)
 - **배포 방법**:
   1. Vercel에 GitHub 계정으로 로그인
-  2. 프로젝트 import
-  3. Build Command: 없음 (정적 파일)
-  4. Output Directory: `web`
-  5. Deploy!
+  2. "Add New Project" → 저장소 선택
+  3. **중요**: 다음 설정 확인
+     - **Framework Preset**: Other
+     - **Build Command**: `npm run build` (자동으로 설정됨)
+     - **Output Directory**: `dist` (자동으로 설정됨)
+     - **Root Directory**: 비워두기 (설정하지 않음)
+  4. "Deploy" 클릭
+  5. 배포 완료 후 URL 확인
 
 #### 2. **Netlify**
 - **장점**: GitHub 연동 자동 배포, 무료, 쉬운 설정
