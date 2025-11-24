@@ -131,6 +131,8 @@ export class CollisionUtil {
     // 접촉 제약 조건: v_rel · n >= 0 (상대 속도가 normal 방향으로 분리되거나 0)
     // 접촉 중일 때는 normal impulse가 중력 효과를 상쇄해야 함
     let impulseScalar;
+    // normalImpulse를 함수 상단에서 계산 (모든 경로에서 사용 가능하도록)
+    const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
     // Box2D/Matter.js: 접촉 제약 조건은 penetration이 있거나 접촉 중일 때 항상 해결
     // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록 접촉 제약 조건 강화
     if (penetration > 0.001 || Math.abs(velAlongNormal) < 20) {
@@ -138,9 +140,6 @@ export class CollisionUtil {
       // Box2D/Matter.js: 접촉 제약 조건을 해결하기 위해 impulse 적용
       // 접촉 제약 조건: v_rel · n = 0 (접촉면에서 상대 속도가 0)
       // 이를 위해 필요한 impulse: j = -v_rel · n / (1/mA + 1/mB)
-      
-      // 일반적인 normal impulse 계산
-      const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
       
       // Box2D/Matter.js: 접촉 중일 때는 상대 속도가 normal 방향으로 0이 되도록 impulse 적용
       // 중력 효과를 상쇄하기 위해 충분한 impulse 필요
@@ -195,7 +194,6 @@ export class CollisionUtil {
       // 블록이 다른 블록 위에 조금만 벗어나서 배치되어도 안정적으로 유지되도록 접촉 제약 조건 강화
       if (Math.abs(velAlongNormal) < 20) {
         // 접촉 중이면 접촉 제약 조건 해결
-        const normalImpulse = (-(1 + restitution) * velAlongNormal) / invMassSum;
         const gravityAccel = 500;
         const deltaTime = 1 / 60;
         const gravityVelocityPerFrame = gravityAccel * deltaTime;
