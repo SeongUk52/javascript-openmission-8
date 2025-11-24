@@ -4,6 +4,11 @@ import { Block } from '../domain/Block.js';
 import { GameState } from '../domain/GameState.js';
 import { Vector } from '../domain/Vector.js';
 import { BalanceUtil } from '../util/BalanceUtil.js';
+import { GameConfig } from '../domain/GameConfig.js';
+import { BlockState } from '../domain/BlockState.js';
+import { GameLoopState } from '../domain/GameLoopState.js';
+import { GameCallbacks } from '../domain/GameCallbacks.js';
+import { Tower } from '../domain/Tower.js';
 
 /**
  * 게임 컨트롤러
@@ -25,13 +30,12 @@ export class GameController {
       blockHeight = 50, // 정사각형으로 변경
     } = options;
 
-    // Canvas 크기
-    this.canvasWidth = canvasWidth;
-    this.canvasHeight = canvasHeight;
-
-    // 블록 크기
-    this.blockWidth = blockWidth;
-    this.blockHeight = blockHeight;
+    // 게임 설정 (Canvas 크기, 블록 크기, 베이스 정보)
+    const baseX = canvasWidth / 2;
+    const baseY = canvasHeight; // 베이스는 바닥에 붙어있음 (베이스의 하단 Y 좌표)
+    const basePosition = new Vector(baseX, baseY);
+    const baseWidth = 400; // 베이스 너비
+    this.gameConfig = new GameConfig(canvasWidth, canvasHeight, blockWidth, blockHeight, basePosition, baseWidth);
 
     // 물리 서비스
     this.physicsService = new PhysicsService({
@@ -43,45 +47,145 @@ export class GameController {
     // 게임 상태
     this.gameState = new GameState();
 
-    // 베이스 정보
-    const baseX = canvasWidth / 2;
-    const baseY = canvasHeight; // 베이스는 바닥에 붙어있음 (베이스의 하단 Y 좌표)
-    this.basePosition = new Vector(baseX, baseY);
-    this.baseWidth = 400; // 베이스 너비
+    // 타워 (테스트 호환성을 위해 유지)
+    this.tower = new Tower({
+      basePosition: basePosition,
+      baseWidth: baseWidth,
+    });
 
-    // 현재 배치 대기 중인 블록 (조작 가능)
-    this.currentBlock = null;
+    // 블록 상태 (현재 블록, 떨어지는 블록들, 블록 이동 상태)
+    this.blockState = new BlockState(null, new Set(), baseX, 1, 500, 0);
 
-    // 떨어지는 중인 블록들 (여러 개 가능)
-    this.fallingBlocks = new Set();
-
-    // 다음 블록 위치 (자동으로 좌우 이동)
-    this.nextBlockX = baseX;
-    this.blockMoveDirection = 1; // 1: 오른쪽, -1: 왼쪽
-    this.blockMoveSpeed = 500; // 픽셀/초 (10배 증가)
-    this.blockMoveTime = 0; // 이동 시간 추적
-
-    // 게임 루프 관련
-    this.animationFrameId = null;
-    this.lastTime = 0;
-
-    // 연속 배치 횟수
-    this.consecutivePlacements = 0;
-
-    // 최대 타워 높이 (한 게임 내에서 쌓은 최대 높이, 픽셀 단위)
-    this.maxTowerHeight = 0;
-
-    // 블록 배치 쿨타임 (1초)
-    this.placeCooldown = 1000; // 밀리초
-    this.lastPlaceTime = 0;
+    // 게임 루프 상태 (애니메이션 프레임, 시간, 통계, 쿨타임)
+    this.gameLoopState = new GameLoopState(null, 0, 0, 0, 1000, 0);
 
     // 이벤트 콜백
-    this.onBlockPlaced = null;
-    this.onGameOver = null;
-    this.onScoreChanged = null;
+    this.callbacks = new GameCallbacks(null, null, null);
+    
+    // 기존 코드 호환성을 위한 직접 참조 설정
+    this._setupDirectReferences();
 
     // 물리 서비스 이벤트 설정
     this._setupPhysicsEvents();
+  }
+  
+  /**
+   * 기존 코드 호환성을 위한 직접 참조 설정 (Value Object와 동일한 객체 참조)
+   * @private
+   */
+  _setupDirectReferences() {
+    // Canvas 크기 (읽기 전용 - Value Object에서 직접 참조)
+    Object.defineProperty(this, 'canvasWidth', {
+      get: () => this.gameConfig.canvasWidth,
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'canvasHeight', {
+      get: () => this.gameConfig.canvasHeight,
+      enumerable: true,
+      configurable: true
+    });
+    
+    // 블록 크기 (읽기 전용)
+    Object.defineProperty(this, 'blockWidth', {
+      get: () => this.gameConfig.blockWidth,
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'blockHeight', {
+      get: () => this.gameConfig.blockHeight,
+      enumerable: true,
+      configurable: true
+    });
+    
+    // 베이스 정보 (읽기 전용)
+    Object.defineProperty(this, 'basePosition', {
+      get: () => this.gameConfig.basePosition,
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'baseWidth', {
+      get: () => this.gameConfig.baseWidth,
+      enumerable: true,
+      configurable: true
+    });
+    
+    // 블록 상태 (읽기/쓰기 - Value Object와 동기화)
+    // 원시값은 getter/setter로 동기화, 객체는 직접 참조
+    Object.defineProperty(this, 'currentBlock', {
+      get: () => this.blockState.currentBlock,
+      set: (value) => { this.blockState.currentBlock = value; },
+      enumerable: true,
+      configurable: true
+    });
+    this.fallingBlocks = this.blockState.fallingBlocks; // Set은 객체 참조
+    Object.defineProperty(this, 'nextBlockX', {
+      get: () => this.blockState.nextBlockX,
+      set: (value) => { this.blockState.nextBlockX = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'blockMoveDirection', {
+      get: () => this.blockState.blockMoveDirection,
+      set: (value) => { this.blockState.blockMoveDirection = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'blockMoveSpeed', {
+      get: () => this.blockState.blockMoveSpeed,
+      set: (value) => { this.blockState.blockMoveSpeed = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'blockMoveTime', {
+      get: () => this.blockState.blockMoveTime,
+      set: (value) => { this.blockState.blockMoveTime = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // 게임 루프 상태 (읽기/쓰기 - Value Object와 동기화)
+    Object.defineProperty(this, 'animationFrameId', {
+      get: () => this.gameLoopState.animationFrameId,
+      set: (value) => { this.gameLoopState.animationFrameId = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'lastTime', {
+      get: () => this.gameLoopState.lastTime,
+      set: (value) => { this.gameLoopState.lastTime = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'consecutivePlacements', {
+      get: () => this.gameLoopState.consecutivePlacements,
+      set: (value) => { this.gameLoopState.consecutivePlacements = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'maxTowerHeight', {
+      get: () => this.gameLoopState.maxTowerHeight,
+      set: (value) => { this.gameLoopState.maxTowerHeight = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'placeCooldown', {
+      get: () => this.gameLoopState.placeCooldown,
+      set: (value) => { this.gameLoopState.placeCooldown = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'lastPlaceTime', {
+      get: () => this.gameLoopState.lastPlaceTime,
+      set: (value) => { this.gameLoopState.lastPlaceTime = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // 콜백 (읽기/쓰기 - Value Object와 동일한 객체 참조)
+    this.onBlockPlaced = this.callbacks.onBlockPlaced;
+    this.onGameOver = this.callbacks.onGameOver;
+    this.onScoreChanged = this.callbacks.onScoreChanged;
   }
 
   /**
@@ -240,6 +344,12 @@ export class GameController {
     this.nextBlockX = this.canvasWidth / 2;
     this.blockMoveDirection = 1; // 오른쪽으로 시작
     this.blockMoveTime = 0;
+    
+    // 타워 초기화 (테스트 호환성)
+    this.tower = new Tower({
+      basePosition: this.basePosition,
+      baseWidth: this.baseWidth,
+    });
     
     // PhysicsService 초기화 (이전 게임의 body 제거)
     this.physicsService.clearBodies();
@@ -487,6 +597,9 @@ export class GameController {
 
     // 블록 상태만 변경 (위치는 물리 엔진이 자연스럽게 처리)
     block.place(); // isPlaced = true, isFalling = false
+    
+    // 타워에 블록 추가 (테스트 호환성)
+    this.tower.addBlock(block);
     
     // 마찰과 반발 계수 조정 (안정적으로 쌓이도록)
     block.friction = 0.8; // 높은 마찰
@@ -902,6 +1015,7 @@ export class GameController {
     
     return {
       gameState: this.gameState,
+      tower: this.tower, // 테스트 호환성
       placedBlocks: this._getPlacedBlocks(),
       currentBlock: this.currentBlock,
       physicsBodies: this.physicsService.bodies,
