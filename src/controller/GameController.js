@@ -315,7 +315,7 @@ export class GameController {
       position: new Vector(clampedX, spawnY),
       width: this.blockWidth,
       height: this.blockHeight,
-      mass: 20, // 질량 증가 (마찰 효과 강화)
+      mass: 1, // 질량 기본값
       color: this._getRandomColor(),
       type: 'normal',
       restitution: 0, // 반발 없음 (완전 비탄성)

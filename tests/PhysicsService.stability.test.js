@@ -38,7 +38,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 580),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -80,7 +80,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 580),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -122,7 +122,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 580),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -171,7 +171,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 580),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -212,7 +212,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 580),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -255,7 +255,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 560),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -272,7 +272,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 510),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -321,7 +321,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 545),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -385,7 +385,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 545),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
@@ -406,7 +406,7 @@ describe('PhysicsService - Block Stability on Base', () => {
         position: new Vector(400, 495),
         width: 50,
         height: 50,
-        mass: 20,
+        mass: 1,
         friction: 0.8,
         restitution: 0,
       });
