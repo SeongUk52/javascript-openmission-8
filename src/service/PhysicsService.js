@@ -125,54 +125,90 @@ export class PhysicsService {
     // 모든 Body 쌍에 대해 충돌 검사
     for (let i = 0; i < this.bodies.length; i++) {
       const bodyA = this.bodies[i];
-      
-      // 빠르게 떨어지는 블록은 충돌 해결을 간소화 (성능 최적화)
       const isFastFallingA = !bodyA.isStatic && bodyA.isFalling && bodyA.velocity.y > 200;
       
       for (let j = i + 1; j < this.bodies.length; j++) {
         const bodyB = this.bodies[j];
-
-        // 정적 객체끼리는 충돌 검사 안 함
-        if (bodyA.isStatic && bodyB.isStatic) {
-          continue;
-        }
-
-        // 빠르게 떨어지는 블록끼리는 충돌 해결 간소화 (성능 최적화)
-        const isFastFallingB = !bodyB.isStatic && bodyB.isFalling && bodyB.velocity.y > 200;
-        if (isFastFallingA && isFastFallingB) {
-          // 빠르게 떨어지는 블록끼리는 충돌 해결을 한 번만 수행
-          const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
-          if (isColliding) {
-            CollisionUtil.resolveCollision(bodyA, bodyB);
-          }
-          continue;
-        }
-
-        // 충돌 감지
-        const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
-        
-        if (isColliding) {
-          // 충돌 해결 (여러 번 반복하여 안정성 향상)
-          // 접촉 중일 때는 더 많이 반복하여 안정성 향상
-          // 빠르게 떨어지는 블록은 반복 횟수 감소 (성능 최적화)
-          // 정적 객체와 충돌 시 더 많이 반복 (베이스 뚫기 방지)
-          const baseIterations = (bodyA.isStatic || bodyB.isStatic) ? this.iterations * 3 : this.iterations;
-          const iterations = (isFastFallingA || isFastFallingB) ? Math.max(1, Math.floor(baseIterations / 2)) : baseIterations;
-          
-          for (let k = 0; k < iterations; k++) {
-            CollisionUtil.resolveCollision(bodyA, bodyB);
-          }
-
-          // 충돌 이벤트 콜백 (충돌 해결 후 호출)
-          if (this.onCollision) {
-            try {
-              this.onCollision(bodyA, bodyB);
-            } catch (error) {
-              console.error('[PhysicsService] Error in onCollision callback:', error);
-            }
-          }
-        }
+        this._resolveCollisionPair(bodyA, bodyB, isFastFallingA);
       }
+    }
+  }
+
+  /**
+   * 두 Body 쌍의 충돌 해결
+   * @param {Body} bodyA
+   * @param {Body} bodyB
+   * @param {boolean} isFastFallingA
+   * @private
+   */
+  _resolveCollisionPair(bodyA, bodyB, isFastFallingA) {
+    // 정적 객체끼리는 충돌 검사 안 함
+    if (bodyA.isStatic && bodyB.isStatic) {
+      return;
+    }
+
+    // 빠르게 떨어지는 블록끼리는 충돌 해결 간소화 (성능 최적화)
+    const isFastFallingB = !bodyB.isStatic && bodyB.isFalling && bodyB.velocity.y > 200;
+    if (isFastFallingA && isFastFallingB) {
+      this._resolveFastFallingCollision(bodyA, bodyB);
+      return;
+    }
+
+    // 충돌 감지 및 해결
+    const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
+    if (!isColliding) {
+      return;
+    }
+
+    this._resolveCollisionWithIterations(bodyA, bodyB, isFastFallingA, isFastFallingB);
+    this._triggerCollisionCallback(bodyA, bodyB);
+  }
+
+  /**
+   * 빠르게 떨어지는 블록끼리의 충돌 해결
+   * @param {Body} bodyA
+   * @param {Body} bodyB
+   * @private
+   */
+  _resolveFastFallingCollision(bodyA, bodyB) {
+    const isColliding = CollisionUtil.isAABBColliding(bodyA, bodyB);
+    if (isColliding) {
+      CollisionUtil.resolveCollision(bodyA, bodyB);
+    }
+  }
+
+  /**
+   * 충돌 해결 (반복 횟수 계산 및 적용)
+   * @param {Body} bodyA
+   * @param {Body} bodyB
+   * @param {boolean} isFastFallingA
+   * @param {boolean} isFastFallingB
+   * @private
+   */
+  _resolveCollisionWithIterations(bodyA, bodyB, isFastFallingA, isFastFallingB) {
+    const baseIterations = (bodyA.isStatic || bodyB.isStatic) ? this.iterations * 3 : this.iterations;
+    const iterations = (isFastFallingA || isFastFallingB) ? Math.max(1, Math.floor(baseIterations / 2)) : baseIterations;
+    
+    for (let k = 0; k < iterations; k++) {
+      CollisionUtil.resolveCollision(bodyA, bodyB);
+    }
+  }
+
+  /**
+   * 충돌 이벤트 콜백 호출
+   * @param {Body} bodyA
+   * @param {Body} bodyB
+   * @private
+   */
+  _triggerCollisionCallback(bodyA, bodyB) {
+    if (!this.onCollision) {
+      return;
+    }
+
+    try {
+      this.onCollision(bodyA, bodyB);
+    } catch (error) {
+      console.error('[PhysicsService] Error in onCollision callback:', error);
     }
   }
 

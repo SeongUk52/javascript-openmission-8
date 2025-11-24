@@ -873,60 +873,16 @@ export class GameController {
     }
     
     for (const block of allBlocks) {
-      if (!block) continue;
-      const aabb = block.getAABB();
-      if (!aabb || !aabb.min || !aabb.max) continue; // AABB가 없으면 스킵
-      
-      // 베이스 위치 확인 (베이스는 isStatic만으로 충분)
-      const baseBlock = this.physicsService.bodies.find(b => b.isStatic);
-      const placedBlocks = this._getPlacedBlocks();
-      
-      // 베이스 상단 Y 좌표
-      const baseTopY = this.basePosition.y - 30;
-      
-      // 가장 높은 블록의 상단 Y 좌표 찾기 (블록이 없으면 베이스 상단)
-      let minBlockTopY = baseTopY;
-      if (placedBlocks.length > 0) {
-        placedBlocks.forEach(placedBlock => {
-          const blockTopY = placedBlock.position.y - placedBlock.height / 2;
-          minBlockTopY = Math.min(minBlockTopY, blockTopY);
-        });
+      if (!this._isValidBlock(block)) {
+        continue;
       }
-      
-      // 현재 블록의 하단 Y 좌표
-      const blockBottom = aabb.max.y; // 블록 하단
-      const blockTop = aabb.min.y; // 블록 상단
-      
-      // X 위치 확인 (베이스 범위 내에 있어야 함)
-      const blockCenterX = block.position.x;
-      const baseLeft = this.basePosition.x - this.baseWidth / 2;
-      const baseRight = this.basePosition.x + this.baseWidth / 2;
-      const isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
-      
-      // 블록이 타워에 닿았는지 확인
-      // 블록 하단이 가장 높은 블록 상단 근처에 있고, 속도가 충분히 느려졌을 때
-      // 또는 블록이 베이스 위에 있고 속도가 충분히 느려졌을 때
-      const distanceToTop = blockBottom - minBlockTopY;
-      const isNearTop = distanceToTop <= 5 && distanceToTop >= -5 && isInBaseRangeX;
-      const isSlowEnough = Math.abs(block.velocity.y) < 100 && Math.abs(block.velocity.x) < 100;
-      
-      // 블록이 타워에 닿았고 속도가 충분히 느려졌을 때 고정
-      if (isNearTop && isSlowEnough) {
-        // 블록이 이미 배치되었는지 확인 (중복 호출 방지)
-        if (!placedBlocks.includes(block)) {
-          // 블록 고정 시작 (디버깅 로그 제거)
-          this._fixBlockToTower(block);
-          continue; // 고정했으면 다음 블록으로
-        }
+
+      if (this._shouldFixBlockToTower(block)) {
+        this._fixBlockToTower(block);
+        continue;
       }
-      
-      // 게임 오버 조건: 블록이 베이스 바닥 아래로 떨어졌을 때만 게임 오버
-      // 베이스의 하단 = basePosition.y (베이스 높이 30)
-      // 블록의 상단이 베이스의 하단보다 아래에 있으면 게임 오버
-      const baseBottom = this.basePosition.y;
-      const isOutOfBounds = aabb.min.y > baseBottom;
-      
-      if (isOutOfBounds) {
+
+      if (this._isBlockOutOfBounds(block)) {
         this._handleGameOver();
         return;
       }
@@ -1145,6 +1101,94 @@ export class GameController {
       stable: allStable,
       toppledBlocks,
     };
+  }
+
+  /**
+   * 블록 유효성 검사
+   * @param {Body} block
+   * @returns {boolean}
+   * @private
+   */
+  _isValidBlock(block) {
+    if (!block) {
+      return false;
+    }
+
+    const aabb = block.getAABB();
+    if (!aabb || !aabb.min || !aabb.max) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 블록을 타워에 고정해야 하는지 확인
+   * @param {Body} block
+   * @returns {boolean}
+   * @private
+   */
+  _shouldFixBlockToTower(block) {
+    const placedBlocks = this._getPlacedBlocks();
+    if (placedBlocks.includes(block)) {
+      return false;
+    }
+
+    const baseTopY = this.basePosition.y - 30;
+    const minBlockTopY = this._calculateMinBlockTopY(baseTopY, placedBlocks);
+    const blockBottom = block.getAABBMaxY();
+    const distanceToTop = blockBottom - minBlockTopY;
+    const isNearTop = distanceToTop <= 5 && distanceToTop >= -5;
+    const isInBaseRangeX = this._isBlockInBaseRangeX(block);
+    const isSlowEnough = Math.abs(block.velocity.y) < 100 && Math.abs(block.velocity.x) < 100;
+
+    return isNearTop && isInBaseRangeX && isSlowEnough;
+  }
+
+  /**
+   * 가장 높은 블록의 상단 Y 좌표 계산
+   * @param {number} baseTopY
+   * @param {Array} placedBlocks
+   * @returns {number}
+   * @private
+   */
+  _calculateMinBlockTopY(baseTopY, placedBlocks) {
+    let minBlockTopY = baseTopY;
+    if (placedBlocks.length === 0) {
+      return minBlockTopY;
+    }
+
+    placedBlocks.forEach(placedBlock => {
+      const blockTopY = placedBlock.position.y - placedBlock.height / 2;
+      minBlockTopY = Math.min(minBlockTopY, blockTopY);
+    });
+
+    return minBlockTopY;
+  }
+
+  /**
+   * 블록이 베이스 X 범위 내에 있는지 확인
+   * @param {Body} block
+   * @returns {boolean}
+   * @private
+   */
+  _isBlockInBaseRangeX(block) {
+    const blockCenterX = block.position.x;
+    const baseLeft = this.basePosition.x - this.baseWidth / 2;
+    const baseRight = this.basePosition.x + this.baseWidth / 2;
+    return blockCenterX >= baseLeft && blockCenterX <= baseRight;
+  }
+
+  /**
+   * 블록이 화면 밖으로 나갔는지 확인
+   * @param {Body} block
+   * @returns {boolean}
+   * @private
+   */
+  _isBlockOutOfBounds(block) {
+    const aabb = block.getAABB();
+    const baseBottom = this.basePosition.y;
+    return aabb.min.y > baseBottom;
   }
 }
 

@@ -147,68 +147,13 @@ export class CollisionUtil {
 
     if (correctedPenetration <= 0) return;
 
-    // 정적 객체와의 충돌에서는 동적 객체만 이동 (더 강력한 보정)
-    // 베이스를 뚫지 않도록 추가 여유를 두어 더 많이 이동
     if (bodyA.isStatic && !bodyB.isStatic) {
-      // bodyA가 정적이면 bodyB만 normal 방향으로 이동
-      // 베이스 위에 강제로 배치 (더 강력한 보정)
-      const extraMargin = 2.0; // 100% 추가 여유 (더 강력하게)
-      const correction = Vector.multiply(normal, correctedPenetration * percent * extraMargin);
-      bodyB.position.add(correction);
-      
-      // 베이스 위에 강제로 배치 (Y 좌표 보정)
-      const bodyAAABB = bodyA.getAABB();
-      const bodyBAABB = bodyB.getAABB();
-      if (bodyAAABB && bodyBAABB && normal.y > 0.5) {
-        // normal이 위쪽 방향이면 (bodyB가 bodyA 위에 있어야 함)
-        const baseTop = bodyAAABB.min.y;
-        const blockBottom = bodyBAABB.max.y;
-        const blockHeight = bodyBAABB.max.y - bodyBAABB.min.y;
-        // 블록의 하단이 베이스의 상단 위에 오도록 강제 배치
-        bodyB.position.y = baseTop - blockHeight / 2;
-      }
-      
-      // 속도도 normal 방향으로 조정하여 베이스를 뚫지 않도록 함
-      const velAlongNormal = bodyB.velocity.dot(normal);
-      if (velAlongNormal < 0) {
-        // normal 방향으로 떨어지고 있으면 속도를 0으로 설정
-        bodyB.velocity.subtract(Vector.multiply(normal, velAlongNormal));
-      }
-      // Y 속도도 0으로 설정 (베이스 위에 고정)
-      if (normal.y > 0.5) {
-        bodyB.velocity.y = Math.max(0, bodyB.velocity.y);
-      }
+      CollisionUtil._correctStaticDynamicCollision(bodyA, bodyB, normal, correctedPenetration, percent);
       return;
     }
+
     if (bodyB.isStatic && !bodyA.isStatic) {
-      // bodyB가 정적이면 bodyA만 normal 반대 방향으로 이동
-      // 베이스 위에 강제로 배치 (더 강력한 보정)
-      const extraMargin = 2.0; // 100% 추가 여유 (더 강력하게)
-      const correction = Vector.multiply(normal, correctedPenetration * percent * extraMargin);
-      bodyA.position.subtract(correction);
-      
-      // 베이스 위에 강제로 배치 (Y 좌표 보정)
-      const bodyAAABB = bodyA.getAABB();
-      const bodyBAABB = bodyB.getAABB();
-      if (bodyAAABB && bodyBAABB && normal.y < -0.5) {
-        // normal이 아래쪽 방향이면 (bodyA가 bodyB 위에 있어야 함)
-        const baseTop = bodyBAABB.min.y;
-        const blockBottom = bodyAAABB.max.y;
-        const blockHeight = bodyAAABB.max.y - bodyAAABB.min.y;
-        // 블록의 하단이 베이스의 상단 위에 오도록 강제 배치
-        bodyA.position.y = baseTop - blockHeight / 2;
-      }
-      
-      // 속도도 normal 반대 방향으로 조정하여 베이스를 뚫지 않도록 함
-      const velAlongNormal = bodyA.velocity.dot(normal);
-      if (velAlongNormal < 0) {
-        // normal 방향으로 떨어지고 있으면 속도를 0으로 설정
-        bodyA.velocity.subtract(Vector.multiply(normal, velAlongNormal));
-      }
-      // Y 속도도 0으로 설정 (베이스 위에 고정)
-      if (normal.y < -0.5) {
-        bodyA.velocity.y = Math.max(0, bodyA.velocity.y);
-      }
+      CollisionUtil._correctStaticDynamicCollision(bodyB, bodyA, normal, correctedPenetration, percent);
       return;
     }
 
@@ -234,6 +179,64 @@ export class CollisionUtil {
     if (!bodyB.isStatic) {
       // bodyB는 normal 방향으로 이동
       bodyB.position.add(Vector.multiply(correction, bodyB.invMass));
+    }
+  }
+
+  /**
+   * 정적-동적 객체 충돌 보정
+   * @param {Body} staticBody 정적 객체
+   * @param {Body} dynamicBody 동적 객체
+   * @param {Vector} normal 충돌 법선
+   * @param {number} correctedPenetration 보정된 penetration
+   * @param {number} percent 보정 비율
+   * @private
+   */
+  static _correctStaticDynamicCollision(staticBody, dynamicBody, normal, correctedPenetration, percent) {
+    const extraMargin = 2.0;
+    const correction = Vector.multiply(normal, correctedPenetration * percent * extraMargin);
+    dynamicBody.position.add(correction);
+    
+    this._correctDynamicBodyPosition(staticBody, dynamicBody, normal);
+    this._correctDynamicBodyVelocity(dynamicBody, normal);
+  }
+
+  /**
+   * 동적 객체 위치 보정
+   * @param {Body} staticBody 정적 객체
+   * @param {Body} dynamicBody 동적 객체
+   * @param {Vector} normal 충돌 법선
+   * @private
+   */
+  static _correctDynamicBodyPosition(staticBody, dynamicBody, normal) {
+    const staticAABB = staticBody.getAABB();
+    const dynamicAABB = dynamicBody.getAABB();
+    if (!staticAABB || !dynamicAABB) {
+      return;
+    }
+
+    if (normal.y <= 0.5) {
+      return;
+    }
+
+    const baseTop = staticAABB.min.y;
+    const blockHeight = dynamicAABB.max.y - dynamicAABB.min.y;
+    dynamicBody.position.y = baseTop - blockHeight / 2;
+  }
+
+  /**
+   * 동적 객체 속도 보정
+   * @param {Body} dynamicBody 동적 객체
+   * @param {Vector} normal 충돌 법선
+   * @private
+   */
+  static _correctDynamicBodyVelocity(dynamicBody, normal) {
+    const velAlongNormal = dynamicBody.velocity.dot(normal);
+    if (velAlongNormal < 0) {
+      dynamicBody.velocity.subtract(Vector.multiply(normal, velAlongNormal));
+    }
+
+    if (normal.y > 0.5) {
+      dynamicBody.velocity.y = Math.max(0, dynamicBody.velocity.y);
     }
   }
 
