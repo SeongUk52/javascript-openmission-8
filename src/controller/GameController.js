@@ -866,9 +866,16 @@ export class GameController {
     // 배치된 블록도 떨어질 수 있으므로 모든 블록을 체크해야 함
     const allBlocks = this.physicsService.bodies.filter(b => !b.isStatic);
     
+    // 베이스가 없으면 게임 오버 체크하지 않음
+    const baseBlock = this.physicsService.bodies.find(b => b.isStatic);
+    if (!baseBlock) {
+      return; // 베이스가 없으면 업데이트 중단
+    }
+    
     for (const block of allBlocks) {
       if (!block) continue;
       const aabb = block.getAABB();
+      if (!aabb || !aabb.min || !aabb.max) continue; // AABB가 없으면 스킵
       
       // 베이스 위치 확인 (베이스는 isStatic만으로 충분)
       const baseBlock = this.physicsService.bodies.find(b => b.isStatic);
