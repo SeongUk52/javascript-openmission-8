@@ -258,8 +258,9 @@ export class PhysicsService {
       // 블록이 어떤 블록 위에 있는지 확인
       const supportBounds = this._getSupportBounds(body);
       
-      // tolerance를 0으로 설정하여 더 엄격한 균형 판정
-      const result = BalanceUtil.evaluate(body, { supportBounds, tolerance: 0 });
+      // Box2D/Matter.js: tolerance를 블록 크기의 일정 비율로 설정
+      // 블록이 조금만 벗어나도 안정적으로 유지되도록 관대한 tolerance 적용
+      const result = BalanceUtil.evaluate(body, { supportBounds });
       
       if (!result.stable && this.onTopple) {
         this.onTopple(body, result);
