@@ -1,6 +1,6 @@
 [build]
-  publish = "web"
-  command = "echo 'No build needed'"
+  publish = "dist"
+  command = "npm run build"
 
 [[redirects]]
   from = "/*"
