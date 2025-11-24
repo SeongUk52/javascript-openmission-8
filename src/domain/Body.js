@@ -81,8 +81,25 @@ export class Body {
     // Body 속성 (재질 속성 + 크기 + 힘 상태 + 정적 객체 여부)
     this.bodyProperties = new BodyProperties(materialProperties, size, forceState, isStatic);
     
-    // 기존 코드 호환성을 위한 속성 접근 (getter 없이 직접 접근)
-    this._setupPropertyAccessors();
+    // 성능 최적화: 자주 접근하는 속성을 직접 참조로 설정 (Object.defineProperty 오버헤드 제거)
+    this.position = this.physicsState.motionState.position;
+    this.velocity = this.physicsState.motionState.velocity;
+    this.acceleration = this.physicsState.motionState.acceleration;
+    this.angle = this.physicsState.angularState.angle;
+    this.angularVelocity = this.physicsState.angularState.angularVelocity;
+    this.angularAcceleration = this.physicsState.angularState.angularAcceleration;
+    this.mass = this.physicsState.massProperties.mass;
+    this.invMass = this.physicsState.massProperties.invMass;
+    this.inertia = this.physicsState.massProperties.inertia;
+    this.invInertia = this.physicsState.massProperties.invInertia;
+    this.width = this.bodyProperties.size.width;
+    this.height = this.bodyProperties.size.height;
+    this.center = this.bodyProperties.size.center;
+    this.force = this.bodyProperties.forceState.force;
+    this.torque = this.bodyProperties.forceState.torque;
+    this.friction = this.bodyProperties.materialProperties.friction;
+    this.restitution = this.bodyProperties.materialProperties.restitution;
+    // isStatic은 직접 속성으로 유지
   }
   
   /**
@@ -100,8 +117,34 @@ export class Body {
   }
   
   /**
-   * 기존 코드 호환성을 위한 속성 접근자 설정
+   * 속성 동기화 (업데이트 후 호출하여 직접 참조와 Value Object 동기화)
    * @private
+   */
+  _syncProperties() {
+    // Value Object에서 직접 참조로 동기화
+    this.position = this.physicsState.motionState.position;
+    this.velocity = this.physicsState.motionState.velocity;
+    this.acceleration = this.physicsState.motionState.acceleration;
+    this.angle = this.physicsState.angularState.angle;
+    this.angularVelocity = this.physicsState.angularState.angularVelocity;
+    this.angularAcceleration = this.physicsState.angularState.angularAcceleration;
+    this.mass = this.physicsState.massProperties.mass;
+    this.invMass = this.physicsState.massProperties.invMass;
+    this.inertia = this.physicsState.massProperties.inertia;
+    this.invInertia = this.physicsState.massProperties.invInertia;
+    this.width = this.bodyProperties.size.width;
+    this.height = this.bodyProperties.size.height;
+    this.center = this.bodyProperties.size.center;
+    this.force = this.bodyProperties.forceState.force;
+    this.torque = this.bodyProperties.forceState.torque;
+    this.friction = this.bodyProperties.materialProperties.friction;
+    this.restitution = this.bodyProperties.materialProperties.restitution;
+  }
+  
+  /**
+   * 기존 코드 호환성을 위한 속성 접근자 설정 (사용 안 함 - 성능 최적화로 제거)
+   * @private
+   * @deprecated 성능 최적화를 위해 직접 참조 사용
    */
   _setupPropertyAccessors() {
     // MotionState 속성들
@@ -291,7 +334,9 @@ export class Body {
    */
   update(deltaTime) {
     if (this.isStatic) {
-      this.force = new Vector(0, 0);
+      // 직접 참조 유지하면서 초기화
+      this.force.x = 0;
+      this.force.y = 0;
       this.torque = 0;
       return;
     }
@@ -307,8 +352,9 @@ export class Body {
     
     TorqueUtil.updateAngularMotion(this, deltaTime);
     
-    // 힘 초기화 (다음 프레임을 위해)
-    this.force = new Vector(0, 0);
+    // 힘 초기화 (다음 프레임을 위해) - 직접 참조 유지
+    this.force.x = 0;
+    this.force.y = 0;
     
     // 마찰 적용
     this.applyFriction(deltaTime);
