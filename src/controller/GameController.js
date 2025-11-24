@@ -702,14 +702,12 @@ export class GameController {
     // 자동 고정하지 않음 - 충돌 해결을 통해 블록이 타워 위에 올라가도록 함
 
     // 떨어지는 블록들이 화면 밖으로 나갔는지 확인
-    // 단, 블록이 떨어지는 중일 때만 체크 (타워에 닿기 전까지는 기다림)
-    // 블록이 타워 근처에 있으면 게임 오버하지 않음
-    const fallingBlocksToCheck = this.currentBlock && this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)
-      ? [this.currentBlock, ...this.fallingBlocks]
-      : Array.from(this.fallingBlocks);
+    // 모든 물리 엔진에 포함된 블록을 체크 (베이스 제외)
+    // 배치된 블록도 떨어질 수 있으므로 모든 블록을 체크해야 함
+    const allBlocks = this.physicsService.bodies.filter(b => !b.isStatic);
     
-    for (const block of fallingBlocksToCheck) {
-      if (!block || !block.isFalling || !this.physicsService.bodies.includes(block)) continue;
+    for (const block of allBlocks) {
+      if (!block) continue;
       const aabb = block.getAABB();
       
       // 베이스 위치 확인 (베이스는 isStatic만으로 충분)
