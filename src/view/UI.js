@@ -42,19 +42,6 @@ export class UI {
     this.ctx.restore();
   }
 
-  /**
-   * 라운드 표시
-   * @param {number} round - 현재 라운드
-   * @param {Object} position - 위치 {x, y}
-   */
-  drawRound(round, position = { x: 20, y: 80 }) {
-    this.ctx.save();
-    this.ctx.fillStyle = this.textColor;
-    this.ctx.font = `18px ${this.fontFamily}`;
-    this.ctx.textAlign = 'left';
-    this.ctx.fillText(`라운드: ${round}`, position.x, position.y);
-    this.ctx.restore();
-  }
 
   /**
    * 게임 오버 화면
@@ -87,20 +74,12 @@ export class UI {
     this.ctx.fillText(`최종 점수: ${gameState.score.toLocaleString()}`, centerX, centerY - 20);
     this.ctx.restore();
 
-    // 라운드
-    this.ctx.save();
-    this.ctx.fillStyle = '#95a5a6';
-    this.ctx.font = `18px ${this.fontFamily}`;
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText(`라운드: ${gameState.round}`, centerX, centerY + 20);
-    this.ctx.restore();
-
     // 재시작 안내
     this.ctx.save();
     this.ctx.fillStyle = this.accentColor;
     this.ctx.font = `16px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('클릭하거나 스페이스바를 눌러 재시작', centerX, centerY + 80);
+    this.ctx.fillText('클릭하거나 스페이스바를 눌러 재시작', centerX, centerY + 40);
     this.ctx.restore();
   }
 
