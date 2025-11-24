@@ -205,8 +205,9 @@ describe('GameController - All Methods Test', () => {
 
       controller._fixBlockToTower(block);
 
-      // 블록이 배치되었는지 확인
-      expect(block.isPlaced).toBe(true);
+      // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
+      const placedBlocks = controller._getPlacedBlocks();
+      expect(placedBlocks).toContain(block);
       expect(block.isFalling).toBe(false);
       // 중요: isStatic은 false여야 함 (무게 균형에 따라 움직일 수 있음)
       expect(block.isStatic).toBe(false);
@@ -239,7 +240,9 @@ describe('GameController - All Methods Test', () => {
       // position.y = 970 - blockHeight/2 = 970 - 20 = 950
       const expectedY = controller.basePosition.y - 30 - blockHeight / 2;
       expect(block.position.y).toBeCloseTo(expectedY, 1);
-      expect(block.isPlaced).toBe(true);
+      // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
+      const placedBlocks = controller._getPlacedBlocks();
+      expect(placedBlocks).toContain(block);
     });
 
     test('두 번째 블록은 첫 번째 블록 위에 배치', () => {
@@ -279,7 +282,9 @@ describe('GameController - All Methods Test', () => {
       // block1의 하단 = 970
       // targetY = 970 + 0.1 + 20 = 990.1
       expect(block2.position.y).toBeCloseTo(990.1, 1);
-      expect(block2.isPlaced).toBe(true);
+      // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
+      const placedBlocks = controller._getPlacedBlocks();
+      expect(placedBlocks).toContain(block2);
       expect(block2.isStatic).toBe(false); // 정적이 아님
     });
   });
@@ -295,7 +300,7 @@ describe('GameController - All Methods Test', () => {
       expect(block.width).toBe(blockWidth);
       expect(block.height).toBe(blockHeight);
       expect(block.isFalling).toBe(false);
-      expect(block.isPlaced).toBe(false);
+      // isPlaced는 사용하지 않으므로 체크하지 않음
       expect(block.isStatic).toBe(false);
     });
 
@@ -323,7 +328,7 @@ describe('GameController - All Methods Test', () => {
       
       // 블록이 떨어지는 상태로 변경되어야 함
       expect(block.isFalling).toBe(true);
-      expect(block.isPlaced).toBe(false);
+      // isPlaced는 사용하지 않으므로 체크하지 않음
       
       // fallingBlocks에 추가되어야 함
       expect(controller.fallingBlocks.has(block)).toBe(true);
@@ -365,7 +370,7 @@ describe('GameController - All Methods Test', () => {
       controller.placeBlock();
       
       // 블록을 베이스 바로 위에 위치시킴
-      const baseBlock = controller.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
+      const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
       const baseAABB = baseBlock.getAABB();
       block.position.y = baseAABB.min.y - block.height / 2 - 1;
       block.velocity.y = 0;
@@ -375,11 +380,13 @@ describe('GameController - All Methods Test', () => {
       // 물리 업데이트
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        if (block.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks();
+        if (placedBlocks.includes(block)) break;
       }
 
-      // 블록이 배치되어야 함
-      expect(block.isPlaced).toBe(true);
+      // 블록이 배치되어야 함 (isPlaced 대신 _getPlacedBlocks 사용)
+      const placedBlocks = controller._getPlacedBlocks();
+      expect(placedBlocks).toContain(block);
       expect(block.isFalling).toBe(false);
       expect(controller.fallingBlocks.has(block)).toBe(false);
     });
@@ -391,7 +398,7 @@ describe('GameController - All Methods Test', () => {
       const block = controller.currentBlock;
       controller.placeBlock();
       
-      const baseBlock = controller.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
+      const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
       const baseAABB = baseBlock.getAABB();
       block.position.y = baseAABB.min.y - block.height / 2 - 1;
       block.velocity.y = 0;
@@ -401,10 +408,13 @@ describe('GameController - All Methods Test', () => {
       // 물리 업데이트로 블록 고정
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        if (block.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks();
+        if (placedBlocks.includes(block)) break;
       }
 
-      expect(block.isPlaced).toBe(true);
+      // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
+      const placedBlocks = controller._getPlacedBlocks();
+      expect(placedBlocks).toContain(block);
       expect(block.isStatic).toBe(false); // 정적이 아님
       
       // 물리 엔진에 여전히 있어야 함
@@ -432,7 +442,7 @@ describe('GameController - All Methods Test', () => {
       const block1 = controller.currentBlock;
       controller.placeBlock();
       
-      const baseBlock = controller.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
+      const baseBlock = controller.physicsService.bodies.find(b => b.isStatic);
       const baseAABB = baseBlock.getAABB();
       block1.position.y = baseAABB.min.y - block1.height / 2 - 1;
       block1.velocity.y = 0;
@@ -441,10 +451,13 @@ describe('GameController - All Methods Test', () => {
 
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        if (block1.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks();
+        if (placedBlocks.includes(block1)) break;
       }
 
-      expect(block1.isPlaced).toBe(true);
+      // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
+      const placedBlocks1 = controller._getPlacedBlocks();
+      expect(placedBlocks1).toContain(block1);
       expect(block1.isStatic).toBe(false); // 정적이 아님
       
       // 두 번째 블록을 첫 번째 블록 위에 배치 (약간 기울어지게)
@@ -462,10 +475,13 @@ describe('GameController - All Methods Test', () => {
 
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        if (block2.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks();
+        if (placedBlocks.includes(block2)) break;
       }
 
-      expect(block2.isPlaced).toBe(true);
+      // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
+      const placedBlocks2 = controller._getPlacedBlocks();
+      expect(placedBlocks2).toContain(block2);
       expect(block2.isStatic).toBe(false);
       
       // 블록들이 물리 엔진에서 계속 시뮬레이션되는지 확인

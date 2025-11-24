@@ -53,14 +53,14 @@ describe('GameController - Block Stacking Integration Test', () => {
     // 물리 업데이트 (충돌 감지 및 고정)
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (firstBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks();
+      if (placedBlocks.includes(firstBlock)) break;
     }
 
     // 첫 번째 블록이 타워에 쌓였는지 확인
     const placedBlocks = controller._getPlacedBlocks();
     expect(placedBlocks.length).toBe(1, '첫 번째 블록이 타워에 추가되어야 함');
     expect(placedBlocks).toContain(firstBlock);
-    expect(firstBlock.isPlaced).toBe(true);
     expect(firstBlock.isFalling).toBe(false);
     expect(controller.fallingBlocks.has(firstBlock)).toBe(false);
   });
@@ -79,7 +79,8 @@ describe('GameController - Block Stacking Integration Test', () => {
 
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (firstBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks();
+      if (placedBlocks.includes(firstBlock)) break;
     }
 
     expect(controller._getPlacedBlocks().length).toBe(1, '첫 번째 블록이 타워에 있어야 함');
@@ -102,7 +103,8 @@ describe('GameController - Block Stacking Integration Test', () => {
     // 물리 업데이트
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (secondBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks();
+      if (placedBlocks.includes(secondBlock)) break;
     }
 
     // 두 번째 블록이 타워에 쌓였는지 확인
@@ -110,7 +112,6 @@ describe('GameController - Block Stacking Integration Test', () => {
     expect(placedBlocks.length).toBe(2, '두 번째 블록이 타워에 추가되어야 함');
     expect(placedBlocks).toContain(firstBlock);
     expect(placedBlocks).toContain(secondBlock);
-    expect(secondBlock.isPlaced).toBe(true);
     expect(secondBlock.isFalling).toBe(false);
     
     // 두 번째 블록이 첫 번째 블록 위에 있는지 확인
@@ -153,14 +154,14 @@ describe('GameController - Block Stacking Integration Test', () => {
       // 물리 업데이트
       for (let j = 0; j < 20; j++) {
         controller.update(1 / 60);
-        if (block.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks();
+        if (placedBlocks.includes(block)) break;
       }
       
       // 각 블록이 타워에 쌓였는지 확인
       const placedBlocks = controller._getPlacedBlocks();
       expect(placedBlocks.length).toBe(i + 1, `${i + 1}번째 블록이 타워에 추가되어야 함`);
       expect(placedBlocks).toContain(block);
-      expect(block.isPlaced).toBe(true);
     }
     
     // 모든 블록이 타워에 있어야 함
@@ -168,7 +169,6 @@ describe('GameController - Block Stacking Integration Test', () => {
     expect(finalPlacedBlocks.length).toBe(3);
     blocks.forEach(block => {
       expect(finalPlacedBlocks).toContain(block);
-      expect(block.isPlaced).toBe(true);
     });
   });
 
@@ -192,18 +192,19 @@ describe('GameController - Block Stacking Integration Test', () => {
     block.angularVelocity = 0;
 
     // 물리 업데이트 전 상태
-    expect(block.isPlaced).toBe(false);
     expect(controller._getPlacedBlocks().length).toBe(0);
 
     // 물리 업데이트 (충돌 감지 및 고정)
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (block.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks();
+      if (placedBlocks.includes(block)) break;
     }
 
     // 블록이 자동으로 고정되었는지 확인
-    expect(block.isPlaced).toBe(true, '블록이 충돌 후 자동으로 고정되어야 함');
-    expect(controller._getPlacedBlocks().length).toBe(1, '블록이 타워에 추가되어야 함');
+    const placedBlocks = controller._getPlacedBlocks();
+    expect(placedBlocks).toContain(block);
+    expect(placedBlocks.length).toBe(1, '블록이 타워에 추가되어야 함');
     expect(controller.fallingBlocks.has(block)).toBe(false, '블록이 fallingBlocks에서 제거되어야 함');
   });
 });
