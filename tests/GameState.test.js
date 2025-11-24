@@ -149,7 +149,7 @@ describe('GameState', () => {
 
     test('게임이 시작되지 않았으면 점수를 추가하지 않는다', () => {
       gameState.addScore(10);
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
     });
 
     test('게임이 종료되었으면 점수를 추가하지 않는다', () => {
@@ -157,7 +157,7 @@ describe('GameState', () => {
       gameState.end();
       gameState.addScore(10);
 
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
     });
   });
 
@@ -176,12 +176,12 @@ describe('GameState', () => {
       gameState.start();
       gameState.setScore(-10);
 
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
     });
 
     test('게임이 시작되지 않았으면 점수를 설정하지 않는다', () => {
       gameState.setScore(100);
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
     });
 
     test('게임이 종료되었으면 점수를 설정하지 않는다', () => {
@@ -189,7 +189,7 @@ describe('GameState', () => {
       gameState.end();
       gameState.setScore(100);
 
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
     });
   });
 

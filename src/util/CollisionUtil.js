@@ -57,12 +57,8 @@ export class CollisionUtil {
       return new CollisionManifold(false);
     }
 
-    // Box2D/Matter.js: 가장 작은 penetration을 선택 (MTV - Minimum Translation Vector)
-    // 정적 객체와의 충돌에서는 Y축 방향을 우선시 (베이스 위에 쌓이도록)
-    const isStaticCollision = bodyA.isStatic || bodyB.isStatic;
-    
-    if (isStaticCollision && overlapY > 0) {
-      // 정적 객체와 충돌 시 Y축 방향을 우선시 (베이스 위에 쌓이도록)
+    const preferVerticalNormal = CollisionUtil._shouldPreferVerticalNormal(bodyA, bodyB, overlapX, overlapY);
+    if (preferVerticalNormal) {
       const centerAY = bodyA.getCenterOfMassY();
       const centerBY = bodyB.getCenterOfMassY();
       const normalY = centerAY < centerBY ? 1 : -1;
@@ -87,6 +83,67 @@ export class CollisionUtil {
     const normalY = centerAY < centerBY ? 1 : -1;
     const normal = new Vector(0, normalY);
     return new CollisionManifold(true, normal, overlapY);
+  }
+
+  static _shouldPreferVerticalNormal(bodyA, bodyB, overlapX, overlapY) {
+    if (overlapY <= 0) {
+      return false;
+    }
+    
+    const hasStatic = bodyA.isStatic || bodyB.isStatic;
+    const relVel = CollisionUtil._getRelativeVelocity(bodyA, bodyB);
+    const relVelYDominant = Math.abs(relVel.y) >= Math.abs(relVel.x) * 0.75;
+    const centers = CollisionUtil._getCenterDeltas(bodyA, bodyB);
+    const verticalAlignment = centers.vertical >= centers.horizontal * 0.8;
+    const overlapsSimilar = Math.abs(overlapX - overlapY) <= Math.max(overlapX, overlapY) * 0.35;
+    
+    if (hasStatic) {
+      return CollisionUtil._isDynamicAboveStatic(bodyA, bodyB) || relVelYDominant || overlapsSimilar;
+    }
+    
+    return (relVelYDominant && verticalAlignment) || (overlapsSimilar && verticalAlignment);
+  }
+
+  static _getRelativeVelocity(bodyA, bodyB) {
+    const safeVelocity = (body) => {
+      if (!body || !body.velocity) {
+        return { x: 0, y: 0 };
+      }
+      return {
+        x: Number.isFinite(body.velocity.x) ? body.velocity.x : 0,
+        y: Number.isFinite(body.velocity.y) ? body.velocity.y : 0,
+      };
+    };
+    
+    const velA = safeVelocity(bodyA);
+    const velB = safeVelocity(bodyB);
+    return {
+      x: velA.x - velB.x,
+      y: velA.y - velB.y,
+    };
+  }
+
+  static _getCenterDeltas(bodyA, bodyB) {
+    const centerAX = bodyA.getCenterOfMassX();
+    const centerBX = bodyB.getCenterOfMassX();
+    const centerAY = bodyA.getCenterOfMassY();
+    const centerBY = bodyB.getCenterOfMassY();
+    
+    return {
+      horizontal: Math.abs(centerAX - centerBX),
+      vertical: Math.abs(centerAY - centerBY),
+    };
+  }
+
+  static _isDynamicAboveStatic(bodyA, bodyB) {
+    const staticBody = bodyA.isStatic ? bodyA : (bodyB.isStatic ? bodyB : null);
+    if (!staticBody) {
+      return false;
+    }
+    const dynamicBody = staticBody === bodyA ? bodyB : bodyA;
+    const staticCenterY = staticBody.getCenterOfMassY();
+    const dynamicCenterY = dynamicBody.getCenterOfMassY();
+    return dynamicCenterY <= staticCenterY;
   }
 
   /**
@@ -237,6 +294,20 @@ export class CollisionUtil {
 
     if (normal.y > 0.5) {
       dynamicBody.velocity.y = Math.max(0, dynamicBody.velocity.y);
+      const horizontalDampingFactor = 0.25;
+      const horizontalClamp = 60;
+      if (Math.abs(dynamicBody.velocity.x) < horizontalClamp) {
+        dynamicBody.velocity.x *= horizontalDampingFactor;
+      } else {
+        dynamicBody.velocity.x = Math.sign(dynamicBody.velocity.x) * horizontalClamp * horizontalDampingFactor;
+      }
+      if (typeof dynamicBody.angularVelocity === 'number') {
+        if (Math.abs(dynamicBody.angularVelocity) < 0.3) {
+          dynamicBody.angularVelocity = 0;
+        } else {
+          dynamicBody.angularVelocity *= 0.6;
+        }
+      }
     }
   }
 
