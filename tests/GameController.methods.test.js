@@ -380,8 +380,8 @@ describe('GameController - All Methods Test', () => {
       // 물리 업데이트
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        const placedBlocks = controller._getPlacedBlocks();
-        if (placedBlocks.includes(block)) break;
+        const checkPlacedBlocks = controller._getPlacedBlocks();
+        if (checkPlacedBlocks.includes(block)) break;
       }
 
       // 블록이 배치되어야 함 (isPlaced 대신 _getPlacedBlocks 사용)
@@ -408,8 +408,8 @@ describe('GameController - All Methods Test', () => {
       // 물리 업데이트로 블록 고정
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        const placedBlocks = controller._getPlacedBlocks();
-        if (placedBlocks.includes(block)) break;
+        const checkPlacedBlocks = controller._getPlacedBlocks();
+        if (checkPlacedBlocks.includes(block)) break;
       }
 
       // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
@@ -451,8 +451,8 @@ describe('GameController - All Methods Test', () => {
 
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        const placedBlocks = controller._getPlacedBlocks();
-        if (placedBlocks.includes(block1)) break;
+        const checkPlacedBlocks = controller._getPlacedBlocks();
+        if (checkPlacedBlocks.includes(block1)) break;
       }
 
       // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)
@@ -475,8 +475,8 @@ describe('GameController - All Methods Test', () => {
 
       for (let i = 0; i < 20; i++) {
         controller.update(1 / 60);
-        const placedBlocks = controller._getPlacedBlocks();
-        if (placedBlocks.includes(block2)) break;
+        const checkPlacedBlocks = controller._getPlacedBlocks();
+        if (checkPlacedBlocks.includes(block2)) break;
       }
 
       // 블록이 배치되었는지 확인 (isPlaced 대신 _getPlacedBlocks 사용)

@@ -53,8 +53,8 @@ describe('GameController - Block Stacking Integration Test', () => {
     // 물리 업데이트 (충돌 감지 및 고정)
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      const placedBlocks = controller._getPlacedBlocks();
-      if (placedBlocks.includes(firstBlock)) break;
+      const checkPlacedBlocks = controller._getPlacedBlocks();
+      if (checkPlacedBlocks.includes(firstBlock)) break;
     }
 
     // 첫 번째 블록이 타워에 쌓였는지 확인
@@ -103,8 +103,8 @@ describe('GameController - Block Stacking Integration Test', () => {
     // 물리 업데이트
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      const placedBlocks = controller._getPlacedBlocks();
-      if (placedBlocks.includes(secondBlock)) break;
+      const checkPlacedBlocks = controller._getPlacedBlocks();
+      if (checkPlacedBlocks.includes(secondBlock)) break;
     }
 
     // 두 번째 블록이 타워에 쌓였는지 확인
@@ -154,8 +154,8 @@ describe('GameController - Block Stacking Integration Test', () => {
       // 물리 업데이트
       for (let j = 0; j < 20; j++) {
         controller.update(1 / 60);
-        const placedBlocks = controller._getPlacedBlocks();
-        if (placedBlocks.includes(block)) break;
+        const checkPlacedBlocks = controller._getPlacedBlocks();
+        if (checkPlacedBlocks.includes(block)) break;
       }
       
       // 각 블록이 타워에 쌓였는지 확인
@@ -197,8 +197,8 @@ describe('GameController - Block Stacking Integration Test', () => {
     // 물리 업데이트 (충돌 감지 및 고정)
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      const placedBlocks = controller._getPlacedBlocks();
-      if (placedBlocks.includes(block)) break;
+      const checkPlacedBlocks = controller._getPlacedBlocks();
+      if (checkPlacedBlocks.includes(block)) break;
     }
 
     // 블록이 자동으로 고정되었는지 확인
