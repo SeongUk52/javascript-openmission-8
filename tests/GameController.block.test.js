@@ -50,7 +50,9 @@ describe('GameController - Block Management', () => {
     // 블록이 타워에 추가되었는지 확인
     expect(gameController.tower.getBlockCount()).toBe(1);
     expect(gameController.tower.blocks[0]).toBe(firstBlock);
-    expect(gameController.tower.blocks[0].isPlaced).toBe(true);
+    // isPlaced는 사용하지 않으므로 _getPlacedBlocks로 확인
+    const placedBlocks = gameController._getPlacedBlocks();
+    expect(placedBlocks).toContain(firstBlock);
     expect(gameController.tower.blocks[0].isFalling).toBe(false);
   });
 
