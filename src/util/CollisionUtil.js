@@ -1,4 +1,5 @@
 import { Vector } from '../domain/Vector.js';
+import { CollisionManifold } from '../domain/CollisionManifold.js';
 
 /**
  * 충돌 감지 및 해결 유틸리티
@@ -28,11 +29,11 @@ export class CollisionUtil {
    * 충돌 매니폴드 계산
    * @param {Body} bodyA
    * @param {Body} bodyB
-   * @returns {{collided: boolean, normal?: Vector, penetration?: number}}
+   * @returns {CollisionManifold}
    */
   static getCollisionManifold(bodyA, bodyB) {
     if (!CollisionUtil.isAABBColliding(bodyA, bodyB)) {
-      return { collided: false };
+      return new CollisionManifold(false);
     }
 
     const aabbA = bodyA.getAABB();
@@ -42,7 +43,7 @@ export class CollisionUtil {
     if (!aabbA || !aabbB || 
         isNaN(aabbA.min.x) || isNaN(aabbA.min.y) || isNaN(aabbA.max.x) || isNaN(aabbA.max.y) ||
         isNaN(aabbB.min.x) || isNaN(aabbB.min.y) || isNaN(aabbB.max.x) || isNaN(aabbB.max.y)) {
-      return { collided: false };
+      return new CollisionManifold(false);
     }
 
     // Box2D/Matter.js: AABB 충돌에서 penetration과 normal 계산
@@ -53,7 +54,7 @@ export class CollisionUtil {
     
     // NaN 체크
     if (isNaN(overlapX) || isNaN(overlapY) || !isFinite(overlapX) || !isFinite(overlapY)) {
-      return { collided: false };
+      return new CollisionManifold(false);
     }
 
     // Box2D/Matter.js: 가장 작은 penetration을 선택 (MTV - Minimum Translation Vector)
@@ -66,7 +67,7 @@ export class CollisionUtil {
       const centerB = bodyB.getCenterOfMass();
       const normalY = centerA.y < centerB.y ? 1 : -1;
       const normal = new Vector(0, normalY);
-      return { collided: true, normal, penetration: overlapY };
+      return new CollisionManifold(true, normal, overlapY);
     }
     
     if (overlapX < overlapY) {
@@ -76,7 +77,7 @@ export class CollisionUtil {
       const centerB = bodyB.getCenterOfMass();
       const normalX = centerA.x < centerB.x ? 1 : -1;
       const normal = new Vector(normalX, 0);
-      return { collided: true, normal, penetration: overlapX };
+      return new CollisionManifold(true, normal, overlapX);
     }
 
     // Y축 방향 penetration이 더 작음 → Y축 방향 normal
@@ -85,7 +86,7 @@ export class CollisionUtil {
     const centerB = bodyB.getCenterOfMass();
     const normalY = centerA.y < centerB.y ? 1 : -1;
     const normal = new Vector(0, normalY);
-    return { collided: true, normal, penetration: overlapY };
+    return new CollisionManifold(true, normal, overlapY);
   }
 
   /**
@@ -118,12 +119,12 @@ export class CollisionUtil {
 
     // 위치 보정과 속도 보정을 모두 적용
     // 위치 보정을 먼저 적용하여 penetration 해결
-    CollisionUtil._positionalCorrection(bodyA, bodyB, manifold.normal, manifold.penetration);
+    CollisionUtil._positionalCorrection(bodyA, bodyB, manifold);
     
     // 접촉 중일 때는 항상 impulse 적용 (penetration이 있으면 접촉 중)
     // Box2D/Matter.js: 접촉 제약 조건 해결을 위해 중력 정보 필요
     // 중력 정보는 PhysicsService에서 전달받아야 하지만, 현재는 기본값 사용
-    CollisionUtil._applyImpulse(bodyA, bodyB, manifold.normal, manifold.penetration);
+    CollisionUtil._applyImpulse(bodyA, bodyB, manifold);
     
     // Box2D/Matter.js: 속도를 직접 설정하지 않고 impulse만으로 해결
   }
@@ -132,9 +133,14 @@ export class CollisionUtil {
    * 위치 보정 (penetration 해결)
    * Box2D/Matter.js: 위치 보정 (Positional Correction)
    * penetration을 해결하기 위해 두 객체를 분리
+   * @param {Body} bodyA
+   * @param {Body} bodyB
+   * @param {CollisionManifold} manifold
    * @private
    */
-  static _positionalCorrection(bodyA, bodyB, normal, penetration) {
+  static _positionalCorrection(bodyA, bodyB, manifold) {
+    const normal = manifold.normal;
+    const penetration = manifold.penetration;
     const percent = 1.0; // 보정 비율 (100% 보정)
     const slop = 0.001; // 허용 오차 (작은 penetration은 무시)
     const correctedPenetration = Math.max(penetration - slop, 0);
@@ -233,9 +239,14 @@ export class CollisionUtil {
 
   /**
    * 임펄스 적용
+   * @param {Body} bodyA
+   * @param {Body} bodyB
+   * @param {CollisionManifold} manifold
    * @private
    */
-  static _applyImpulse(bodyA, bodyB, normal, penetration = 0) {
+  static _applyImpulse(bodyA, bodyB, manifold) {
+    const normal = manifold.normal;
+    const penetration = manifold.penetration;
     // NaN 체크 - 조기 반환으로 무한 루프 방지
     if (!normal || isNaN(normal.x) || isNaN(normal.y) || !isFinite(normal.x) || !isFinite(normal.y)) {
       return;
