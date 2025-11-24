@@ -888,7 +888,6 @@ export class GameController {
 
     // 클릭 시 블록 배치 (쿨타임 체크)
     this._tryPlaceBlock();
-    this.placeBlock();
   }
 
   /**

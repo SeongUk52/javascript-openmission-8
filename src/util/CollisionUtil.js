@@ -127,6 +127,23 @@ export class CollisionUtil {
     const slop = 0.001; // 허용 오차 (작은 penetration은 무시)
     const correctedPenetration = Math.max(penetration - slop, 0);
 
+    if (correctedPenetration <= 0) return;
+
+    // 정적 객체와의 충돌에서는 동적 객체만 이동 (더 강력한 보정)
+    if (bodyA.isStatic && !bodyB.isStatic) {
+      // bodyA가 정적이면 bodyB만 normal 방향으로 이동
+      const correction = Vector.multiply(normal, correctedPenetration * percent);
+      bodyB.position.add(correction);
+      return;
+    }
+    if (bodyB.isStatic && !bodyA.isStatic) {
+      // bodyB가 정적이면 bodyA만 normal 반대 방향으로 이동
+      const correction = Vector.multiply(normal, correctedPenetration * percent);
+      bodyA.position.subtract(correction);
+      return;
+    }
+
+    // 둘 다 동적 객체인 경우에만 질량에 비례하여 분리
     const invMassSum = bodyA.invMass + bodyB.invMass;
     if (invMassSum === 0) return;
 

@@ -343,8 +343,11 @@ export class CanvasRenderer {
       });
     }
 
-    // 현재 떨어지는 블록 그리기
-    if (gameState.currentBlock) {
+    // 현재 떨어지는 블록 그리기 (물리 엔진에 추가된 블록만)
+    // 물리 엔진에 추가되지 않은 블록은 렌더링하지 않음 (좌상단에 나타나는 문제 해결)
+    if (gameState.currentBlock && 
+        gameState.physicsBodies && 
+        gameState.physicsBodies.includes(gameState.currentBlock)) {
       this.drawBlock(gameState.currentBlock);
     }
 
