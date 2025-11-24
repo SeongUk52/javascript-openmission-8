@@ -27,7 +27,11 @@ export class BalanceUtil {
     const supportBounds = options.supportBounds || BalanceUtil.getDefaultSupportBounds(body);
     // Box2D/Matter.js: tolerance를 블록 크기의 일정 비율로 설정
     // 블록이 조금만 벗어나도 안정적으로 유지되도록 관대한 tolerance 적용
-    const defaultTolerance = body.width ? body.width * 0.3 : 15; // 블록 너비의 30% 또는 15픽셀
+    // 회전된 블록의 경우 AABB가 커지므로 더 큰 tolerance 필요
+    const angleFactor = Math.abs(body.angle || 0);
+    const baseTolerance = body.width ? body.width * 0.5 : 25; // 블록 너비의 50% 또는 25픽셀
+    const rotationTolerance = angleFactor * body.width * 0.3; // 회전에 따른 추가 tolerance
+    const defaultTolerance = baseTolerance + rotationTolerance;
     const tolerance = options.tolerance ?? defaultTolerance;
     const com = body.getCenterOfMass();
 

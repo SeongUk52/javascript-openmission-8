@@ -210,27 +210,37 @@ export class PhysicsService {
       if (isInContact) {
         // 정적 객체(베이스)와 접촉 중이면 매우 강하게 감쇠
         if (isContactWithStatic) {
-          // 베이스와 접촉 중일 때는 각속도를 강하게 감쇠
-          body.angularVelocity *= 0.6; // 40% 감쇠
+          // 베이스와 접촉 중일 때는 각속도를 매우 강하게 감쇠
+          body.angularVelocity *= 0.4; // 60% 감쇠 (더 강하게)
           
           // 속도도 마찰에 의해 매우 강하게 감쇠
           // Box2D/Matter.js 스타일: 접촉 중일 때 마찰이 매우 강하게 작용
           const friction = body.friction || 0.8;
-          const frictionDampingX = 1 - friction * 0.6; // 수평 마찰 매우 강화
-          const frictionDampingY = 1 - friction * 0.5; // 수직 마찰 매우 강화
+          const frictionDampingX = 1 - friction * 0.8; // 수평 마찰 매우 강화
+          const frictionDampingY = 1 - friction * 0.7; // 수직 마찰 매우 강화
           body.velocity.x *= frictionDampingX;
           body.velocity.y *= frictionDampingY;
           
-          // Box2D/Matter.js: 속도를 직접 설정하지 않고 마찰과 impulse만으로 해결
-          // 마찰에 의한 감쇠만 적용
+          // Box2D/Matter.js: 매우 작은 각속도는 즉시 0으로
+          if (Math.abs(body.angularVelocity) < 0.1) {
+            body.angularVelocity = 0;
+          }
+          
+          // Box2D/Matter.js: 매우 작은 속도는 즉시 0으로
+          if (Math.abs(body.velocity.x) < 0.5) {
+            body.velocity.x = 0;
+          }
+          if (Math.abs(body.velocity.y) < 0.5 && body.velocity.y >= 0) {
+            body.velocity.y = 0;
+          }
         } else {
           // 일반 접촉에서의 감쇠
-          const contactDamping = 0.9; // 10% 감쇠
+          const contactDamping = 0.85; // 15% 감쇠 (더 강하게)
           body.angularVelocity *= contactDamping;
           
           // 각속도가 작으면 추가 감쇠
           if (Math.abs(body.angularVelocity) < 0.3) {
-            body.angularVelocity *= 0.8; // 추가 감쇠
+            body.angularVelocity *= 0.7; // 추가 감쇠 (더 강하게)
           }
           
           // 매우 작은 각속도는 0으로 설정
@@ -332,15 +342,29 @@ export class PhysicsService {
     });
     
     // 지지 블록이 있으면 그 블록의 상단을 지지 영역으로 사용
+    // Box2D/Matter.js: 회전된 블록의 경우 실제 접촉 영역을 고려해야 함
     if (supportBody) {
       const supportAABB = supportBody.getAABB();
       if (!supportAABB || !supportAABB.min || !supportAABB.max) {
         // AABB가 없으면 기본값 사용
         return BalanceUtil.getDefaultSupportBounds(body);
       }
+      
+      // Box2D/Matter.js: 회전된 블록의 경우 실제 접촉 영역 계산
+      // 지지 블록이 회전되어 있으면 실제 접촉 영역이 줄어들 수 있음
+      // 하지만 간단하게 AABB를 사용하되, tolerance로 보정
+      const supportAngle = Math.abs(supportBody.angle || 0);
+      const bodyAngle = Math.abs(body.angle || 0);
+      
+      // 회전이 있으면 지지 영역을 약간 줄임 (실제 접촉 영역 고려)
+      const angleReduction = (supportAngle + bodyAngle) * 10; // 각도에 따른 감소
+      const supportWidth = supportAABB.max.x - supportAABB.min.x;
+      const effectiveWidth = Math.max(supportWidth - angleReduction, supportWidth * 0.5); // 최소 50% 유지
+      const centerX = (supportAABB.min.x + supportAABB.max.x) / 2;
+      
       return {
-        min: new Vector(supportAABB.min.x, supportAABB.min.y),
-        max: new Vector(supportAABB.max.x, supportAABB.min.y),
+        min: new Vector(centerX - effectiveWidth / 2, supportAABB.min.y),
+        max: new Vector(centerX + effectiveWidth / 2, supportAABB.min.y),
       };
     }
     
