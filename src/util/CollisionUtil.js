@@ -364,10 +364,24 @@ export class CollisionUtil {
         
         // 정적 객체(베이스)와 접촉 중이면 마찰 토크를 매우 강하게 적용
         if (bodyB.isStatic) {
-          // 베이스와 접촉 중일 때는 각속도에 직접 마찰 토크를 매우 강하게 적용
-          // Box2D/Matter.js 스타일: 접촉 중일 때 마찰 토크는 각속도에 비례
-          const staticFrictionTorque = -bodyA.angularVelocity * friction * bodyA.inertia * 8.0; // 마찰 토크 강화
-          bodyA.applyAngularImpulse(staticFrictionTorque);
+          // Box2D/Matter.js: 사각형 블록이 바닥에 닿았을 때 각도가 0도 근처면 회전을 멈춤
+          // 사각형 블록은 모서리가 바닥에 닿으면 회전이 멈춰야 함
+          const angle = Math.abs(bodyA.angle || 0);
+          const angleMod = angle % (Math.PI / 2); // 90도 단위로 정규화
+          const normalizedAngle = Math.min(angleMod, Math.PI / 2 - angleMod); // 0~45도 범위로
+          
+          // 각도가 거의 0도이거나 90도 근처면 회전을 강제로 멈춤 (사각형 블록 특성)
+          if (normalizedAngle < 0.1) { // 약 5.7도 이내
+            bodyA.angularVelocity = 0;
+            // 각도를 가장 가까운 0도 또는 90도로 정렬
+            const nearestAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+            bodyA.angle = nearestAngle;
+          } else {
+            // 베이스와 접촉 중일 때는 각속도에 직접 마찰 토크를 매우 강하게 적용
+            // Box2D/Matter.js 스타일: 접촉 중일 때 마찰 토크는 각속도에 비례
+            const staticFrictionTorque = -bodyA.angularVelocity * friction * bodyA.inertia * 10.0; // 마찰 토크 더 강화
+            bodyA.applyAngularImpulse(staticFrictionTorque);
+          }
           
           // Box2D/Matter.js: 마찰 토크만 적용, 속도는 직접 설정하지 않음
           // 마찰 토크는 각속도에 비례하여 적용
@@ -420,10 +434,24 @@ export class CollisionUtil {
         
         // 정적 객체(베이스)와 접촉 중이면 마찰 토크를 매우 강하게 적용
         if (bodyA.isStatic) {
-          // 베이스와 접촉 중일 때는 각속도에 직접 마찰 토크를 매우 강하게 적용
-          // Box2D/Matter.js 스타일: 접촉 중일 때 마찰 토크는 각속도에 비례
-          const staticFrictionTorque = -bodyB.angularVelocity * friction * bodyB.inertia * 8.0; // 마찰 토크 강화
-          bodyB.applyAngularImpulse(staticFrictionTorque);
+          // Box2D/Matter.js: 사각형 블록이 바닥에 닿았을 때 각도가 0도 근처면 회전을 멈춤
+          // 사각형 블록은 모서리가 바닥에 닿으면 회전이 멈춰야 함
+          const angle = Math.abs(bodyB.angle || 0);
+          const angleMod = angle % (Math.PI / 2); // 90도 단위로 정규화
+          const normalizedAngle = Math.min(angleMod, Math.PI / 2 - angleMod); // 0~45도 범위로
+          
+          // 각도가 거의 0도이거나 90도 근처면 회전을 강제로 멈춤 (사각형 블록 특성)
+          if (normalizedAngle < 0.1) { // 약 5.7도 이내
+            bodyB.angularVelocity = 0;
+            // 각도를 가장 가까운 0도 또는 90도로 정렬
+            const nearestAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+            bodyB.angle = nearestAngle;
+          } else {
+            // 베이스와 접촉 중일 때는 각속도에 직접 마찰 토크를 매우 강하게 적용
+            // Box2D/Matter.js 스타일: 접촉 중일 때 마찰 토크는 각속도에 비례
+            const staticFrictionTorque = -bodyB.angularVelocity * friction * bodyB.inertia * 10.0; // 마찰 토크 더 강화
+            bodyB.applyAngularImpulse(staticFrictionTorque);
+          }
           
           // Box2D/Matter.js: 마찰 토크만 적용, 속도는 직접 설정하지 않음
           

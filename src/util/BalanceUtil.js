@@ -43,7 +43,7 @@ export class BalanceUtil {
     // Box2D/Matter.js: 무게 중심이 지지 영역 밖으로 많이 벗어나야 무너짐
     // 블록의 각도도 고려하여 균형 판정
     // 블록이 기울어져 있으면 더 쉽게 무너짐
-    const angleFactor = Math.abs(body.angle || 0);
+    // angleFactor는 이미 위에서 선언됨
     const angleThreshold = Math.PI / 6; // 약 30도 (더 관대하게)
     
     // Box2D/Matter.js: 무게 중심이 지지 영역 내에 있고, 각도가 임계값 이하면 안정적
