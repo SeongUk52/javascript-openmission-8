@@ -30,13 +30,13 @@ export class UI {
     this.ctx.textAlign = 'left';
 
     // 현재 점수
-    this.ctx.fillText(`Score: ${score.toLocaleString()}`, position.x, position.y);
+    this.ctx.fillText(`점수: ${score.toLocaleString()}`, position.x, position.y);
 
     // 최고 점수
     if (highScore > 0) {
       this.ctx.font = `16px ${this.fontFamily}`;
       this.ctx.fillStyle = '#95a5a6';
-      this.ctx.fillText(`High: ${highScore.toLocaleString()}`, position.x, position.y + 30);
+      this.ctx.fillText(`최고: ${highScore.toLocaleString()}`, position.x, position.y + 30);
     }
 
     this.ctx.restore();
@@ -52,7 +52,7 @@ export class UI {
     this.ctx.fillStyle = this.textColor;
     this.ctx.font = `18px ${this.fontFamily}`;
     this.ctx.textAlign = 'left';
-    this.ctx.fillText(`Round: ${round}`, position.x, position.y);
+    this.ctx.fillText(`라운드: ${round}`, position.x, position.y);
     this.ctx.restore();
   }
 
@@ -76,7 +76,7 @@ export class UI {
     this.ctx.font = `bold 48px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('GAME OVER', centerX, centerY - 80);
+    this.ctx.fillText('게임 오버', centerX, centerY - 80);
     this.ctx.restore();
 
     // 최종 점수
@@ -84,7 +84,7 @@ export class UI {
     this.ctx.fillStyle = this.textColor;
     this.ctx.font = `24px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText(`Final Score: ${gameState.score.toLocaleString()}`, centerX, centerY - 20);
+    this.ctx.fillText(`최종 점수: ${gameState.score.toLocaleString()}`, centerX, centerY - 20);
     this.ctx.restore();
 
     // 라운드
@@ -92,7 +92,7 @@ export class UI {
     this.ctx.fillStyle = '#95a5a6';
     this.ctx.font = `18px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText(`Rounds: ${gameState.round}`, centerX, centerY + 20);
+    this.ctx.fillText(`라운드: ${gameState.round}`, centerX, centerY + 20);
     this.ctx.restore();
 
     // 재시작 안내
@@ -100,7 +100,7 @@ export class UI {
     this.ctx.fillStyle = this.accentColor;
     this.ctx.font = `16px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('Click or Press Space to Restart', centerX, centerY + 80);
+    this.ctx.fillText('클릭하거나 스페이스바를 눌러 재시작', centerX, centerY + 80);
     this.ctx.restore();
   }
 
@@ -123,7 +123,7 @@ export class UI {
     this.ctx.font = `bold 36px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('PAUSED', centerX, centerY);
+    this.ctx.fillText('일시정지', centerX, centerY);
     this.ctx.restore();
 
     // 재개 안내
@@ -131,7 +131,7 @@ export class UI {
     this.ctx.fillStyle = this.textColor;
     this.ctx.font = `16px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('Press ESC to Resume', centerX, centerY + 40);
+    this.ctx.fillText('ESC를 눌러 재개', centerX, centerY + 40);
     this.ctx.restore();
   }
 
@@ -154,7 +154,7 @@ export class UI {
     this.ctx.font = `bold 48px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('STACK TOWER', centerX, centerY - 100);
+    this.ctx.fillText('스택 타워', centerX, centerY - 100);
     this.ctx.restore();
 
     // 게임 설명
@@ -164,9 +164,9 @@ export class UI {
     this.ctx.textAlign = 'center';
     
     const instructions = [
-      'Use Arrow Keys or A/D to move blocks',
-      'Press Space or Click to place blocks',
-      'Build the tallest tower!',
+      '블록을 배치하여 타워를 쌓으세요',
+      '스페이스바 또는 클릭으로 블록 배치',
+      '가장 높은 타워를 쌓아보세요!',
     ];
     
     instructions.forEach((text, i) => {
@@ -180,7 +180,7 @@ export class UI {
     this.ctx.fillStyle = this.accentColor;
     this.ctx.font = `20px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText('Click or Press Space to Start', centerX, centerY + 100);
+    this.ctx.fillText('클릭하거나 스페이스바를 눌러 시작', centerX, centerY + 100);
     this.ctx.restore();
   }
 
@@ -195,9 +195,8 @@ export class UI {
     this.ctx.textAlign = 'left';
     
     const controls = [
-      '← → / A D : Move',
-      'Space / Click : Place',
-      'ESC : Pause',
+      '스페이스바 / 클릭 : 배치',
+      'ESC : 일시정지',
     ];
     
     controls.forEach((text, i) => {
