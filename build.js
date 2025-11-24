@@ -51,4 +51,10 @@ mainJsContent = mainJsContent.replace(/from ['"]\.\.\/src\//g, "from './src/");
 fs.writeFileSync(mainJsPath, mainJsContent);
 
 console.log('✅ Build completed! Files copied to dist/');
+console.log('📁 Dist folder contents:');
+const distContents = fs.readdirSync(buildDir, { withFileTypes: true });
+distContents.forEach(entry => {
+  const path = entry.isDirectory() ? `${entry.name}/` : entry.name;
+  console.log(`  - ${path}`);
+});
 
