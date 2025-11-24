@@ -218,95 +218,144 @@ export class PhysicsService {
    * @private
    */
   _applyContactAngularDamping() {
-    // 모든 동적 블록에 대해 접촉 상태 확인
     this.bodies.forEach(body => {
       if (body.isStatic) return;
-      if (Math.abs(body.angularVelocity) < 0.01) return; // 이미 멈춘 블록은 스킵
+      if (Math.abs(body.angularVelocity) < 0.01) return;
       
-      // 다른 블록과 접촉 중인지 확인
-      let isInContact = false;
-      let isContactWithStatic = false;
-      for (let i = 0; i < this.bodies.length; i++) {
-        const otherBody = this.bodies[i];
-        if (otherBody === body) continue;
-        
-        // 접촉 중인지 확인 (AABB 충돌)
-        if (CollisionUtil.isAABBColliding(body, otherBody)) {
-          isInContact = true;
-          if (otherBody.isStatic) {
-            isContactWithStatic = true;
-            break; // 정적 객체와 접촉 중이면 더 강하게 처리
-          }
-        }
+      const contactInfo = this._checkContactStatus(body);
+      if (!contactInfo.isInContact) {
+        return;
       }
-      
-      // 접촉 중이면 각속도 강하게 감쇠
-      if (isInContact) {
-        // 정적 객체(베이스)와 접촉 중이면 매우 강하게 감쇠
-        if (isContactWithStatic) {
-          // Box2D/Matter.js: 사각형 블록이 바닥에 닿았을 때 각도가 0도 근처면 회전을 멈춤
-          // 사각형 블록은 모서리가 바닥에 닿으면 회전이 멈춰야 함
-          const angle = Math.abs(body.angle || 0);
-          const angleMod = angle % (Math.PI / 2); // 90도 단위로 정규화
-          const normalizedAngle = Math.min(angleMod, Math.PI / 2 - angleMod); // 0~45도 범위로
-          
-          // 각도가 거의 0도이거나 90도 근처면 회전을 강제로 멈춤 (사각형 블록 특성)
-          if (normalizedAngle < 0.1) { // 약 5.7도 이내
-            body.angularVelocity = 0;
-            // 각도를 가장 가까운 0도 또는 90도로 정렬
-            const nearestAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
-            body.angle = nearestAngle;
-          }
-          if (normalizedAngle >= 0.1) {
-            // 베이스와 접촉 중일 때는 각속도를 매우 강하게 감쇠
-            body.angularVelocity *= 0.3; // 70% 감쇠 (더 강하게)
-          }
-          
-          // 속도도 마찰에 의해 매우 강하게 감쇠
-          // Box2D/Matter.js 스타일: 접촉 중일 때 마찰이 매우 강하게 작용
-          const friction = body.friction || 0.8;
-          const frictionDampingX = 1 - friction * 0.8; // 수평 마찰 매우 강화
-          const frictionDampingY = 1 - friction * 0.7; // 수직 마찰 매우 강화
-          body.velocity.x *= frictionDampingX;
-          body.velocity.y *= frictionDampingY;
-          
-          // Box2D/Matter.js: 매우 작은 각속도는 즉시 0으로
-          if (Math.abs(body.angularVelocity) < 0.1) {
-            body.angularVelocity = 0;
-          }
-          
-          // Box2D/Matter.js: 매우 작은 속도는 즉시 0으로
-          if (Math.abs(body.velocity.x) < 0.5) {
-            body.velocity.x = 0;
-          }
-          if (Math.abs(body.velocity.y) < 0.5 && body.velocity.y >= 0) {
-            body.velocity.y = 0;
-          }
-          return;
-        }
-        // 일반 접촉에서의 감쇠
-        const contactDamping = 0.85; // 15% 감쇠 (더 강하게)
-        body.angularVelocity *= contactDamping;
-        
-        // 각속도가 작으면 추가 감쇠
-        if (Math.abs(body.angularVelocity) < 0.3) {
-          body.angularVelocity *= 0.7; // 추가 감쇠 (더 강하게)
-        }
-        
-        // 매우 작은 각속도는 0으로 설정
-        if (Math.abs(body.angularVelocity) < 0.05) {
-          body.angularVelocity = 0;
-        }
-        
-        // 속도가 매우 작으면 0으로 (수치 안정성)
-        if (Math.abs(body.velocity.x) < 0.1) {
-          body.velocity.x = 0;
-        }
-        if (Math.abs(body.velocity.y) < 0.1 && body.velocity.y >= 0) {
-          body.velocity.y = 0;
-        }
+
+      if (contactInfo.isContactWithStatic) {
+        this._applyStaticContactDamping(body);
+        return;
       }
+
+      this._applyGeneralContactDamping(body);
     });
+  }
+
+  /**
+   * Body의 접촉 상태 확인
+   * @param {Body} body
+   * @returns {{isInContact: boolean, isContactWithStatic: boolean}}
+   * @private
+   */
+  _checkContactStatus(body) {
+    let isInContact = false;
+    let isContactWithStatic = false;
+    
+    for (let i = 0; i < this.bodies.length; i++) {
+      const otherBody = this.bodies[i];
+      if (otherBody === body) continue;
+      
+      if (CollisionUtil.isAABBColliding(body, otherBody)) {
+        isInContact = true;
+        if (otherBody.isStatic) {
+          isContactWithStatic = true;
+          break;
+        }
+      }
+    }
+    
+    return { isInContact, isContactWithStatic };
+  }
+
+  /**
+   * 정적 객체와 접촉 중일 때 감쇠 적용
+   * @param {Body} body
+   * @private
+   */
+  _applyStaticContactDamping(body) {
+    const normalizedAngle = this._calculateNormalizedAngle(body);
+    
+    if (normalizedAngle < 0.1) {
+      this._alignBodyToNearestAngle(body);
+      return;
+    }
+
+    body.angularVelocity *= 0.3;
+    this._applyFrictionDamping(body);
+    this._clampSmallVelocities(body);
+  }
+
+  /**
+   * 정규화된 각도 계산
+   * @param {Body} body
+   * @returns {number}
+   * @private
+   */
+  _calculateNormalizedAngle(body) {
+    const angle = Math.abs(body.angle || 0);
+    const angleMod = angle % (Math.PI / 2);
+    return Math.min(angleMod, Math.PI / 2 - angleMod);
+  }
+
+  /**
+   * Body를 가장 가까운 각도로 정렬
+   * @param {Body} body
+   * @private
+   */
+  _alignBodyToNearestAngle(body) {
+    const angle = Math.abs(body.angle || 0);
+    body.angularVelocity = 0;
+    const nearestAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+    body.angle = nearestAngle;
+  }
+
+  /**
+   * 마찰 감쇠 적용
+   * @param {Body} body
+   * @private
+   */
+  _applyFrictionDamping(body) {
+    const friction = body.friction || 0.8;
+    const frictionDampingX = 1 - friction * 0.8;
+    const frictionDampingY = 1 - friction * 0.7;
+    body.velocity.x *= frictionDampingX;
+    body.velocity.y *= frictionDampingY;
+  }
+
+  /**
+   * 작은 속도 제한
+   * @param {Body} body
+   * @private
+   */
+  _clampSmallVelocities(body) {
+    if (Math.abs(body.angularVelocity) < 0.1) {
+      body.angularVelocity = 0;
+    }
+    if (Math.abs(body.velocity.x) < 0.5) {
+      body.velocity.x = 0;
+    }
+    if (Math.abs(body.velocity.y) < 0.5 && body.velocity.y >= 0) {
+      body.velocity.y = 0;
+    }
+  }
+
+  /**
+   * 일반 접촉 감쇠 적용
+   * @param {Body} body
+   * @private
+   */
+  _applyGeneralContactDamping(body) {
+    body.angularVelocity *= 0.85;
+    
+    if (Math.abs(body.angularVelocity) < 0.3) {
+      body.angularVelocity *= 0.7;
+    }
+    
+    if (Math.abs(body.angularVelocity) < 0.05) {
+      body.angularVelocity = 0;
+    }
+    
+    if (Math.abs(body.velocity.x) < 0.1) {
+      body.velocity.x = 0;
+    }
+    if (Math.abs(body.velocity.y) < 0.1 && body.velocity.y >= 0) {
+      body.velocity.y = 0;
+    }
   }
 
   /**
