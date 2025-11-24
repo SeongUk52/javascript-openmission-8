@@ -58,9 +58,9 @@ describe('GameController - Block Stacking Integration Test', () => {
     }
 
     // 첫 번째 블록이 타워에 쌓였는지 확인
-    const placedBlocks = controller._getPlacedBlocks();
-    expect(placedBlocks.length).toBe(1, '첫 번째 블록이 타워에 추가되어야 함');
-    expect(placedBlocks).toContain(firstBlock);
+    const result = controller._getPlacedBlocks();
+    expect(result.length).toBe(1, '첫 번째 블록이 타워에 추가되어야 함');
+    expect(result).toContain(firstBlock);
     expect(firstBlock.isFalling).toBe(false);
     expect(controller.fallingBlocks.has(firstBlock)).toBe(false);
   });
@@ -108,10 +108,10 @@ describe('GameController - Block Stacking Integration Test', () => {
     }
 
     // 두 번째 블록이 타워에 쌓였는지 확인
-    const placedBlocks = controller._getPlacedBlocks();
-    expect(placedBlocks.length).toBe(2, '두 번째 블록이 타워에 추가되어야 함');
-    expect(placedBlocks).toContain(firstBlock);
-    expect(placedBlocks).toContain(secondBlock);
+    const result = controller._getPlacedBlocks();
+    expect(result.length).toBe(2, '두 번째 블록이 타워에 추가되어야 함');
+    expect(result).toContain(firstBlock);
+    expect(result).toContain(secondBlock);
     expect(secondBlock.isFalling).toBe(false);
     
     // 두 번째 블록이 첫 번째 블록 위에 있는지 확인
@@ -159,9 +159,9 @@ describe('GameController - Block Stacking Integration Test', () => {
       }
       
       // 각 블록이 타워에 쌓였는지 확인
-      const placedBlocks = controller._getPlacedBlocks();
-      expect(placedBlocks.length).toBe(i + 1, `${i + 1}번째 블록이 타워에 추가되어야 함`);
-      expect(placedBlocks).toContain(block);
+      const result = controller._getPlacedBlocks();
+      expect(result.length).toBe(i + 1, `${i + 1}번째 블록이 타워에 추가되어야 함`);
+      expect(result).toContain(block);
     }
     
     // 모든 블록이 타워에 있어야 함
@@ -202,9 +202,9 @@ describe('GameController - Block Stacking Integration Test', () => {
     }
 
     // 블록이 자동으로 고정되었는지 확인
-    const placedBlocks = controller._getPlacedBlocks();
-    expect(placedBlocks).toContain(block);
-    expect(placedBlocks.length).toBe(1, '블록이 타워에 추가되어야 함');
+    const result = controller._getPlacedBlocks();
+    expect(result).toContain(block);
+    expect(result.length).toBe(1, '블록이 타워에 추가되어야 함');
     expect(controller.fallingBlocks.has(block)).toBe(false, '블록이 fallingBlocks에서 제거되어야 함');
   });
 });
