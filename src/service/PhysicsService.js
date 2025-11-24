@@ -143,7 +143,8 @@ export class PhysicsService {
           // 충돌 해결 (여러 번 반복하여 안정성 향상)
           // 접촉 중일 때는 더 많이 반복하여 안정성 향상
           // 빠르게 떨어지는 블록은 반복 횟수 감소 (성능 최적화)
-          const baseIterations = (bodyA.isStatic || bodyB.isStatic) ? this.iterations * 2 : this.iterations;
+          // 정적 객체와 충돌 시 더 많이 반복 (베이스 뚫기 방지)
+          const baseIterations = (bodyA.isStatic || bodyB.isStatic) ? this.iterations * 3 : this.iterations;
           const iterations = (isFastFallingA || isFastFallingB) ? Math.max(1, Math.floor(baseIterations / 2)) : baseIterations;
           
           for (let k = 0; k < iterations; k++) {

@@ -346,6 +346,24 @@ export class CanvasRenderer {
     // 현재 블록 그리기 (배치 전 대기 중인 블록도 표시)
     // 물리 엔진에 추가되지 않은 블록도 렌더링 (좌우 이동 표시용)
     if (gameState.currentBlock) {
+      // 유효한 위치에 있는 블록만 렌더링 (좌상단 블록 문제 해결)
+      const block = gameState.currentBlock;
+      const blockAABB = block.getAABB();
+      if (!blockAABB || !blockAABB.min || !blockAABB.max) {
+        return; // AABB가 없으면 렌더링하지 않음
+      }
+      
+      // 블록이 화면 밖에 있거나 이상한 위치에 있으면 렌더링하지 않음
+      const isValidPosition = 
+        blockAABB.min.x >= -1000 && blockAABB.max.x <= 2000 &&
+        blockAABB.min.y >= -1000 && blockAABB.max.y <= 2000 &&
+        !isNaN(blockAABB.min.x) && !isNaN(blockAABB.min.y) &&
+        !isNaN(blockAABB.max.x) && !isNaN(blockAABB.max.y);
+      
+      if (!isValidPosition) {
+        return; // 유효하지 않은 위치면 렌더링하지 않음
+      }
+      
       // 물리 엔진에 추가되지 않은 블록은 반투명하게 표시
       const isInPhysics = gameState.physicsBodies && gameState.physicsBodies.includes(gameState.currentBlock);
       if (!isInPhysics) {
