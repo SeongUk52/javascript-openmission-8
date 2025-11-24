@@ -447,22 +447,16 @@ export class GameController {
    */
   _fixBlockToTower(block) {
     if (!block) {
-      console.warn('[Score] _fixBlockToTower: block is null');
       return;
     }
     
     // 블록이 이미 배치되었으면 무시 (_getPlacedBlocks로 확인)
     const placedBlocks = this._getPlacedBlocks();
     if (placedBlocks.includes(block)) {
-      console.log('[Score] _fixBlockToTower: 블록이 이미 배치됨', block.id.substring(0, 8));
       return;
     }
     
-    console.log('[Score] _fixBlockToTower: 블록 배치 시작', {
-      blockId: block.id.substring(0, 8),
-      position: { x: block.position.x, y: block.position.y },
-      placedBlocksCount: placedBlocks.length,
-    });
+    // 블록 배치 시작 (디버깅 로그 제거)
     
     // currentBlock이 이 블록이면 초기화 (다음 블록을 위해)
     // currentBlock이 아니어도 정상 동작 (떨어지는 블록일 수 있음)
@@ -559,27 +553,7 @@ export class GameController {
     // 좌표값 차이를 블록 높이로 나눠서 점수 계산
     const score = Math.floor(this.maxTowerHeight / this.blockHeight);
 
-    // 디버깅: 점수 계산 로그
-    const placedBlocks = this._getPlacedBlocks();
-    if (placedBlocks.length > 0) {
-      const baseTopY = this.basePosition.y - 30;
-      let minBlockTopY = Infinity;
-      placedBlocks.forEach(block => {
-        const blockTopY = block.position.y - block.height / 2;
-        minBlockTopY = Math.min(minBlockTopY, blockTopY);
-      });
-      
-      console.log('[Score] 점수 계산:', {
-        currentHeight,
-        maxTowerHeight: this.maxTowerHeight,
-        blockHeight: this.blockHeight,
-        score,
-        placedBlocksCount: placedBlocks.length,
-        baseTopY,
-        minBlockTopY,
-        towerHeight: baseTopY - minBlockTopY,
-      });
-    }
+    // 점수 계산 완료 (디버깅 로그 제거)
 
     // 점수를 최대 높이 기준으로 설정
     this.gameState.setScore(score);
@@ -775,19 +749,7 @@ export class GameController {
       if (isNearTop && isSlowEnough) {
         // 블록이 이미 배치되었는지 확인 (중복 호출 방지)
         if (!placedBlocks.includes(block)) {
-          console.log('[Score] 블록 고정 시작:', {
-            blockId: block.id.substring(0, 8),
-            position: { x: block.position.x, y: block.position.y },
-            velocity: { x: block.velocity.x, y: block.velocity.y },
-            isNearTop,
-            distanceToTop,
-            minBlockTopY,
-            blockBottom,
-            blockTop,
-            isInBaseRangeX,
-            baseTopY,
-            placedBlocksCount: placedBlocks.length,
-          });
+          // 블록 고정 시작 (디버깅 로그 제거)
           this._fixBlockToTower(block);
           continue; // 고정했으면 다음 블록으로
         }
