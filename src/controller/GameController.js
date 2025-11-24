@@ -84,13 +84,14 @@ export class GameController {
       if (!this.gameState.isPlaying) return;
       
       // 블록이 베이스나 배치된 블록과 충돌했는지 확인
-      // 베이스는 정적(isStatic=true, isPlaced=true)
-      // 배치된 블록은 isPlaced=true이지만 isStatic=false (무게 균형에 따라 움직일 수 있음)
-      // 떨어지는 블록은 isFalling=true, isPlaced=false
+      // 베이스는 정적(isStatic=true)
+      // 배치된 블록은 isStatic=false이고 isFalling=false 또는 velocity.y < 50
+      // 떨어지는 블록은 isFalling=true
       
-      const baseBody = bodyA.isStatic && bodyA.isPlaced ? bodyA : (bodyB.isStatic && bodyB.isPlaced ? bodyB : null);
-      const placedBody = !bodyA.isStatic && bodyA.isPlaced ? bodyA : (!bodyB.isStatic && bodyB.isPlaced ? bodyB : null);
-      const fallingBody = (bodyA.isFalling && !bodyA.isPlaced) ? bodyA : ((bodyB.isFalling && !bodyB.isPlaced) ? bodyB : null);
+      const baseBody = bodyA.isStatic ? bodyA : (bodyB.isStatic ? bodyB : null);
+      const placedBlocks = this._getPlacedBlocks();
+      const placedBody = placedBlocks.includes(bodyA) ? bodyA : (placedBlocks.includes(bodyB) ? bodyB : null);
+      const fallingBody = bodyA.isFalling ? bodyA : (bodyB.isFalling ? bodyB : null);
       
       // 베이스나 배치된 블록과 떨어지는 블록의 충돌만 처리
       if (!fallingBody) return;
