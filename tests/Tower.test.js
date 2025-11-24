@@ -24,7 +24,7 @@ describe('Tower', () => {
     test('기본값으로 타워를 생성한다', () => {
       const tower = new Tower();
       
-      expect(tower.blocks).toEqual([]);
+      expect(tower.blocks.isEmpty()).toBe(true);
       expect(tower.basePosition).toBeInstanceOf(Vector);
       expect(tower.baseWidth).toBe(200);
       expect(tower.isStable).toBe(true);
@@ -51,8 +51,8 @@ describe('Tower', () => {
 
       tower.addBlock(block);
 
-      expect(tower.blocks).toHaveLength(1);
-      expect(tower.blocks[0]).toBe(block);
+      expect(tower.blocks.count()).toBe(1);
+      expect(tower.blocks.getAll()[0]).toBe(block);
       // isPlaced는 사용하지 않으므로 체크하지 않음 (Tower.addBlock에서 place() 호출)
     });
 
@@ -64,7 +64,7 @@ describe('Tower', () => {
       tower.addBlock(block1);
       tower.addBlock(block2);
 
-      expect(tower.blocks).toHaveLength(2);
+      expect(tower.blocks.count()).toBe(2);
     });
   });
 
@@ -74,10 +74,10 @@ describe('Tower', () => {
       const block = createBlock();
 
       tower.addBlock(block);
-      expect(tower.blocks).toHaveLength(1);
+      expect(tower.blocks.count()).toBe(1);
 
       tower.removeBlock(block);
-      expect(tower.blocks).toHaveLength(0);
+      expect(tower.blocks.isEmpty()).toBe(true);
     });
 
     test('존재하지 않는 블록을 제거하려고 하면 아무 일도 일어나지 않는다', () => {
@@ -85,7 +85,7 @@ describe('Tower', () => {
       const block = createBlock();
 
       tower.removeBlock(block);
-      expect(tower.blocks).toHaveLength(0);
+      expect(tower.blocks.isEmpty()).toBe(true);
     });
   });
 
@@ -98,7 +98,7 @@ describe('Tower', () => {
 
       tower.clear();
 
-      expect(tower.blocks).toHaveLength(0);
+      expect(tower.blocks.isEmpty()).toBe(true);
       expect(tower.hasToppled).toBe(false);
       expect(tower.isStable).toBe(true);
     });

@@ -156,7 +156,7 @@ describe('GameController - Falling Blocks Management', () => {
     expect(placedBlocks).toContain(firstBlock);
     expect(controller.fallingBlocks.has(firstBlock)).toBe(false);
     expect(controller.tower.getBlockCount()).toBe(1);
-    expect(controller.tower.blocks).toContain(firstBlock);
+    expect(controller.tower.blocks.contains(firstBlock)).toBe(true);
   });
 });
 

@@ -1,3 +1,5 @@
+import { Score } from './Score.js';
+
 /**
  * 게임 상태 도메인 모델
  * 게임의 전반적인 상태를 관리한다.
@@ -9,8 +11,8 @@ export class GameState {
    * @param {number} options.initialRound - 초기 라운드
    */
   constructor(options = {}) {
-    // 점수
-    this.score = options.initialScore || 0;
+    // 점수 (원시값 포장)
+    this.score = new Score(options.initialScore || 0);
     
     // 라운드 (블록을 몇 개 배치했는지)
     this.round = options.initialRound || 0;
@@ -27,7 +29,7 @@ export class GameState {
     this.endTime = null;
     
     // 최고 점수 (로컬 스토리지에서 불러올 수 있음)
-    this.highScore = this._loadHighScore();
+    this.highScore = new Score(this._loadHighScore());
   }
 
   /**
@@ -39,7 +41,7 @@ export class GameState {
     this.isPaused = false;
     this.startTime = Date.now();
     this.endTime = null;
-    this.score = 0;
+    this.score = new Score(0);
     this.round = 0;
   }
 
@@ -52,9 +54,9 @@ export class GameState {
     this.endTime = Date.now();
     
     // 최고 점수 업데이트
-    if (this.score > this.highScore) {
-      this.highScore = this.score;
-      this._saveHighScore(this.highScore);
+    if (this.score.isGreaterThan(this.highScore)) {
+      this.highScore = this.score.copy();
+      this._saveHighScore(this.highScore.getValue());
     }
   }
 
@@ -82,7 +84,8 @@ export class GameState {
    */
   addScore(points) {
     if (this.isPlaying && !this.isGameOver) {
-      this.score += points;
+      const newValue = this.score.getValue() + points;
+      this.score = new Score(Math.max(0, newValue));
     }
   }
 
@@ -92,7 +95,7 @@ export class GameState {
    */
   setScore(score) {
     if (this.isPlaying && !this.isGameOver) {
-      this.score = Math.max(0, score);
+      this.score = new Score(Math.max(0, score));
     }
   }
 
@@ -147,7 +150,7 @@ export class GameState {
    * 게임 상태 리셋
    */
   reset() {
-    this.score = 0;
+    this.score = new Score(0);
     this.round = 0;
     this.isGameOver = false;
     this.isPaused = false;

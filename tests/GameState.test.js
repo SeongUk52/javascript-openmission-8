@@ -33,14 +33,14 @@ describe('GameState', () => {
 
   describe('생성자', () => {
     test('기본값으로 게임 상태를 생성한다', () => {
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
       expect(gameState.round).toBe(0);
       expect(gameState.isGameOver).toBe(false);
       expect(gameState.isPaused).toBe(false);
       expect(gameState.isPlaying).toBe(false);
       expect(gameState.startTime).toBeNull();
       expect(gameState.endTime).toBeNull();
-      expect(gameState.highScore).toBe(0);
+      expect(gameState.highScore.getValue()).toBe(0);
     });
 
     test('옵션으로 게임 상태를 생성한다', () => {
@@ -49,7 +49,7 @@ describe('GameState', () => {
         initialRound: 5,
       });
 
-      expect(state.score).toBe(100);
+      expect(state.score.getValue()).toBe(100);
       expect(state.round).toBe(5);
     });
   });
@@ -63,7 +63,7 @@ describe('GameState', () => {
       expect(gameState.isPaused).toBe(false);
       expect(gameState.startTime).not.toBeNull();
       expect(gameState.endTime).toBeNull();
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
       expect(gameState.round).toBe(0);
     });
   });
@@ -88,7 +88,7 @@ describe('GameState', () => {
       state.addScore(100);
       state.end();
 
-      expect(state.highScore).toBe(100);
+      expect(state.highScore.getValue()).toBe(100);
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('towerGame_highScore', '100');
     });
 
@@ -100,7 +100,7 @@ describe('GameState', () => {
       state.addScore(100);
       state.end();
 
-      expect(state.highScore).toBe(200);
+      expect(state.highScore.getValue()).toBe(200);
     });
   });
 
@@ -141,10 +141,10 @@ describe('GameState', () => {
       gameState.start();
       gameState.addScore(10);
 
-      expect(gameState.score).toBe(10);
+      expect(gameState.score.getValue()).toBe(10);
 
       gameState.addScore(20);
-      expect(gameState.score).toBe(30);
+      expect(gameState.score.getValue()).toBe(30);
     });
 
     test('게임이 시작되지 않았으면 점수를 추가하지 않는다', () => {
@@ -166,10 +166,10 @@ describe('GameState', () => {
       gameState.start();
       gameState.setScore(100);
 
-      expect(gameState.score).toBe(100);
+      expect(gameState.score.getValue()).toBe(100);
 
       gameState.setScore(50);
-      expect(gameState.score).toBe(50);
+      expect(gameState.score.getValue()).toBe(50);
     });
 
     test('음수 점수는 0으로 설정된다', () => {
@@ -255,7 +255,7 @@ describe('GameState', () => {
 
       gameState.reset();
 
-      expect(gameState.score).toBe(0);
+      expect(gameState.score.getValue()).toBe(0);
       expect(gameState.round).toBe(0);
       expect(gameState.isGameOver).toBe(false);
       expect(gameState.isPaused).toBe(false);

@@ -1,5 +1,6 @@
 import { Vector } from './Vector.js';
 import { BalanceUtil } from '../util/BalanceUtil.js';
+import { Blocks } from './Blocks.js';
 
 /**
  * 타워 도메인 모델
@@ -17,8 +18,8 @@ export class Tower {
       baseWidth = 200,
     } = options;
 
-    // 블록 컬렉션
-    this.blocks = [];
+    // 블록 컬렉션 (일급 컬렉션)
+    this.blocks = new Blocks();
     
     // 타워 기반 정보
     this.basePosition = basePosition;
@@ -39,26 +40,17 @@ export class Tower {
       return;
     }
     
-    // 중복 체크: 이미 추가된 블록인지 확인
-    if (this.blocks.includes(block)) {
-      console.warn('[Tower] addBlock: block already exists in tower', {
-        blockId: block.id,
-        blockCount: this.blocks.length,
-      });
-      return;
-    }
-    
     // 블록이 이미 place()되었는지 확인
     if (!block.isPlaced) {
       block.place();
     }
     
-    this.blocks.push(block);
+    this.blocks.add(block);
     
     // 디버그: 블록 추가 확인
     console.log('[Tower] Block added:', {
       blockId: block.id,
-      blockCount: this.blocks.length,
+      blockCount: this.blocks.count(),
       blockIsPlaced: block.isPlaced,
       blockIsFalling: block.isFalling,
       blockPosition: { x: block.position.x, y: block.position.y },
@@ -71,17 +63,14 @@ export class Tower {
    * @param {Block} block
    */
   removeBlock(block) {
-    const index = this.blocks.indexOf(block);
-    if (index > -1) {
-      this.blocks.splice(index, 1);
-    }
+    this.blocks.remove(block);
   }
 
   /**
    * 모든 블록 제거
    */
   clear() {
-    this.blocks = [];
+    this.blocks.clear();
     this.hasToppled = false;
     this.isStable = true;
   }
@@ -91,7 +80,9 @@ export class Tower {
    * @returns {number}
    */
   getHeight() {
-    if (this.blocks.length === 0) return 0;
+    if (this.blocks.isEmpty()) {
+      return 0;
+    }
 
     let minY = Infinity;
     let maxY = -Infinity;
@@ -110,7 +101,7 @@ export class Tower {
    * @returns {number}
    */
   getTopY() {
-    if (this.blocks.length === 0) {
+    if (this.blocks.isEmpty()) {
       // 블록이 없으면 베이스 상단 Y 좌표 반환 (베이스 높이 30)
       return this.basePosition.y - 30;
     }
@@ -129,7 +120,9 @@ export class Tower {
    * @returns {number}
    */
   getBottomY() {
-    if (this.blocks.length === 0) return this.basePosition.y;
+    if (this.blocks.isEmpty()) {
+      return this.basePosition.y;
+    }
 
     let minY = Infinity;
     this.blocks.forEach(block => {
@@ -150,7 +143,6 @@ export class Tower {
     let allStable = true;
 
     this.blocks.forEach(block => {
-      // 각 블록의 안정성 확인
       const supportBounds = BalanceUtil.getDefaultSupportBounds(block);
       const result = BalanceUtil.evaluate(block, { supportBounds });
 
@@ -162,7 +154,6 @@ export class Tower {
 
     this.isStable = allStable;
     
-    // 하나라도 무너지면 타워 전체가 무너진 것으로 간주
     if (toppledBlocks.length > 0) {
       this.hasToppled = true;
     }
@@ -186,7 +177,7 @@ export class Tower {
    * @returns {number}
    */
   getBlockCount() {
-    return this.blocks.length;
+    return this.blocks.count();
   }
 
   /**
@@ -194,7 +185,7 @@ export class Tower {
    * @returns {Vector}
    */
   getCenter() {
-    if (this.blocks.length === 0) {
+    if (this.blocks.isEmpty()) {
       return new Vector(this.basePosition.x, this.basePosition.y);
     }
 

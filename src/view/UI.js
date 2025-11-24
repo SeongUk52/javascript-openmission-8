@@ -71,7 +71,8 @@ export class UI {
     this.ctx.fillStyle = this.textColor;
     this.ctx.font = `24px ${this.fontFamily}`;
     this.ctx.textAlign = 'center';
-    this.ctx.fillText(`최종 점수: ${gameState.score.toLocaleString()}`, centerX, centerY - 20);
+    const scoreValue = gameState.score instanceof Object && gameState.score.getValue ? gameState.score.getValue() : gameState.score;
+    this.ctx.fillText(`최종 점수: ${scoreValue.toLocaleString()}`, centerX, centerY - 20);
     this.ctx.restore();
 
     // 재시작 안내

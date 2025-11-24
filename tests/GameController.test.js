@@ -100,7 +100,7 @@ describe('GameController', () => {
       controller.placeBlock();
 
       expect(controller.tower.getBlockCount()).toBe(1);
-      expect(controller.tower.blocks[0]).toBe(block);
+      expect(controller.tower.blocks.getAll()[0]).toBe(block);
       expect(controller.currentBlock).not.toBe(block);
       // isPlaced는 사용하지 않으므로 _getPlacedBlocks로 확인
       const placedBlocks = controller._getPlacedBlocks();

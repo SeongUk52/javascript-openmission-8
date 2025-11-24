@@ -53,7 +53,7 @@ describe('GameController - Block Management', () => {
     // isPlaced는 사용하지 않으므로 _getPlacedBlocks로 확인
     const placedBlocks = gameController._getPlacedBlocks();
     expect(placedBlocks).toContain(firstBlock);
-    expect(gameController.tower.blocks[0].isFalling).toBe(false);
+    expect(gameController.tower.blocks.getAll()[0].isFalling).toBe(false);
   });
 
   test('블록 2개를 타워에 추가할 수 있어야 함', () => {
@@ -93,12 +93,12 @@ describe('GameController - Block Management', () => {
     }
     
     expect(gameController.tower.getBlockCount()).toBe(2);
-    expect(gameController.tower.blocks[0]).toBe(firstBlock);
-    expect(gameController.tower.blocks[1]).toBe(secondBlock);
+    expect(gameController.tower.blocks.getAll()[0]).toBe(firstBlock);
+    expect(gameController.tower.blocks.getAll()[1]).toBe(secondBlock);
     // isPlaced는 사용하지 않으므로 _getPlacedBlocks로 확인
     const placedBlocks = gameController._getPlacedBlocks();
-    expect(placedBlocks).toContain(gameController.tower.blocks[0]);
-    expect(placedBlocks).toContain(gameController.tower.blocks[1]);
+    expect(placedBlocks).toContain(gameController.tower.blocks.getAll()[0]);
+    expect(placedBlocks).toContain(gameController.tower.blocks.getAll()[1]);
   });
 
   test('블록 3개를 타워에 추가할 수 있어야 함', () => {
@@ -133,9 +133,9 @@ describe('GameController - Block Management', () => {
     }
     
     expect(gameController.tower.getBlockCount()).toBe(3);
-    expect(gameController.tower.blocks[0]).toBe(firstBlock);
-    expect(gameController.tower.blocks[1]).toBe(secondBlock);
-    expect(gameController.tower.blocks[2]).toBe(thirdBlock);
+    expect(gameController.tower.blocks.getAll()[0]).toBe(firstBlock);
+    expect(gameController.tower.blocks.getAll()[1]).toBe(secondBlock);
+    expect(gameController.tower.blocks.getAll()[2]).toBe(thirdBlock);
   });
 
   test('블록이 베이스에 닿으면 자동으로 고정되어야 함', () => {
@@ -199,8 +199,8 @@ describe('GameController - Block Management', () => {
     
     // 타워에 두 블록이 모두 있어야 함
     expect(gameController.tower.getBlockCount()).toBe(2);
-    expect(gameController.tower.blocks[0].id).toBe(firstBlockId);
-    expect(gameController.tower.blocks[1].id).toBe(secondBlock.id);
+    expect(gameController.tower.blocks.getAll()[0].id).toBe(firstBlockId);
+    expect(gameController.tower.blocks.getAll()[1].id).toBe(secondBlock.id);
   });
 });
 

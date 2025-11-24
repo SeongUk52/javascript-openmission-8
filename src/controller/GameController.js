@@ -9,6 +9,7 @@ import { BlockState } from '../domain/BlockState.js';
 import { GameLoopState } from '../domain/GameLoopState.js';
 import { GameCallbacks } from '../domain/GameCallbacks.js';
 import { Tower } from '../domain/Tower.js';
+import { TowerHeight } from '../domain/TowerHeight.js';
 
 /**
  * 게임 컨트롤러
@@ -57,7 +58,7 @@ export class GameController {
     this.blockState = new BlockState(null, new Set(), baseX, 1, 500, 0);
 
     // 게임 루프 상태 (애니메이션 프레임, 시간, 통계, 쿨타임)
-    this.gameLoopState = new GameLoopState(null, 0, 0, 0, 1000, 0);
+    this.gameLoopState = new GameLoopState(null, 0, 0, new TowerHeight(0), 1000, 0);
 
     // 이벤트 콜백
     this.callbacks = new GameCallbacks(null, null, null);
@@ -164,8 +165,12 @@ export class GameController {
       configurable: true
     });
     Object.defineProperty(this, 'maxTowerHeight', {
-      get: () => this.gameLoopState.maxTowerHeight,
-      set: (value) => { this.gameLoopState.maxTowerHeight = value; },
+      get: () => this.gameLoopState.maxTowerHeight.getValue(),
+      set: (value) => { 
+        this.gameLoopState.maxTowerHeight = value instanceof TowerHeight 
+          ? value 
+          : new TowerHeight(value); 
+      },
       enumerable: true,
       configurable: true
     });
@@ -340,7 +345,7 @@ export class GameController {
     this.gameState.start();
     // 물리 엔진의 배치된 블록들은 게임 재시작 시 자동으로 제거됨
     this.consecutivePlacements = 0;
-    this.maxTowerHeight = 0; // 최대 높이 초기화
+    this.maxTowerHeight = new TowerHeight(0); // 최대 높이 초기화
     this.nextBlockX = this.canvasWidth / 2;
     this.blockMoveDirection = 1; // 오른쪽으로 시작
     this.blockMoveTime = 0;
@@ -701,15 +706,16 @@ export class GameController {
   _updateMaxHeightAndScore() {
     // 현재 타워 높이 계산 (좌표값 기반)
     const currentHeight = this._calculateCurrentTowerHeight();
+    const currentTowerHeight = new TowerHeight(currentHeight);
     
     // 최대 높이 업데이트 (현재 높이가 최대 높이보다 크면 업데이트)
-    if (currentHeight > this.maxTowerHeight) {
-      this.maxTowerHeight = currentHeight;
+    if (currentTowerHeight.isGreaterThan(this.gameLoopState.maxTowerHeight)) {
+      this.gameLoopState.maxTowerHeight = currentTowerHeight.copy();
     }
     
     // 점수 = 최대 높이 / 블록 높이 (블록 높이 1개 = 1점)
     // 좌표값 차이를 블록 높이로 나눠서 점수 계산
-    const score = Math.floor(this.maxTowerHeight / this.blockHeight);
+    const score = Math.floor(this.gameLoopState.maxTowerHeight.getValue() / this.blockHeight);
 
     // 점수 계산 완료 (디버깅 로그 제거)
 
@@ -717,7 +723,7 @@ export class GameController {
     this.gameState.setScore(score);
 
     if (this.onScoreChanged) {
-      this.onScoreChanged(this.gameState.score);
+      this.onScoreChanged(this.gameState.score.getValue());
     }
   }
 
@@ -1005,6 +1011,8 @@ export class GameController {
       physicsBodies: this.physicsService.bodies,
       basePosition: this.basePosition,
       baseWidth: this.baseWidth,
+      score: this.gameState.score.getValue(),
+      highScore: this.gameState.highScore.getValue(),
       placeCooldown: {
         remaining: cooldownRemaining,
         progress: cooldownProgress,
