@@ -384,6 +384,9 @@ export class GameController {
     baseBlock.velocity.y = 0;
     baseBlock.angularVelocity = 0;
     
+    // 베이스 위치를 저장하여 매 프레임마다 고정
+    baseBlock._originalPosition = new Vector(baseX, baseY);
+    
     this.physicsService.addBody(baseBlock);
     
     // 베이스 위치 재확인 (물리 엔진에 추가된 후에도 위치 유지)

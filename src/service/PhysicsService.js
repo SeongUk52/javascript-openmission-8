@@ -86,6 +86,18 @@ export class PhysicsService {
     this.bodies.forEach(body => {
       if (!body.isStatic) {
         body.update(deltaTime);
+      } else {
+        // 정적 객체는 위치와 속도를 강제로 고정 (베이스 위치 보장)
+        // 베이스가 좌상단으로 이동하는 문제 방지
+        if (body._originalPosition) {
+          // 원래 위치로 강제 복원
+          body.position.x = body._originalPosition.x;
+          body.position.y = body._originalPosition.y;
+        }
+        // 정적 객체의 속도는 항상 0
+        body.velocity.x = 0;
+        body.velocity.y = 0;
+        body.angularVelocity = 0;
       }
     });
 
