@@ -1,19 +1,11 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "echo 'No build needed'",
+  "outputDirectory": "web",
+  "rewrites": [
     {
-      "src": "web/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/web/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/web/index.html"
+      "source": "/(.*)",
+      "destination": "/$1"
     }
   ],
   "headers": [
