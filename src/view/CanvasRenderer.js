@@ -186,10 +186,10 @@ export class CanvasRenderer {
     this.ctx.setLineDash([5, 5]);
     
     this.ctx.strokeRect(
-      aabb.min.x,
-      aabb.min.y,
-      aabb.max.x - aabb.min.x,
-      aabb.max.y - aabb.min.y
+      body.getAABBMinX(),
+      body.getAABBMinY(),
+      body.getAABBMaxX() - body.getAABBMinX(),
+      body.getAABBMaxY() - body.getAABBMinY()
     );
     
     this.ctx.setLineDash([]);

@@ -63,9 +63,9 @@ export class CollisionUtil {
     
     if (isStaticCollision && overlapY > 0) {
       // 정적 객체와 충돌 시 Y축 방향을 우선시 (베이스 위에 쌓이도록)
-      const centerA = bodyA.getCenterOfMass();
-      const centerB = bodyB.getCenterOfMass();
-      const normalY = centerA.y < centerB.y ? 1 : -1;
+      const centerAY = bodyA.getCenterOfMassY();
+      const centerBY = bodyB.getCenterOfMassY();
+      const normalY = centerAY < centerBY ? 1 : -1;
       const normal = new Vector(0, normalY);
       return new CollisionManifold(true, normal, overlapY);
     }
@@ -73,18 +73,18 @@ export class CollisionUtil {
     if (overlapX < overlapY) {
       // X축 방향 penetration이 더 작음 → X축 방향 normal
       // normal 방향: bodyA의 중심에서 bodyB의 중심으로 향하는 방향
-      const centerA = bodyA.getCenterOfMass();
-      const centerB = bodyB.getCenterOfMass();
-      const normalX = centerA.x < centerB.x ? 1 : -1;
+      const centerAX = bodyA.getCenterOfMassX();
+      const centerBX = bodyB.getCenterOfMassX();
+      const normalX = centerAX < centerBX ? 1 : -1;
       const normal = new Vector(normalX, 0);
       return new CollisionManifold(true, normal, overlapX);
     }
 
     // Y축 방향 penetration이 더 작음 → Y축 방향 normal
     // normal 방향: bodyA의 중심에서 bodyB의 중심으로 향하는 방향
-    const centerA = bodyA.getCenterOfMass();
-    const centerB = bodyB.getCenterOfMass();
-    const normalY = centerA.y < centerB.y ? 1 : -1;
+    const centerAY = bodyA.getCenterOfMassY();
+    const centerBY = bodyB.getCenterOfMassY();
+    const normalY = centerAY < centerBY ? 1 : -1;
     const normal = new Vector(0, normalY);
     return new CollisionManifold(true, normal, overlapY);
   }

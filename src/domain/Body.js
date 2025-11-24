@@ -517,6 +517,60 @@ export class Body {
   }
 
   /**
+   * AABB의 최소 X 좌표
+   * @returns {number}
+   */
+  getAABBMinX() {
+    const aabb = this.getAABB();
+    return aabb.min.x;
+  }
+
+  /**
+   * AABB의 최소 Y 좌표
+   * @returns {number}
+   */
+  getAABBMinY() {
+    const aabb = this.getAABB();
+    return aabb.min.y;
+  }
+
+  /**
+   * AABB의 최대 X 좌표
+   * @returns {number}
+   */
+  getAABBMaxX() {
+    const aabb = this.getAABB();
+    return aabb.max.x;
+  }
+
+  /**
+   * AABB의 최대 Y 좌표
+   * @returns {number}
+   */
+  getAABBMaxY() {
+    const aabb = this.getAABB();
+    return aabb.max.y;
+  }
+
+  /**
+   * 무게 중심의 X 좌표
+   * @returns {number}
+   */
+  getCenterOfMassX() {
+    const center = this.getCenterOfMass();
+    return center.x;
+  }
+
+  /**
+   * 무게 중심의 Y 좌표
+   * @returns {number}
+   */
+  getCenterOfMassY() {
+    const center = this.getCenterOfMass();
+    return center.y;
+  }
+
+  /**
    * 객체 복사
    * @returns {Body} 새로운 Body 인스턴스
    */

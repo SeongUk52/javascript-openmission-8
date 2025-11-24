@@ -10,10 +10,9 @@ export class BalanceUtil {
    * @returns {{min: Vector, max: Vector}}
    */
   static getDefaultSupportBounds(body) {
-    const aabb = body.getAABB();
     return {
-      min: new Vector(aabb.min.x, aabb.min.y),
-      max: new Vector(aabb.max.x, aabb.min.y),
+      min: new Vector(body.getAABBMinX(), body.getAABBMinY()),
+      max: new Vector(body.getAABBMaxX(), body.getAABBMinY()),
     };
   }
 
@@ -33,7 +32,7 @@ export class BalanceUtil {
     const rotationTolerance = angleFactor * body.width * 0.3; // 회전에 따른 추가 tolerance
     const defaultTolerance = baseTolerance + rotationTolerance;
     const tolerance = options.tolerance ?? defaultTolerance;
-    const com = body.getCenterOfMass();
+    const comX = body.getCenterOfMassX();
 
     const rawLeft = Math.min(supportBounds.min.x, supportBounds.max.x);
     const rawRight = Math.max(supportBounds.min.x, supportBounds.max.x);
@@ -48,17 +47,17 @@ export class BalanceUtil {
     
     // Box2D/Matter.js: 무게 중심이 지지 영역 내에 있고, 각도가 임계값 이하면 안정적
     // tolerance를 적용하여 조금만 벗어나도 안정적으로 유지
-    const stable = com.x >= left && com.x <= right && angleFactor < angleThreshold;
+    const stable = comX >= left && comX <= right && angleFactor < angleThreshold;
     let offset = 0;
 
     if (!stable) {
       // Box2D/Matter.js: offset은 무게 중심이 지지 영역 밖으로 벗어난 거리
       // tolerance를 고려한 실제 벗어난 거리 계산
-      if (com.x < rawLeft) {
-        offset = com.x - rawLeft; // tolerance를 제외한 실제 벗어난 거리
+      if (comX < rawLeft) {
+        offset = comX - rawLeft; // tolerance를 제외한 실제 벗어난 거리
       }
-      if (com.x > rawRight) {
-        offset = com.x - rawRight; // tolerance를 제외한 실제 벗어난 거리
+      if (comX > rawRight) {
+        offset = comX - rawRight; // tolerance를 제외한 실제 벗어난 거리
       }
       
       // 블록이 기울어져 있으면 offset 증가 (더 쉽게 무너짐)
@@ -70,7 +69,7 @@ export class BalanceUtil {
     return {
       stable,
       offset,
-      centerOfMass: com,
+      centerOfMass: body.getCenterOfMass(),
       supportBounds,
     };
   }
