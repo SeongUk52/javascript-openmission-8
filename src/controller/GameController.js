@@ -10,6 +10,11 @@ import { GameLoopState } from '../domain/GameLoopState.js';
 import { GameCallbacks } from '../domain/GameCallbacks.js';
 import { Tower } from '../domain/Tower.js';
 import { TowerHeight } from '../domain/TowerHeight.js';
+import { CameraState } from '../domain/CameraState.js';
+
+const BASE_HEIGHT = 30;
+const DEFAULT_SPAWN_Y = 200;
+const CAMERA_THRESHOLD_MULTIPLIER = 4.0; // 카메라가 움직이기 시작하는 임계값 (블록 높이의 4배만큼 쌓여야 움직임)
 
 /**
  * 게임 컨트롤러
@@ -59,6 +64,16 @@ export class GameController {
 
     // 게임 루프 상태 (애니메이션 프레임, 시간, 통계, 쿨타임)
     this.gameLoopState = new GameLoopState(null, 0, 0, new TowerHeight(0), 1000, 0);
+
+    const baseTopY = basePosition.y - BASE_HEIGHT;
+    const spawnGap = baseTopY - DEFAULT_SPAWN_Y;
+    this.cameraState = new CameraState({
+      offsetY: 0,
+      targetOffsetY: 0,
+      followSpeed: 6,
+      verticalGap: spawnGap,
+      followThreshold: this.gameConfig.blockHeight * CAMERA_THRESHOLD_MULTIPLIER,
+    });
 
     // 이벤트 콜백
     this.callbacks = new GameCallbacks(null, null, null);
@@ -183,6 +198,12 @@ export class GameController {
     Object.defineProperty(this, 'lastPlaceTime', {
       get: () => this.gameLoopState.lastPlaceTime,
       set: (value) => { this.gameLoopState.lastPlaceTime = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'cameraOffsetY', {
+      get: () => this.cameraState.offsetY,
+      set: (value) => { this.cameraState.offsetY = value; },
       enumerable: true,
       configurable: true
     });
@@ -358,11 +379,14 @@ export class GameController {
     
     // PhysicsService 초기화 (이전 게임의 body 제거)
     this.physicsService.clearBodies();
+
+    this.cameraState.offsetY = 0;
+    this.cameraState.targetOffsetY = 0;
     
     // 타워 베이스 추가 (고정된 바닥)
     // 베이스의 중심 위치 계산: basePosition.y는 베이스의 하단이므로
     // 베이스의 중심 Y = basePosition.y - height/2
-    const baseHeight = 30; // 베이스 높이 증가
+    const baseHeight = BASE_HEIGHT; // 베이스 높이 증가
     const baseCenterY = this.basePosition.y - baseHeight / 2;
     const baseBlock = new Block({
       position: new Vector(this.basePosition.x, baseCenterY),
@@ -439,9 +463,7 @@ export class GameController {
       return;
     }
 
-    // 블록 생성 위치: 화면 상단 (일관된 위치)
-    // placeBlock()에서 떨어질 위치를 설정하므로, 여기서는 표시용 위치만 설정
-    const spawnY = 200; // 화면 상단에서 200픽셀 아래 (placeBlock과 동일한 위치)
+    const spawnY = this._calculateSpawnY();
     
     // 블록의 X 위치를 베이스 범위 내로 제한
     const baseLeft = this.basePosition.x - this.baseWidth / 2;
@@ -562,13 +584,7 @@ export class GameController {
     // 블록이 타워 위에 떨어지도록 위치 설정
     // 블록을 타워 위에 배치하는 것이 아니라, 블록이 떨어져서 타워에 닿도록 함
     // 따라서 블록의 초기 위치는 타워 위쪽에 설정
-    const blockHeight = blockToPlace.height;
-    const blockCount = this._getPlacedBlocks().length;
-    let spawnY;
-    
-    // 모든 블록은 화면 상단 근처에서 떨어지도록 설정 (일관된 위치)
-    // 첫 번째 블록과 이후 블록 모두 같은 높이에서 시작
-    spawnY = 200; // 화면 상단에서 200픽셀 아래 (일관된 위치)
+    const spawnY = this._calculateSpawnY();
     
     // 블록의 X 위치를 베이스 범위 내로 제한
     const baseLeft = this.basePosition.x - this.baseWidth / 2;
@@ -623,6 +639,7 @@ export class GameController {
 
     // 블록 상태만 변경 (위치는 물리 엔진이 자연스럽게 처리)
     block.place(); // isPlaced = true, isFalling = false
+    this._stabilizePlacedBlock(block);
     
     // 타워에 블록 추가 (테스트 호환성)
     this.tower.addBlock(block);
@@ -645,7 +662,6 @@ export class GameController {
       this.currentBlock = null;
     }
     
-    // currentBlock이 null이면 다음 블록 생성 (placeBlock에서 생성하지 못한 경우를 대비)
     if (!this.currentBlock) {
       this._spawnNextBlock();
     }
@@ -664,6 +680,52 @@ export class GameController {
     }
   }
 
+  _stabilizePlacedBlock(block) {
+    if (!block) {
+      return;
+    }
+
+    block.velocity.x = 0;
+    block.velocity.y = 0;
+
+    if (Math.abs(block.angularVelocity) < 0.5) {
+      block.angularVelocity = 0;
+    } else {
+      block.angularVelocity *= 0.4;
+    }
+
+    const angle = block.angle || 0;
+    const halfPi = Math.PI / 2;
+    const angleMod = Math.abs(angle) % halfPi;
+    const snapThreshold = 0.2;
+    const distanceToAxis = Math.min(angleMod, halfPi - angleMod);
+    if (distanceToAxis < snapThreshold) {
+      const nearestAngle = Math.round(angle / halfPi) * halfPi;
+      block.angle = nearestAngle;
+    }
+  }
+
+  _getHighestBlockTopY() {
+    const placedBlocks = this._getPlacedBlocks();
+    if (placedBlocks.length === 0) {
+      return this.basePosition.y - BASE_HEIGHT;
+    }
+    
+    let minBlockTopY = Infinity;
+    placedBlocks.forEach(block => {
+      const blockTopY = block.position.y - block.height / 2;
+      minBlockTopY = Math.min(minBlockTopY, blockTopY);
+    });
+    
+    return Math.min(minBlockTopY, this.basePosition.y - BASE_HEIGHT);
+  }
+
+  _calculateSpawnY() {
+    // 스폰 위치는 항상 고정 (카메라 오프셋과 무관)
+    // 물리 좌표는 절대 변경하지 않음
+    return DEFAULT_SPAWN_Y;
+  }
+
   /**
    * 현재 타워 높이 계산 (좌표값 기반)
    * 가장 높은 블록의 상단 Y 좌표를 기준으로 계산
@@ -679,7 +741,7 @@ export class GameController {
     }
     
     // 베이스 상단 Y 좌표 (베이스 높이 30)
-    const baseTopY = this.basePosition.y - 30;
+    const baseTopY = this.basePosition.y - BASE_HEIGHT;
     
     // 가장 높은 블록의 상단 Y 좌표 찾기
     // Y 좌표는 아래로 갈수록 커지므로, 가장 높은 블록은 Y 좌표가 가장 작은 블록
@@ -773,12 +835,7 @@ export class GameController {
       return;
     }
 
-    // 베이스 범위 내로 제한
-    const baseLeft = this.basePosition.x - this.baseWidth / 2;
-    const baseRight = this.basePosition.x + this.baseWidth / 2;
-    const blockHalfWidth = this.blockWidth / 2;
-    const minX = baseLeft + blockHalfWidth;
-    const maxX = baseRight - blockHalfWidth;
+    const { min, max } = this._getBlockXBounds();
 
     // 시간 업데이트
     this.blockMoveTime += deltaTime;
@@ -786,21 +843,53 @@ export class GameController {
     // 위치 업데이트
     this.nextBlockX += this.blockMoveDirection * this.blockMoveSpeed * deltaTime;
 
-    // 경계에 닿으면 방향 전환
-    if (this.nextBlockX >= maxX) {
-      this.nextBlockX = maxX;
+    if (this.nextBlockX >= max) {
+      this.nextBlockX = max;
       this.blockMoveDirection = -1; // 왼쪽으로
       return;
     }
-    if (this.nextBlockX <= minX) {
-      this.nextBlockX = minX;
+    if (this.nextBlockX <= min) {
+      this.nextBlockX = min;
       this.blockMoveDirection = 1; // 오른쪽으로
     }
 
     // 현재 블록 위치 업데이트 (떨어지지 않은 블록만)
     if (this.currentBlock && !this.currentBlock.isFalling && !this.physicsService.bodies.includes(this.currentBlock)) {
       this.currentBlock.position.x = this.nextBlockX;
+      this.currentBlock.position.y = this._calculateSpawnY();
     }
+  }
+
+  _getBlockXBounds() {
+    const baseLeft = this.basePosition.x - this.baseWidth / 2;
+    const baseRight = this.basePosition.x + this.baseWidth / 2;
+    const blockHalfWidth = this.blockWidth / 2;
+    return {
+      min: baseLeft + blockHalfWidth,
+      max: baseRight - blockHalfWidth,
+    };
+  }
+
+  _clampNextBlockX(nextX) {
+    const { min, max } = this._getBlockXBounds();
+    return Math.max(min, Math.min(max, nextX));
+  }
+
+  _updateCamera() {
+    this.cameraState.offsetY = 0;
+    this.cameraState.targetOffsetY = 0;
+  }
+  _updateCamera(deltaTime) {
+    // 카메라 오프셋 계산 (물리 좌표는 절대 변경하지 않음)
+    const baseTopY = this.basePosition.y - BASE_HEIGHT;
+    const highestTopY = this._getHighestBlockTopY();
+    const heightAboveBase = Math.max(0, baseTopY - highestTopY);
+    const visibleThreshold =
+      this.cameraState.followThreshold || this.gameConfig.blockHeight * CAMERA_THRESHOLD_MULTIPLIER;
+    const desiredOffset = Math.max(0, heightAboveBase - visibleThreshold);
+    this.cameraState.targetOffsetY = desiredOffset;
+    const lerpFactor = Math.min(1, this.cameraState.followSpeed * deltaTime);
+    this.cameraState.offsetY += (this.cameraState.targetOffsetY - this.cameraState.offsetY) * lerpFactor;
   }
 
   /**
@@ -900,6 +989,8 @@ export class GameController {
 
     // 점수 계산은 블록이 배치되고 안정화된 후에만 수행 (_fixBlockToTower에서 처리)
     // 매 프레임마다 계산하지 않음
+
+    this._updateCamera(deltaTime);
 
     // 현재 블록이 타워에 닿았는지 확인 (자동 배치)
     // 주의: 자동 배치는 블록이 충분히 안정적으로 타워 위에 있을 때만 실행
@@ -1011,6 +1102,7 @@ export class GameController {
       physicsBodies: this.physicsService.bodies,
       basePosition: this.basePosition,
       baseWidth: this.baseWidth,
+      cameraOffsetY: this.cameraState.offsetY,
       score: this.gameState.score.getValue(),
       highScore: this.gameState.highScore.getValue(),
       placeCooldown: {
@@ -1057,7 +1149,7 @@ export class GameController {
 
     // 블록이 없으면 베이스 상단 Y 좌표 반환 (베이스 높이 30)
     if (maxBlockBottomY === -Infinity) {
-      return this.basePosition.y - 30;
+      return this.basePosition.y - BASE_HEIGHT;
     }
 
     return maxBlockBottomY;
@@ -1142,7 +1234,7 @@ export class GameController {
       return false;
     }
 
-    const baseTopY = this.basePosition.y - 30;
+    const baseTopY = this.basePosition.y - BASE_HEIGHT;
     const minBlockTopY = this._calculateMinBlockTopY(baseTopY, placedBlocks);
     const blockBottom = block.getAABBMaxY();
     const distanceToTop = blockBottom - minBlockTopY;

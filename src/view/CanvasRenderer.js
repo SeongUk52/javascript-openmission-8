@@ -328,6 +328,12 @@ export class CanvasRenderer {
     // 그리드 그리기
     this._drawGrid();
 
+    // 카메라 오프셋 적용 (뷰만 움직임, 물리 좌표는 절대 변경하지 않음)
+    const cameraOffsetY = gameState.cameraOffsetY || 0;
+    this.ctx.save();
+    // Canvas 좌표계: Y축은 아래로 증가하므로, 카메라를 위로 올리려면 화면을 아래로 내려야 함 (translate 양수)
+    this.ctx.translate(0, cameraOffsetY);
+
     // 타워 베이스 그리기 (항상)
     if (gameState.basePosition && gameState.baseWidth) {
       this.drawTowerBase({
@@ -350,6 +356,7 @@ export class CanvasRenderer {
       const block = gameState.currentBlock;
       const blockAABB = block.getAABB();
       if (!blockAABB || !blockAABB.min || !blockAABB.max) {
+        this.ctx.restore();
         return; // AABB가 없으면 렌더링하지 않음
       }
       
@@ -361,6 +368,7 @@ export class CanvasRenderer {
         !isNaN(blockAABB.max.x) && !isNaN(blockAABB.max.y);
       
       if (!isValidPosition) {
+        this.ctx.restore();
         return; // 유효하지 않은 위치면 렌더링하지 않음
       }
       
@@ -386,6 +394,8 @@ export class CanvasRenderer {
         this.drawBodies(otherBodies);
       }
     }
+
+    this.ctx.restore();
   }
 }
 

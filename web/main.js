@@ -122,28 +122,7 @@ class GameApp {
       this.controller.handleClick(x, y);
     });
 
-    // 좌우 이동을 위한 터치 드래그
-    let touchStartX = 0;
-    this.gameCanvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const rect = this.gameCanvas.getBoundingClientRect();
-      const currentX = touch.clientX - rect.left;
-      
-      if (touchStartX === 0) {
-        touchStartX = currentX;
-      } else {
-        const deltaX = currentX - touchStartX;
-        if (Math.abs(deltaX) > 10) {
-          this.controller.moveNextBlock(deltaX > 0 ? 1 : -1);
-          touchStartX = currentX;
-        }
-      }
-    });
-
-    this.gameCanvas.addEventListener('touchend', () => {
-      touchStartX = 0;
-    });
+    // 좌우 이동 제스처는 지원하지 않음 (자동 이동만 허용)
   }
 
   /**

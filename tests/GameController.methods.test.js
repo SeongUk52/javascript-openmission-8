@@ -325,6 +325,27 @@ describe('GameController - All Methods Test', () => {
       expect(block.position.x).toBeGreaterThanOrEqual(baseLeft + blockHalfWidth);
       expect(block.position.x).toBeLessThanOrEqual(baseRight - blockHalfWidth);
     });
+
+    test('타워가 높아지면 스폰 Y가 더 위로 이동', () => {
+      controller.start();
+      const initialY = controller.currentBlock.position.y;
+
+      const placedBlock = new Block({
+        position: new Vector(controller.basePosition.x, 400),
+        width: blockWidth,
+        height: blockHeight,
+      });
+      placedBlock.isPlaced = true;
+      placedBlock.isFalling = false;
+      placedBlock.isStatic = false;
+      controller.physicsService.addBody(placedBlock);
+
+      controller.currentBlock = null;
+      controller._spawnNextBlock();
+
+      const newY = controller.currentBlock.position.y;
+      expect(newY).toBeLessThan(initialY);
+    });
   });
 
   describe('placeBlock()', () => {
@@ -516,6 +537,15 @@ describe('GameController - All Methods Test', () => {
         expect(block1.isStatic).toBe(false);
         expect(block2.isStatic).toBe(false);
       }
+    });
+  });
+
+  describe('getGameState()', () => {
+    test('cameraOffsetY를 포함한다', () => {
+      controller.start();
+      controller.cameraOffsetY = 120;
+      const state = controller.getGameState();
+      expect(state.cameraOffsetY).toBe(120);
     });
   });
 });
