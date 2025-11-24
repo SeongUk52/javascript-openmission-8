@@ -1,7 +1,7 @@
 # javascript-openmission-8
 우아한테크코스(Woowa Tech Course) 웹 프론트엔드 8기 오픈 미션: 프리코스 챌린지
 
-## 🎮 [게임 플레이하기](https://jovial-gumdrop-b6dde3.netlify.app/)
+## 🎮 [게임 플레이하기](https://blockstacking-game.netlify.app/)
 
 ## 🎯 미션: 물리엔진 기반 타워 빌딩 게임
 
@@ -366,7 +366,7 @@ src/
 
 배포 후 아래 링크를 업데이트해주세요:
 
-🎮 **[게임 플레이하기](https://jovial-gumdrop-b6dde3.netlify.app/)**
+🎮 **[게임 플레이하기](https://blockstacking-game.netlify.app/)**
 
 > 💡 **빠른 배포 팁**: 
 > - Vercel: GitHub 저장소를 연결하면 자동으로 배포됩니다
