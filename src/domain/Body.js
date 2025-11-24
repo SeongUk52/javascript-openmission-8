@@ -99,7 +99,15 @@ export class Body {
     this.torque = this.bodyProperties.forceState.torque;
     this.friction = this.bodyProperties.materialProperties.friction;
     this.restitution = this.bodyProperties.materialProperties.restitution;
-    // isStatic은 직접 속성으로 유지
+    
+    // isStatic 속성 직접 설정 (Object.defineProperty가 제대로 작동하지 않을 수 있으므로)
+    // 생성자에서 직접 속성으로 설정하고, 이후 변경 시 bodyProperties와 동기화
+    Object.defineProperty(this, 'isStatic', {
+      value: this.bodyProperties.isStatic,
+      writable: true,
+      enumerable: true,
+      configurable: true
+    });
   }
   
   /**
@@ -267,10 +275,21 @@ export class Body {
       configurable: true
     });
     
-    // isStatic 속성
+    // isStatic 속성은 생성자에서 직접 설정 (Object.defineProperty 대신)
+    // 이미 위에서 this.isStatic = this.bodyProperties.isStatic으로 설정했으므로
+    // 여기서는 setter만 추가하여 동기화 유지
     Object.defineProperty(this, 'isStatic', {
       get: () => this.bodyProperties.isStatic,
-      set: (value) => { this.bodyProperties.isStatic = value; },
+      set: (value) => { 
+        this.bodyProperties.isStatic = value;
+        // 직접 속성도 동기화
+        Object.defineProperty(this, 'isStatic', {
+          value: value,
+          writable: true,
+          enumerable: true,
+          configurable: true
+        });
+      },
       enumerable: true,
       configurable: true
     });
