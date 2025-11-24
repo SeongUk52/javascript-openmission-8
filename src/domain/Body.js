@@ -434,7 +434,9 @@ export class Body {
    * @returns {Vector} 무게 중심
    */
   getCenterOfMass() {
-    return this.localToWorld(this.center);
+    // Value Object에서 직접 가져와서 동기화 보장
+    const center = this.bodyProperties.size.center;
+    return this.localToWorld(center);
   }
 
   /**
@@ -442,9 +444,23 @@ export class Body {
    * @returns {Object} {min: Vector, max: Vector}
    */
   getAABB() {
+    // Value Object에서 직접 가져와서 동기화 보장
+    const width = this.bodyProperties.size.width;
+    const height = this.bodyProperties.size.height;
+    const position = this.physicsState.motionState.position;
+    const angle = this.physicsState.angularState.angle;
+    
+    // NaN 체크
+    if (isNaN(width) || isNaN(height) || width <= 0 || height <= 0) {
+      return {
+        min: new Vector(position.x - 1, position.y - 1),
+        max: new Vector(position.x + 1, position.y + 1)
+      };
+    }
+    
     // 회전을 고려한 AABB 계산 (간단한 버전)
-    const halfWidth = this.width / 2;
-    const halfHeight = this.height / 2;
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
     
     // 회전된 모서리들
     const corners = [
@@ -456,12 +472,12 @@ export class Body {
     
     // 회전 적용
     const rotatedCorners = corners.map(corner => {
-      return corner.copy().rotate(this.angle);
+      return corner.copy().rotate(angle);
     });
     
     // 월드 좌표로 변환
     const worldCorners = rotatedCorners.map(corner => {
-      return Vector.add(this.position, corner);
+      return Vector.add(position, corner);
     });
     
     // 최소/최대값 찾기
