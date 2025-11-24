@@ -56,32 +56,39 @@
 ### 계층 구조
 ```
 src/
-├── domain/              # 도메인 모델 (Model Layer)
-│   ├── Vector.js       # 2D 벡터 도메인 모델
-│   ├── Body.js         # 물리 객체 도메인 모델
-│   ├── Block.js        # 게임 블록 도메인 모델
-│   ├── Tower.js        # 타워 도메인 모델
-│   └── GameState.js    # 게임 상태 도메인 모델
+├── domain/                 # 도메인 모델 & Value Objects
+│   ├── Vector.js          # 2D 벡터
+│   ├── Body.js            # 기본 물리 Body
+│   ├── Block.js           # 게임 블록 (Body 확장)
+│   ├── Blocks.js          # 타워 블록 일급 컬렉션
+│   ├── Tower.js           # 타워 도메인 모델
+│   ├── Score.js           # 점수 Value Object
+│   ├── TowerHeight.js     # 타워 높이 Value Object
+│   ├── CollisionManifold.js
+│   ├── GameConfig.js
+│   ├── BlockState.js
+│   ├── GameLoopState.js
+│   ├── GameCallbacks.js
+│   └── GameState.js
 │
-├── service/             # 서비스 레이어 (Business Logic)
-│   ├── PhysicsService.js    # 물리 시뮬레이션 서비스
-│   ├── GravityService.js   # 중력 서비스
-│   └── ScoreService.js     # 점수 계산 서비스
+├── service/                # 서비스 레이어 (Business Logic)
+│   ├── PhysicsService.js   # 물리 시뮬레이션
+│   ├── GravityService.js   # 중력 적용
+│   └── ScoreService.js     # 점수 계산
 │
-├── util/                # 유틸리티 레이어
-│   ├── CollisionUtil.js    # 충돌 감지/해결 유틸
-│   ├── TorqueUtil.js       # 토크 계산 유틸
-│   └── BalanceUtil.js      # 균형 판정 유틸
+├── util/                   # 유틸리티 레이어
+│   ├── CollisionUtil.js
+│   ├── TorqueUtil.js
+│   └── BalanceUtil.js
 │
-├── controller/           # 컨트롤러 레이어 (Controller)
-│   └── GameController.js  # 게임 컨트롤러 (입력 처리, 게임 루프)
+├── controller/             # 컨트롤러 레이어
+│   └── GameController.js
 │
-├── view/                # 뷰 레이어 (View)
-│   ├── CanvasRenderer.js  # Canvas 렌더링
-│   ├── Animation.js       # 애니메이션 처리
-│   └── UI.js              # UI 요소 (점수, 버튼 등)
+├── view/                   # 뷰 레이어
+│   ├── CanvasRenderer.js
+│   └── UI.js
 │
-└── web/                 # 웹 진입점
+└── web/                    # 웹 진입점
     ├── index.html
     └── main.js
 ```
@@ -89,28 +96,29 @@ src/
 ### 레이어별 책임
 
 #### Domain Layer (도메인 모델)
-- **Vector**: 순수 데이터 구조, 벡터 연산
-- **Body**: 물리 객체의 상태와 기본 동작
-- **Block**: 게임 블록 도메인 모델 (Body 확장)
-- **Tower**: 타워 도메인 모델 (블록 컬렉션 관리)
-- **GameState**: 게임 상태 도메인 모델 (점수, 라운드, 게임 오버 등)
+- **Vector / Body / Block**: 기본 물리 개념을 표현
+- **Blocks / Tower**: 타워와 블록 컬렉션 관리
+- **Score / TowerHeight**: 점수·높이 Value Object
+- **GameConfig / BlockState / GameLoopState / GameCallbacks**: 게임 설정과 상태를 Value Object로 분리해 응집도 향상
+- **GameState**: 전체 게임 상태, 점수·최고 기록 등 관리
+- **CollisionManifold**: 충돌 처리 데이터 캡슐화
 
 #### Service Layer (서비스)
-- **PhysicsService**: 물리 시뮬레이션의 비즈니스 로직
-- **GravityService**: 중력 시스템 관리
-- **ScoreService**: 점수 계산 및 관리 비즈니스 로직
+- **PhysicsService**: 모든 물리 업데이트와 충돌 해결
+- **GravityService**: 중력 관련 파라미터/적용 관리
+- **ScoreService**: 점수 규칙 및 누적 로직
 
 #### Util Layer (유틸리티)
-- **CollisionUtil**: 순수 함수 형태의 충돌 계산
-- **TorqueUtil**: 토크 계산 유틸리티
-- **BalanceUtil**: 균형 판정 유틸리티
+- **CollisionUtil**: AABB 계산, 임펄스, 위치 보정
+- **TorqueUtil**: 토크/각가속도 계산
+- **BalanceUtil**: 지지 영역 기반 안정성 판단
 
 #### Controller Layer (컨트롤러)
-- **GameController**: 사용자 입력 처리, 게임 루프 관리, 서비스 조율
+- **GameController**: 입력, 게임 루프, 서비스/도메인 orchestrator
 
 #### View Layer (뷰)
-- **CanvasRenderer**: 물리 상태를 시각화
-- **UI**: 사용자 인터페이스
+- **CanvasRenderer**: 물리 상태 캔버스 렌더링
+- **UI**: 점수, 버튼 등 UI 컴포넌트
 
 ### 핵심 원칙
 1. **레이어 분리**: 각 레이어는 명확한 책임을 가짐
