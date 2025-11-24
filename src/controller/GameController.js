@@ -55,8 +55,11 @@ export class GameController {
     // 떨어지는 중인 블록들 (여러 개 가능)
     this.fallingBlocks = new Set();
 
-    // 다음 블록 위치 (좌우 이동 가능)
+    // 다음 블록 위치 (자동으로 좌우 이동)
     this.nextBlockX = baseX;
+    this.blockMoveDirection = 1; // 1: 오른쪽, -1: 왼쪽
+    this.blockMoveSpeed = 50; // 픽셀/초
+    this.blockMoveTime = 0; // 이동 시간 추적
 
     // 게임 루프 관련
     this.animationFrameId = null;
@@ -237,6 +240,8 @@ export class GameController {
     // 물리 엔진의 배치된 블록들은 게임 재시작 시 자동으로 제거됨
     this.consecutivePlacements = 0;
     this.nextBlockX = this.canvasWidth / 2;
+    this.blockMoveDirection = 1; // 오른쪽으로 시작
+    this.blockMoveTime = 0;
     
     // PhysicsService 초기화 (이전 게임의 body 제거)
     this.physicsService.clearBodies();
@@ -622,29 +627,43 @@ export class GameController {
   }
 
   /**
-   * 다음 블록 위치 이동 (좌우)
-   * @param {number} direction - -1: 왼쪽, 1: 오른쪽
+   * 다음 블록 위치 자동 이동 (주기적으로 좌우로 움직임)
+   * @param {number} deltaTime - 경과 시간 (초)
+   * @private
    */
-  moveNextBlock(direction) {
+  _updateBlockPosition(deltaTime) {
     if (!this.currentBlock || !this.gameState.isPlaying || this.gameState.isPaused) {
       return;
     }
 
-    // 블록이 떨어지는 중이면 조작 불가 (다음 블록만 조작 가능)
+    // 블록이 떨어지는 중이면 이동하지 않음
     if (this.currentBlock.isFalling && this.physicsService.bodies.includes(this.currentBlock)) {
       return;
     }
-
-    const moveSpeed = 15; // 이동 속도 증가 (5 -> 15)
-    this.nextBlockX += direction * moveSpeed;
 
     // 베이스 범위 내로 제한
     const baseLeft = this.basePosition.x - this.baseWidth / 2;
     const baseRight = this.basePosition.x + this.baseWidth / 2;
     const blockHalfWidth = this.blockWidth / 2;
-    this.nextBlockX = Math.max(baseLeft + blockHalfWidth, Math.min(baseRight - blockHalfWidth, this.nextBlockX));
+    const minX = baseLeft + blockHalfWidth;
+    const maxX = baseRight - blockHalfWidth;
 
-    // 현재 블록 위치 업데이트 (떨어지지 않은 블록만 조작 가능)
+    // 시간 업데이트
+    this.blockMoveTime += deltaTime;
+
+    // 위치 업데이트
+    this.nextBlockX += this.blockMoveDirection * this.blockMoveSpeed * deltaTime;
+
+    // 경계에 닿으면 방향 전환
+    if (this.nextBlockX >= maxX) {
+      this.nextBlockX = maxX;
+      this.blockMoveDirection = -1; // 왼쪽으로
+    } else if (this.nextBlockX <= minX) {
+      this.nextBlockX = minX;
+      this.blockMoveDirection = 1; // 오른쪽으로
+    }
+
+    // 현재 블록 위치 업데이트 (떨어지지 않은 블록만)
     if (this.currentBlock && !this.currentBlock.isFalling && !this.physicsService.bodies.includes(this.currentBlock)) {
       this.currentBlock.position.x = this.nextBlockX;
     }
@@ -699,6 +718,9 @@ export class GameController {
     if (!this.gameState.isPlaying || this.gameState.isPaused) {
       return;
     }
+
+    // 블록 위치 자동 업데이트 (주기적으로 좌우로 움직임)
+    this._updateBlockPosition(deltaTime);
 
     // 물리 시뮬레이션 업데이트 (게임이 시작되었을 때만)
     // PhysicsService.update() 내부에서 checkBalance()가 호출되지만,
@@ -827,16 +849,6 @@ export class GameController {
     }
 
     switch (key) {
-      case 'ArrowLeft':
-      case 'a':
-      case 'A':
-        this.moveNextBlock(-1);
-        break;
-      case 'ArrowRight':
-      case 'd':
-      case 'D':
-        this.moveNextBlock(1);
-        break;
       case ' ':
       case 'Space':
         this.placeBlock();
