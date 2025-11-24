@@ -369,6 +369,10 @@ src/
 
 > 💡 **빠른 배포 팁**: 
 > - Vercel: GitHub 저장소를 연결하면 자동으로 배포됩니다
+>   - **중요**: Vercel 대시보드에서 Settings → Build & Development Settings 확인
+>   - Build Command: `npm run build` 또는 비워두기 (vercel.json 사용)
+>   - Output Directory: `dist`
+>   - Root Directory: 비워두기
 > - Netlify: `netlify.toml` 파일이 이미 설정되어 있어 드래그 앤 드롭으로도 배포 가능합니다
 > - GitHub Pages: `.github/workflows/deploy.yml` 파일이 있어 main 브랜치에 푸시하면 자동 배포됩니다
 
