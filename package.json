@@ -1,6 +1,6 @@
 {
   "name": "physics-tower-game",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "물리엔진 기반 타워 빌딩 웹 게임",
   "main": "src/index.js",
   "type": "module",
