@@ -106,7 +106,7 @@ export class GameController {
       // 블록이 베이스 또는 배치된 블록과 충돌
       // 중요: 떨어지는 블록이 타워 최상단에 닿았는지 확인
       // 가장 위에 있는 블록과만 충돌해야 함 (중간 블록과 충돌하면 안 됨)
-      const placedBlocks = this._getPlacedBlocks();
+      // placedBlocks는 이미 92번째 줄에서 선언되었으므로 재사용
       let shouldFix = false;
       
       if (baseBody) {
