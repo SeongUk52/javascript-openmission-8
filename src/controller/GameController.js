@@ -1069,8 +1069,9 @@ export class GameController {
     return this.physicsService.bodies.filter(body => {
       if (!(body instanceof Block)) return false;
       if (body.isStatic) return false; // 베이스 제외
-      // isPlaced가 true이거나, isFalling이 false이거나, velocity.y가 작으면 배치된 것으로 간주
-      return body.isPlaced || !body.isFalling || body.velocity.y < 50;
+      // isPlaced가 true인 블록만 배치된 것으로 간주 (명확한 조건)
+      // 물리 엔진에 추가되었고 isPlaced가 true인 블록만 반환
+      return body.isPlaced === true;
     });
   }
 
