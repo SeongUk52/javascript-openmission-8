@@ -210,8 +210,22 @@ export class PhysicsService {
       if (isInContact) {
         // 정적 객체(베이스)와 접촉 중이면 매우 강하게 감쇠
         if (isContactWithStatic) {
-          // 베이스와 접촉 중일 때는 각속도를 매우 강하게 감쇠
-          body.angularVelocity *= 0.4; // 60% 감쇠 (더 강하게)
+          // Box2D/Matter.js: 사각형 블록이 바닥에 닿았을 때 각도가 0도 근처면 회전을 멈춤
+          // 사각형 블록은 모서리가 바닥에 닿으면 회전이 멈춰야 함
+          const angle = Math.abs(body.angle || 0);
+          const angleMod = angle % (Math.PI / 2); // 90도 단위로 정규화
+          const normalizedAngle = Math.min(angleMod, Math.PI / 2 - angleMod); // 0~45도 범위로
+          
+          // 각도가 거의 0도이거나 90도 근처면 회전을 강제로 멈춤 (사각형 블록 특성)
+          if (normalizedAngle < 0.1) { // 약 5.7도 이내
+            body.angularVelocity = 0;
+            // 각도를 가장 가까운 0도 또는 90도로 정렬
+            const nearestAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
+            body.angle = nearestAngle;
+          } else {
+            // 베이스와 접촉 중일 때는 각속도를 매우 강하게 감쇠
+            body.angularVelocity *= 0.3; // 70% 감쇠 (더 강하게)
+          }
           
           // 속도도 마찰에 의해 매우 강하게 감쇠
           // Box2D/Matter.js 스타일: 접촉 중일 때 마찰이 매우 강하게 작용
