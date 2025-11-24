@@ -600,23 +600,21 @@ describe('GameController - Block Stacking', () => {
     const placedBlocks = controller._getPlacedBlocks();
     expect(placedBlocks.length).toBe(6, '6개의 블록이 타워에 있어야 함');
     expect(placedBlocks).toContain(sixthBlock);
-    expect(placedBlocks).toContain(sixthBlock);
     
     // 모든 블록이 배치되었는지 확인
     blocks.forEach(block => {
-    expect(placedBlocks).toContain(block);
       expect(placedBlocks).toContain(block);
     });
     
     // 6번째 블록이 다섯 번째 블록 위에 있어야 함
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
-    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(sixthBlock);
+    expect(placedBlocks).toContain(sixthBlock);
     
     // 모든 블록이 올바른 순서로 쌓였는지 확인
     blocks.push(sixthBlock);
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
     for (let i = 0; i < blocks.length; i++) {
-      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(blocks[i]);
+      expect(placedBlocks).toContain(blocks[i]);
     }
     
     // 블록 개수 재확인
