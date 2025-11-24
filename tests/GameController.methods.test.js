@@ -465,7 +465,6 @@ describe('GameController - All Methods Test', () => {
       const block2 = controller.currentBlock;
       controller.placeBlock();
       
-      const placedBlocks = controller._getPlacedBlocks();
       const towerTopY = controller._getTopY();
       block2.position.y = towerTopY + 0.1 + block2.height / 2;
       block2.position.x = block1.position.x + 30; // 약간 오른쪽으로

@@ -79,8 +79,8 @@ describe('GameController - Block Stacking Integration Test', () => {
 
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      const placedBlocks = controller._getPlacedBlocks();
-      if (placedBlocks.includes(firstBlock)) break;
+      const checkPlacedBlocks = controller._getPlacedBlocks();
+      if (checkPlacedBlocks.includes(firstBlock)) break;
     }
 
     expect(controller._getPlacedBlocks().length).toBe(1, '첫 번째 블록이 타워에 있어야 함');
