@@ -37,12 +37,24 @@ export class CollisionUtil {
 
     const aabbA = bodyA.getAABB();
     const aabbB = bodyB.getAABB();
+    
+    // NaN 체크
+    if (!aabbA || !aabbB || 
+        isNaN(aabbA.min.x) || isNaN(aabbA.min.y) || isNaN(aabbA.max.x) || isNaN(aabbA.max.y) ||
+        isNaN(aabbB.min.x) || isNaN(aabbB.min.y) || isNaN(aabbB.max.x) || isNaN(aabbB.max.y)) {
+      return { collided: false };
+    }
 
     // Box2D/Matter.js: AABB 충돌에서 penetration과 normal 계산
     // penetration은 겹치는 영역의 최소 크기
     // normal은 penetration이 가장 작은 축 방향으로 결정
     const overlapX = Math.min(aabbA.max.x, aabbB.max.x) - Math.max(aabbA.min.x, aabbB.min.x);
     const overlapY = Math.min(aabbA.max.y, aabbB.max.y) - Math.max(aabbA.min.y, aabbB.min.y);
+    
+    // NaN 체크
+    if (isNaN(overlapX) || isNaN(overlapY) || !isFinite(overlapX) || !isFinite(overlapY)) {
+      return { collided: false };
+    }
 
     // Box2D/Matter.js: 가장 작은 penetration을 선택 (MTV - Minimum Translation Vector)
     if (overlapX < overlapY) {
@@ -70,8 +82,27 @@ export class CollisionUtil {
    * @param {Body} bodyB
    */
   static resolveCollision(bodyA, bodyB) {
+    // NaN 체크 - 조기 반환으로 무한 루프 방지
+    if (!bodyA || !bodyB) {
+      return;
+    }
+    if (!bodyA.position || !bodyB.position || !bodyA.velocity || !bodyB.velocity) {
+      return;
+    }
+    if (isNaN(bodyA.position.x) || isNaN(bodyA.position.y) || 
+        isNaN(bodyB.position.x) || isNaN(bodyB.position.y) ||
+        isNaN(bodyA.velocity.x) || isNaN(bodyA.velocity.y) ||
+        isNaN(bodyB.velocity.x) || isNaN(bodyB.velocity.y)) {
+      return;
+    }
+    
     const manifold = CollisionUtil.getCollisionManifold(bodyA, bodyB);
     if (!manifold.collided) return;
+    
+    // normal과 penetration NaN 체크
+    if (!manifold.normal || isNaN(manifold.penetration) || !isFinite(manifold.penetration)) {
+      return;
+    }
 
     // 위치 보정과 속도 보정을 모두 적용
     // 위치 보정을 먼저 적용하여 penetration 해결
@@ -119,13 +150,34 @@ export class CollisionUtil {
    * @private
    */
   static _applyImpulse(bodyA, bodyB, normal, penetration = 0) {
+    // NaN 체크 - 조기 반환으로 무한 루프 방지
+    if (!normal || isNaN(normal.x) || isNaN(normal.y) || !isFinite(normal.x) || !isFinite(normal.y)) {
+      return;
+    }
+    if (!bodyA.velocity || !bodyB.velocity) {
+      return;
+    }
+    if (isNaN(bodyA.velocity.x) || isNaN(bodyA.velocity.y) || isNaN(bodyB.velocity.x) || isNaN(bodyB.velocity.y)) {
+      return;
+    }
+    if (isNaN(penetration) || !isFinite(penetration)) {
+      return;
+    }
+    
     const relativeVelocity = Vector.subtract(bodyB.velocity, bodyA.velocity);
     const velAlongNormal = relativeVelocity.dot(normal);
+    
+    // velAlongNormal이 NaN이면 조기 반환
+    if (isNaN(velAlongNormal) || !isFinite(velAlongNormal)) {
+      return;
+    }
 
     // 탄성 완전 제거 (항상 0)
     const restitution = 0;
     const invMassSum = bodyA.invMass + bodyB.invMass;
-    if (invMassSum === 0) return;
+    if (invMassSum === 0 || isNaN(invMassSum) || !isFinite(invMassSum)) {
+      return;
+    }
 
     // Box2D/Matter.js: 접촉 제약 조건(Contact Constraint) 해결
     // 접촉 제약 조건: v_rel · n >= 0 (상대 속도가 normal 방향으로 분리되거나 0)
