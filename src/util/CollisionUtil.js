@@ -57,6 +57,18 @@ export class CollisionUtil {
     }
 
     // Box2D/Matter.js: 가장 작은 penetration을 선택 (MTV - Minimum Translation Vector)
+    // 정적 객체와의 충돌에서는 Y축 방향을 우선시 (베이스 위에 쌓이도록)
+    const isStaticCollision = bodyA.isStatic || bodyB.isStatic;
+    
+    if (isStaticCollision && overlapY > 0) {
+      // 정적 객체와 충돌 시 Y축 방향을 우선시 (베이스 위에 쌓이도록)
+      const centerA = bodyA.getCenterOfMass();
+      const centerB = bodyB.getCenterOfMass();
+      const normalY = centerA.y < centerB.y ? 1 : -1;
+      const normal = new Vector(0, normalY);
+      return { collided: true, normal, penetration: overlapY };
+    }
+    
     if (overlapX < overlapY) {
       // X축 방향 penetration이 더 작음 → X축 방향 normal
       // normal 방향: bodyA의 중심에서 bodyB의 중심으로 향하는 방향
@@ -130,16 +142,33 @@ export class CollisionUtil {
     if (correctedPenetration <= 0) return;
 
     // 정적 객체와의 충돌에서는 동적 객체만 이동 (더 강력한 보정)
+    // 베이스를 뚫지 않도록 추가 여유를 두어 더 많이 이동
     if (bodyA.isStatic && !bodyB.isStatic) {
       // bodyA가 정적이면 bodyB만 normal 방향으로 이동
-      const correction = Vector.multiply(normal, correctedPenetration * percent);
+      // 추가 여유를 두어 베이스를 뚫지 않도록 함
+      const extraMargin = 1.2; // 20% 추가 여유
+      const correction = Vector.multiply(normal, correctedPenetration * percent * extraMargin);
       bodyB.position.add(correction);
+      // 속도도 normal 방향으로 조정하여 베이스를 뚫지 않도록 함
+      const velAlongNormal = bodyB.velocity.dot(normal);
+      if (velAlongNormal < 0) {
+        // normal 방향으로 떨어지고 있으면 속도를 0으로 설정
+        bodyB.velocity.subtract(Vector.multiply(normal, velAlongNormal));
+      }
       return;
     }
     if (bodyB.isStatic && !bodyA.isStatic) {
       // bodyB가 정적이면 bodyA만 normal 반대 방향으로 이동
-      const correction = Vector.multiply(normal, correctedPenetration * percent);
+      // 추가 여유를 두어 베이스를 뚫지 않도록 함
+      const extraMargin = 1.2; // 20% 추가 여유
+      const correction = Vector.multiply(normal, correctedPenetration * percent * extraMargin);
       bodyA.position.subtract(correction);
+      // 속도도 normal 반대 방향으로 조정하여 베이스를 뚫지 않도록 함
+      const velAlongNormal = bodyA.velocity.dot(normal);
+      if (velAlongNormal < 0) {
+        // normal 방향으로 떨어지고 있으면 속도를 0으로 설정
+        bodyA.velocity.subtract(Vector.multiply(normal, velAlongNormal));
+      }
       return;
     }
 

@@ -343,12 +343,19 @@ export class CanvasRenderer {
       });
     }
 
-    // 현재 떨어지는 블록 그리기 (물리 엔진에 추가된 블록만)
-    // 물리 엔진에 추가되지 않은 블록은 렌더링하지 않음 (좌상단에 나타나는 문제 해결)
-    if (gameState.currentBlock && 
-        gameState.physicsBodies && 
-        gameState.physicsBodies.includes(gameState.currentBlock)) {
-      this.drawBlock(gameState.currentBlock);
+    // 현재 블록 그리기 (배치 전 대기 중인 블록도 표시)
+    // 물리 엔진에 추가되지 않은 블록도 렌더링 (좌우 이동 표시용)
+    if (gameState.currentBlock) {
+      // 물리 엔진에 추가되지 않은 블록은 반투명하게 표시
+      const isInPhysics = gameState.physicsBodies && gameState.physicsBodies.includes(gameState.currentBlock);
+      if (!isInPhysics) {
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.5; // 반투명
+        this.drawBlock(gameState.currentBlock);
+        this.ctx.restore();
+      } else {
+        this.drawBlock(gameState.currentBlock);
+      }
     }
 
     // 다른 물리 객체들 그리기 (타워 베이스 등)
