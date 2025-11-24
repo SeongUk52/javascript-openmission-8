@@ -370,7 +370,25 @@ export class GameController {
     });
     // 베이스는 정적 객체이므로 isPlaced 설정 불필요
     baseBlock.isFalling = false;
+    
+    // 베이스 위치 강제 고정 (정적 객체는 절대 이동하지 않음)
+    const baseX = this.basePosition.x;
+    const baseY = baseCenterY;
+    
+    // 베이스 위치를 직접 설정하고 변경 방지
+    baseBlock.position.x = baseX;
+    baseBlock.position.y = baseY;
+    
+    // 베이스 속도 0으로 고정
+    baseBlock.velocity.x = 0;
+    baseBlock.velocity.y = 0;
+    baseBlock.angularVelocity = 0;
+    
     this.physicsService.addBody(baseBlock);
+    
+    // 베이스 위치 재확인 (물리 엔진에 추가된 후에도 위치 유지)
+    baseBlock.position.x = baseX;
+    baseBlock.position.y = baseY;
     
     this._spawnNextBlock();
     this._startGameLoop();

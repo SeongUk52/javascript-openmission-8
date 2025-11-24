@@ -207,6 +207,11 @@ export class CollisionUtil {
     }
 
     // 둘 다 동적 객체인 경우에만 질량에 비례하여 분리
+    // 정적 객체는 절대 이동하지 않음 (베이스 위치 고정)
+    if (bodyA.isStatic || bodyB.isStatic) {
+      return; // 정적 객체가 있으면 이미 위에서 처리했으므로 여기서는 처리하지 않음
+    }
+    
     const invMassSum = bodyA.invMass + bodyB.invMass;
     if (invMassSum === 0) return;
 
@@ -215,6 +220,7 @@ export class CollisionUtil {
     // bodyA는 normal 반대 방향으로, bodyB는 normal 방향으로 이동
     const correction = Vector.multiply(normal, (correctedPenetration * percent) / invMassSum);
 
+    // 정적 객체는 절대 이동하지 않음 (이중 체크)
     if (!bodyA.isStatic) {
       // bodyA는 normal 반대 방향으로 이동 (normal이 bodyA → bodyB 방향이므로)
       bodyA.position.subtract(Vector.multiply(correction, bodyA.invMass));
