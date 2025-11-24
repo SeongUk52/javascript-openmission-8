@@ -186,6 +186,7 @@ class GameApp {
           score: gameState.gameState.score,
           round: gameState.gameState.round,
           highScore: gameState.gameState.highScore || 0,
+          placeCooldown: gameState.placeCooldown || null,
         };
         this.uiRenderer.render(uiState);
       }

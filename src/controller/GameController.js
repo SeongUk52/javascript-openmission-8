@@ -71,6 +71,10 @@ export class GameController {
     // 최대 타워 높이 (한 게임 내에서 쌓은 최대 높이, 픽셀 단위)
     this.maxTowerHeight = 0;
 
+    // 블록 배치 쿨타임 (1초)
+    this.placeCooldown = 1000; // 밀리초
+    this.lastPlaceTime = 0;
+
     // 이벤트 콜백
     this.onBlockPlaced = null;
     this.onGameOver = null;
@@ -122,7 +126,9 @@ export class GameController {
         if (isInBaseRangeX) {
           shouldFix = true;
         }
-      } else if (placedBody) {
+        return;
+      }
+      if (placedBody) {
         // 배치된 블록과 충돌: 모든 블록과 충돌 가능
         // X 위치 확인: 블록이 타워 범위 내에 있어야 함
         const baseLeft = this.basePosition.x - this.baseWidth / 2;
@@ -367,6 +373,24 @@ export class GameController {
       '#1abc9c', // 청록
     ];
     return colors[Math.floor(Math.random() * colors.length)];
+  }
+
+  /**
+   * 블록 배치 시도 (쿨타임 체크)
+   * @private
+   */
+  _tryPlaceBlock() {
+    const currentTime = Date.now();
+    const timeSinceLastPlace = currentTime - this.lastPlaceTime;
+    
+    // 쿨타임 중이면 블록 배치하지 않음
+    if (timeSinceLastPlace < this.placeCooldown) {
+      return;
+    }
+    
+    // 쿨타임 통과 시 블록 배치
+    this.lastPlaceTime = currentTime;
+    this.placeBlock();
   }
 
   /**
@@ -626,7 +650,9 @@ export class GameController {
     if (this.nextBlockX >= maxX) {
       this.nextBlockX = maxX;
       this.blockMoveDirection = -1; // 왼쪽으로
-    } else if (this.nextBlockX <= minX) {
+      return;
+    }
+    if (this.nextBlockX <= minX) {
       this.nextBlockX = minX;
       this.blockMoveDirection = 1; // 오른쪽으로
     }
@@ -822,12 +848,14 @@ export class GameController {
     switch (key) {
       case ' ':
       case 'Space':
-        this.placeBlock();
+        this._tryPlaceBlock();
         break;
       case 'Escape':
         if (this.gameState.isPaused) {
           this.resume();
-        } else if (this.gameState.isPlaying) {
+          return;
+        }
+        if (this.gameState.isPlaying) {
           this.pause();
         }
         break;
@@ -858,7 +886,8 @@ export class GameController {
       return;
     }
 
-    // 클릭 시 블록 배치
+    // 클릭 시 블록 배치 (쿨타임 체크)
+    this._tryPlaceBlock();
     this.placeBlock();
   }
 
@@ -867,6 +896,11 @@ export class GameController {
    * @returns {Object}
    */
   getGameState() {
+    const currentTime = Date.now();
+    const timeSinceLastPlace = currentTime - this.lastPlaceTime;
+    const cooldownRemaining = Math.max(0, this.placeCooldown - timeSinceLastPlace);
+    const cooldownProgress = Math.min(1, timeSinceLastPlace / this.placeCooldown);
+    
     return {
       gameState: this.gameState,
       placedBlocks: this._getPlacedBlocks(),
@@ -874,6 +908,11 @@ export class GameController {
       physicsBodies: this.physicsService.bodies,
       basePosition: this.basePosition,
       baseWidth: this.baseWidth,
+      placeCooldown: {
+        remaining: cooldownRemaining,
+        progress: cooldownProgress,
+        isReady: cooldownRemaining === 0,
+      },
     };
   }
 

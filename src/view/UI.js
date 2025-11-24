@@ -186,6 +186,71 @@ export class UI {
   }
 
   /**
+   * 쿨타임 링 형태 로딩 바
+   * @param {Object} position - 위치 {x, y}
+   * @param {Object} cooldownInfo - 쿨타임 정보
+   */
+  drawCooldownRing(position = { x: 0, y: 0 }, cooldownInfo = null) {
+    if (!cooldownInfo) {
+      return;
+    }
+
+    this.ctx.save();
+    
+    const ringX = position.x;
+    const ringY = position.y;
+    const ringRadius = 25; // 링 반지름
+    const ringThickness = 5; // 링 두께
+    
+    // 배경 링 (회색)
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    this.ctx.lineWidth = ringThickness;
+    this.ctx.beginPath();
+    this.ctx.arc(ringX, ringY, ringRadius, 0, Math.PI * 2);
+    this.ctx.stroke();
+    
+    // 진행 링 (쿨타임 진행도에 따라)
+    if (!cooldownInfo.isReady && cooldownInfo.progress < 1) {
+      const progress = cooldownInfo.progress;
+      const startAngle = -Math.PI / 2; // 12시 방향부터 시작
+      const endAngle = startAngle + (Math.PI * 2 * progress);
+      
+      // 진행도에 따라 색상 변경
+      if (progress < 0.3) {
+        this.ctx.strokeStyle = '#e74c3c'; // 빨간색
+      } else if (progress < 0.7) {
+        this.ctx.strokeStyle = '#f39c12'; // 주황색
+      } else {
+        this.ctx.strokeStyle = '#3498db'; // 파란색
+      }
+      this.ctx.lineWidth = ringThickness;
+      this.ctx.lineCap = 'round';
+      this.ctx.beginPath();
+      this.ctx.arc(ringX, ringY, ringRadius, startAngle, endAngle);
+      this.ctx.stroke();
+    } else {
+      // 쿨타임 완료 시 초록색 링
+      this.ctx.strokeStyle = '#2ecc71'; // 초록색
+      this.ctx.lineWidth = ringThickness;
+      this.ctx.beginPath();
+      this.ctx.arc(ringX, ringY, ringRadius, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+    
+    // 중앙에 남은 시간 표시 (쿨타임 중일 때만)
+    if (!cooldownInfo.isReady && cooldownInfo.remaining > 0) {
+      const remainingSeconds = (cooldownInfo.remaining / 1000).toFixed(1);
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.font = `bold 12px ${this.fontFamily}`;
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(remainingSeconds, ringX, ringY);
+    }
+    
+    this.ctx.restore();
+  }
+
+  /**
    * UI 캔버스 클리어
    */
   clear() {
@@ -218,7 +283,11 @@ export class UI {
 
     // 조작 안내 (게임 중일 때만)
     if (gameState.isPlaying && !gameState.isPaused && !gameState.isGameOver) {
-      this.drawControls();
+      this.drawControls({ x: 20, y: this.canvas.height - 100 });
+      // 쿨타임 로딩바 (상단 중앙)
+      if (gameState.placeCooldown) {
+        this.drawCooldownRing({ x: this.canvas.width / 2, y: 60 }, gameState.placeCooldown);
+      }
     }
 
     // 게임 오버 화면
