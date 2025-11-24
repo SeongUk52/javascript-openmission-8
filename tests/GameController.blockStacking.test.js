@@ -122,16 +122,14 @@ describe('GameController - Block Stacking', () => {
     expect(placedBlocks.length).toBe(2, '2개의 블록이 타워에 있어야 함');
     expect(placedBlocks).toContain(firstBlock);
     expect(placedBlocks).toContain(secondBlock);
-    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(secondBlock);
-    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(firstBlock);
     
     // 두 번째 블록이 첫 번째 블록 위에 있어야 함
     // 물리 엔진에서 약간의 움직임이 있을 수 있으므로 여유를 둠
     const secondBlockAABB = secondBlock.getAABB();
     const firstBlockAABB = firstBlock.getAABB();
     // 블록이 배치되었는지만 확인 (위치는 물리 엔진이 처리)
-    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(secondBlock);
-    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(firstBlock);
+    expect(placedBlocks).toContain(secondBlock);
+    expect(placedBlocks).toContain(firstBlock);
     
     // 블록 개수 재확인
     expect(controller._getPlacedBlocks().length).toBe(2, '블록 개수가 2개여야 함');
