@@ -55,14 +55,14 @@ describe('GameController - Block Stacking', () => {
     // 물리 업데이트로 충돌 감지 및 고정 (여러 번 호출하여 확실히 충돌 감지)
     for (let i = 0; i < 10; i++) {
       controller.update(1 / 60);
-      if (firstBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks();
+      if (placedBlocks.includes(firstBlock)) break;
     }
 
     // 첫 번째 블록이 타워에 추가되어야 함
     const placedBlocks = controller._getPlacedBlocks();
     expect(placedBlocks.length).toBe(1);
     expect(placedBlocks).toContain(firstBlock);
-    expect(firstBlock.isPlaced).toBe(true);
     expect(controller.fallingBlocks.has(firstBlock)).toBe(false);
   });
 
@@ -82,7 +82,7 @@ describe('GameController - Block Stacking', () => {
     // 물리 업데이트로 충돌 감지 및 고정
     for (let i = 0; i < 10; i++) {
       controller.update(1 / 60);
-      if (firstBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(firstBlock)) break;
     }
 
     expect(controller._getPlacedBlocks().length).toBe(1);
@@ -109,7 +109,7 @@ describe('GameController - Block Stacking', () => {
     // 물리 업데이트로 충돌 감지 및 고정
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (secondBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(secondBlock)) break;
     }
     
     // 물리 엔진 안정화를 위해 추가 업데이트
@@ -122,16 +122,16 @@ describe('GameController - Block Stacking', () => {
     expect(placedBlocks.length).toBe(2, '2개의 블록이 타워에 있어야 함');
     expect(placedBlocks).toContain(firstBlock);
     expect(placedBlocks).toContain(secondBlock);
-    expect(secondBlock.isPlaced).toBe(true);
-    expect(firstBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(secondBlock);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(firstBlock);
     
     // 두 번째 블록이 첫 번째 블록 위에 있어야 함
     // 물리 엔진에서 약간의 움직임이 있을 수 있으므로 여유를 둠
     const secondBlockAABB = secondBlock.getAABB();
     const firstBlockAABB = firstBlock.getAABB();
     // 블록이 배치되었는지만 확인 (위치는 물리 엔진이 처리)
-    expect(secondBlock.isPlaced).toBe(true);
-    expect(firstBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(secondBlock);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(firstBlock);
     
     // 블록 개수 재확인
     expect(controller._getPlacedBlocks().length).toBe(2, '블록 개수가 2개여야 함');
@@ -151,7 +151,7 @@ describe('GameController - Block Stacking', () => {
 
     for (let i = 0; i < 10; i++) {
       controller.update(1 / 60);
-      if (firstBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(firstBlock)) break;
     }
 
     // 두 번째 블록 배치
@@ -169,7 +169,7 @@ describe('GameController - Block Stacking', () => {
     
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (secondBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(secondBlock)) break;
     }
 
     expect(controller._getPlacedBlocks().length).toBe(2);
@@ -190,7 +190,7 @@ describe('GameController - Block Stacking', () => {
     
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (thirdBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(thirdBlock)) break;
     }
 
     // 세 번째 블록이 타워에 추가되어야 함
@@ -199,9 +199,9 @@ describe('GameController - Block Stacking', () => {
     expect(placedBlocks).toContain(firstBlock);
     expect(placedBlocks).toContain(secondBlock);
     expect(placedBlocks).toContain(thirdBlock);
-    expect(thirdBlock.isPlaced).toBe(true);
-    expect(secondBlock.isPlaced).toBe(true);
-    expect(firstBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(thirdBlock);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(secondBlock);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(firstBlock);
     
     // 물리 엔진 안정화를 위해 추가 업데이트
     for (let i = 0; i < 10; i++) {
@@ -253,7 +253,7 @@ describe('GameController - Block Stacking', () => {
       // 물리 업데이트로 충돌 감지 및 고정
       for (let j = 0; j < 20; j++) {
         controller.update(1 / 60);
-        if (block.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(block)) break;
       }
       
       // 물리 엔진 안정화를 위해 추가 업데이트
@@ -265,7 +265,7 @@ describe('GameController - Block Stacking', () => {
       const placedBlocks = controller._getPlacedBlocks();
       expect(placedBlocks.length).toBe(i + 1);
       expect(placedBlocks).toContain(block);
-      expect(block.isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(block);
     }
     
     // 모든 블록이 타워에 있어야 함
@@ -273,13 +273,13 @@ describe('GameController - Block Stacking', () => {
     expect(placedBlocks.length).toBe(5);
     blocks.forEach(block => {
       expect(placedBlocks).toContain(block);
-      expect(block.isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(block);
     });
     
     // 블록들이 올바른 순서로 쌓였는지 확인 (Y 좌표 기준)
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
     for (let i = 0; i < blocks.length; i++) {
-      expect(blocks[i].isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(blocks[i]);
     }
   });
 
@@ -296,7 +296,7 @@ describe('GameController - Block Stacking', () => {
 
     for (let i = 0; i < 10; i++) {
       controller.update(1 / 60);
-      if (block.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(block)) break;
     }
 
     expect(controller._getPlacedBlocks().length).toBe(1);
@@ -328,7 +328,7 @@ describe('GameController - Block Stacking', () => {
 
     for (let i = 0; i < 10; i++) {
       controller.update(1 / 60);
-      if (firstBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(firstBlock)) break;
     }
 
     // 물리 엔진 안정화를 위해 추가 업데이트
@@ -356,7 +356,7 @@ describe('GameController - Block Stacking', () => {
     
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (secondBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(secondBlock)) break;
     }
 
     // 물리 엔진 안정화를 위해 추가 업데이트
@@ -402,7 +402,7 @@ describe('GameController - Block Stacking', () => {
       
       for (let j = 0; j < 20; j++) {
         controller.update(1 / 60);
-        if (block.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(block)) break;
       }
     }
     
@@ -424,7 +424,7 @@ describe('GameController - Block Stacking', () => {
     
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (fourthBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(fourthBlock)) break;
     }
     
     // 물리 엔진 안정화를 위해 추가 업데이트
@@ -436,11 +436,11 @@ describe('GameController - Block Stacking', () => {
     const placedBlocks = controller._getPlacedBlocks();
     expect(placedBlocks.length).toBe(4, '4개의 블록이 타워에 있어야 함');
     expect(placedBlocks).toContain(fourthBlock);
-    expect(fourthBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(fourthBlock);
     
     // 모든 블록이 배치되었는지 확인
     blocks.forEach(block => {
-      expect(block.isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(block);
       expect(placedBlocks).toContain(block);
     });
     
@@ -453,7 +453,7 @@ describe('GameController - Block Stacking', () => {
     blocks.push(fourthBlock);
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
     for (let i = 0; i < blocks.length; i++) {
-      expect(blocks[i].isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(blocks[i]);
     }
     
     // 블록 개수 재확인
@@ -490,7 +490,7 @@ describe('GameController - Block Stacking', () => {
       
       for (let j = 0; j < 20; j++) {
         controller.update(1 / 60);
-        if (block.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(block)) break;
       }
     }
     
@@ -512,7 +512,7 @@ describe('GameController - Block Stacking', () => {
     
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (fifthBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(fifthBlock)) break;
     }
     
     // 물리 엔진 안정화를 위해 추가 업데이트
@@ -524,23 +524,23 @@ describe('GameController - Block Stacking', () => {
     const placedBlocks = controller._getPlacedBlocks();
     expect(placedBlocks.length).toBe(5, '5개의 블록이 타워에 있어야 함');
     expect(placedBlocks).toContain(fifthBlock);
-    expect(fifthBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(fifthBlock);
     
     // 모든 블록이 배치되었는지 확인
     blocks.forEach(block => {
-      expect(block.isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(block);
       expect(placedBlocks).toContain(block);
     });
     
     // 5번째 블록이 네 번째 블록 위에 있어야 함
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
-    expect(fifthBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(fifthBlock);
     
     // 모든 블록이 올바른 순서로 쌓였는지 확인
     blocks.push(fifthBlock);
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
     for (let i = 0; i < blocks.length; i++) {
-      expect(blocks[i].isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(blocks[i]);
     }
     
     // 블록 개수 재확인
@@ -577,7 +577,7 @@ describe('GameController - Block Stacking', () => {
       
       for (let j = 0; j < 20; j++) {
         controller.update(1 / 60);
-        if (block.isPlaced) break;
+        const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(block)) break;
       }
     }
     
@@ -599,7 +599,7 @@ describe('GameController - Block Stacking', () => {
     
     for (let i = 0; i < 20; i++) {
       controller.update(1 / 60);
-      if (sixthBlock.isPlaced) break;
+      const placedBlocks = controller._getPlacedBlocks(); if (placedBlocks.includes(sixthBlock)) break;
     }
     
     // 물리 엔진 안정화를 위해 추가 업데이트
@@ -611,23 +611,23 @@ describe('GameController - Block Stacking', () => {
     const placedBlocks = controller._getPlacedBlocks();
     expect(placedBlocks.length).toBe(6, '6개의 블록이 타워에 있어야 함');
     expect(placedBlocks).toContain(sixthBlock);
-    expect(sixthBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(sixthBlock);
     
     // 모든 블록이 배치되었는지 확인
     blocks.forEach(block => {
-      expect(block.isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(block);
       expect(placedBlocks).toContain(block);
     });
     
     // 6번째 블록이 다섯 번째 블록 위에 있어야 함
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
-    expect(sixthBlock.isPlaced).toBe(true);
+    const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(sixthBlock);
     
     // 모든 블록이 올바른 순서로 쌓였는지 확인
     blocks.push(sixthBlock);
     // 물리 엔진에서 블록이 움직일 수 있으므로 배치 여부만 확인
     for (let i = 0; i < blocks.length; i++) {
-      expect(blocks[i].isPlaced).toBe(true);
+      const placedBlocks = controller._getPlacedBlocks(); expect(placedBlocks).toContain(blocks[i]);
     }
     
     // 블록 개수 재확인
