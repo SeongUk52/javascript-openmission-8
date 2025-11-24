@@ -56,7 +56,8 @@ export class BalanceUtil {
       // tolerance를 고려한 실제 벗어난 거리 계산
       if (com.x < rawLeft) {
         offset = com.x - rawLeft; // tolerance를 제외한 실제 벗어난 거리
-      } else if (com.x > rawRight) {
+      }
+      if (com.x > rawRight) {
         offset = com.x - rawRight; // tolerance를 제외한 실제 벗어난 거리
       }
       

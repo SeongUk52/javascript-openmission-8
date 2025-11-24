@@ -1,91 +1,245 @@
 import { Vector } from './Vector.js';
 import { TorqueUtil } from '../util/TorqueUtil.js';
+import { MotionState } from './MotionState.js';
+import { AngularState } from './AngularState.js';
+import { MassProperties } from './MassProperties.js';
+import { Size } from './Size.js';
+import { MaterialProperties } from './MaterialProperties.js';
+import { ForceState } from './ForceState.js';
+import { PhysicsState } from './PhysicsState.js';
+import { BodyProperties } from './BodyProperties.js';
 
 /**
  * 물리 객체 클래스
  * 위치, 속도, 질량 등의 물리 속성을 관리한다.
+ * 인스턴스 변수는 3개 이하로 제한: physicsState, bodyProperties
  */
 export class Body {
   constructor(options = {}) {
-    // 위치
-    this.position = options.position || new Vector(0, 0);
-    
-    // 속도
-    this.velocity = options.velocity || new Vector(0, 0);
-    
-    // 가속도
-    this.acceleration = options.acceleration || new Vector(0, 0);
+    // 크기 (너비, 높이, 중심점)
+    const size = new Size(
+      options.width || 0,
+      options.height || 0,
+      options.center || null
+    );
     
     // 질량 (기본값: 1)
-    this.mass = options.mass !== undefined ? options.mass : 1;
-    
-    // 역질량 (성능 최적화용, 무한대 질량 객체는 0)
-    this.invMass = this.mass > 0 ? 1 / this.mass : 0;
-    
-    // 회전 각도 (라디안)
-    this.angle = options.angle || 0;
-    
-    // 각속도 (라디안/초)
-    this.angularVelocity = options.angularVelocity || 0;
-    
-    // 각가속도 (라디안/초²)
-    this.angularAcceleration = options.angularAcceleration || 0;
-    
-    // 크기 (충돌 감지용) - 관성 모멘트 계산 전에 설정 필요
-    this.width = options.width || 0;
-    this.height = options.height || 0;
-    
-    // 중심점 (로컬 좌표계 기준, 기본값은 중심)
-    this.center = options.center || new Vector(this.width / 2, this.height / 2);
+    const mass = options.mass !== undefined ? options.mass : 1;
     
     // 정적 객체 여부 (무한대 질량)
-    this.isStatic = options.isStatic || false;
+    const isStatic = options.isStatic || false;
     
-    // 관성 모멘트 (회전 관성) - width, height 설정 후 계산
+    // 관성 모멘트 계산
+    let inertia;
     if (options.inertia !== undefined) {
-      this.inertia = options.inertia;
-    } else {
-      this.inertia = this.calculateInertia();
+      inertia = options.inertia;
+    }
+    if (options.inertia === undefined) {
+      inertia = this._calculateInertiaStatic(mass, size.width, size.height, isStatic);
     }
     
-    // 정적 객체 처리
-    if (this.isStatic) {
-      this.mass = Infinity;
-      this.invMass = 0;
-      this.inertia = Infinity;
-      this.invInertia = 0;
-    } else {
-      // 역관성 모멘트
-      this.invInertia = this.inertia > 0 && !isNaN(this.inertia) && this.inertia !== Infinity ? 1 / this.inertia : 0;
+    // 질량 속성 (질량, 역질량, 관성 모멘트, 역관성 모멘트)
+    let massProperties;
+    if (isStatic) {
+      massProperties = new MassProperties(Infinity, 0, Infinity, 0);
+    }
+    if (!isStatic) {
+      const invMass = mass > 0 ? 1 / mass : 0;
+      const invInertia = inertia > 0 && !isNaN(inertia) && inertia !== Infinity ? 1 / inertia : 0;
+      massProperties = new MassProperties(mass, invMass, inertia, invInertia);
     }
     
-    // 힘 (누적)
-    this.force = new Vector(0, 0);
+    // 운동 상태 (위치, 속도, 가속도)
+    const motionState = new MotionState(
+      options.position || new Vector(0, 0),
+      options.velocity || new Vector(0, 0),
+      options.acceleration || new Vector(0, 0)
+    );
     
-    // 토크 (회전력, 누적)
-    this.torque = 0;
+    // 각운동 상태 (각도, 각속도, 각가속도)
+    const angularState = new AngularState(
+      options.angle || 0,
+      options.angularVelocity || 0,
+      options.angularAcceleration || 0
+    );
     
-    // 마찰 계수
-    this.friction = options.friction !== undefined ? options.friction : 0.1;
+    // 물리 상태 (운동 상태 + 각운동 상태 + 질량 속성)
+    this.physicsState = new PhysicsState(motionState, angularState, massProperties);
     
-    // 반발 계수 (탄성)
-    this.restitution = options.restitution !== undefined ? options.restitution : 0.5;
+    // 힘 상태 (힘, 토크)
+    const forceState = new ForceState(
+      new Vector(0, 0),
+      0
+    );
+    
+    // 재질 속성 (마찰, 반발)
+    const materialProperties = new MaterialProperties(
+      options.friction !== undefined ? options.friction : 0.1,
+      options.restitution !== undefined ? options.restitution : 0.5
+    );
+    
+    // Body 속성 (재질 속성 + 크기 + 힘 상태 + 정적 객체 여부)
+    this.bodyProperties = new BodyProperties(materialProperties, size, forceState, isStatic);
+    
+    // 기존 코드 호환성을 위한 속성 접근 (getter 없이 직접 접근)
+    this._setupPropertyAccessors();
   }
-
+  
+  /**
+   * 정적 메서드로 관성 모멘트 계산 (생성자에서 사용)
+   * @private
+   */
+  _calculateInertiaStatic(mass, width, height, isStatic) {
+    if (mass === 0 || isStatic || mass === Infinity) {
+      return Infinity;
+    }
+    if (width === 0 || height === 0) {
+      return mass * 0.1;
+    }
+    return (1 / 12) * mass * (width * width + height * height);
+  }
+  
+  /**
+   * 기존 코드 호환성을 위한 속성 접근자 설정
+   * @private
+   */
+  _setupPropertyAccessors() {
+    // MotionState 속성들
+    Object.defineProperty(this, 'position', {
+      get: () => this.physicsState.motionState.position,
+      set: (value) => { this.physicsState.motionState.position = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'velocity', {
+      get: () => this.physicsState.motionState.velocity,
+      set: (value) => { this.physicsState.motionState.velocity = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'acceleration', {
+      get: () => this.physicsState.motionState.acceleration,
+      set: (value) => { this.physicsState.motionState.acceleration = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // AngularState 속성들
+    Object.defineProperty(this, 'angle', {
+      get: () => this.physicsState.angularState.angle,
+      set: (value) => { this.physicsState.angularState.angle = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'angularVelocity', {
+      get: () => this.physicsState.angularState.angularVelocity,
+      set: (value) => { this.physicsState.angularState.angularVelocity = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'angularAcceleration', {
+      get: () => this.physicsState.angularState.angularAcceleration,
+      set: (value) => { this.physicsState.angularState.angularAcceleration = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // MassProperties 속성들
+    Object.defineProperty(this, 'mass', {
+      get: () => this.physicsState.massProperties.mass,
+      set: (value) => { 
+        this.physicsState.massProperties.mass = value;
+        this.physicsState.massProperties.invMass = value > 0 ? 1 / value : 0;
+      },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'invMass', {
+      get: () => this.physicsState.massProperties.invMass,
+      set: (value) => { this.physicsState.massProperties.invMass = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'inertia', {
+      get: () => this.physicsState.massProperties.inertia,
+      set: (value) => { 
+        this.physicsState.massProperties.inertia = value;
+        this.physicsState.massProperties.invInertia = value > 0 && !isNaN(value) && value !== Infinity ? 1 / value : 0;
+      },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'invInertia', {
+      get: () => this.physicsState.massProperties.invInertia,
+      set: (value) => { this.physicsState.massProperties.invInertia = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // Size 속성들
+    Object.defineProperty(this, 'width', {
+      get: () => this.bodyProperties.size.width,
+      set: (value) => { this.bodyProperties.size.width = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'height', {
+      get: () => this.bodyProperties.size.height,
+      set: (value) => { this.bodyProperties.size.height = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'center', {
+      get: () => this.bodyProperties.size.center,
+      set: (value) => { this.bodyProperties.size.center = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // ForceState 속성들
+    Object.defineProperty(this, 'force', {
+      get: () => this.bodyProperties.forceState.force,
+      set: (value) => { this.bodyProperties.forceState.force = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'torque', {
+      get: () => this.bodyProperties.forceState.torque,
+      set: (value) => { this.bodyProperties.forceState.torque = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // MaterialProperties 속성들
+    Object.defineProperty(this, 'friction', {
+      get: () => this.bodyProperties.materialProperties.friction,
+      set: (value) => { this.bodyProperties.materialProperties.friction = value; },
+      enumerable: true,
+      configurable: true
+    });
+    Object.defineProperty(this, 'restitution', {
+      get: () => this.bodyProperties.materialProperties.restitution,
+      set: (value) => { this.bodyProperties.materialProperties.restitution = value; },
+      enumerable: true,
+      configurable: true
+    });
+    
+    // isStatic 속성
+    Object.defineProperty(this, 'isStatic', {
+      get: () => this.bodyProperties.isStatic,
+      set: (value) => { this.bodyProperties.isStatic = value; },
+      enumerable: true,
+      configurable: true
+    });
+  }
+  
   /**
    * 관성 모멘트 계산 (직사각형 기준)
    * I = (1/12) * m * (w² + h²)
    * @returns {number} 관성 모멘트
    */
   calculateInertia() {
-    if (this.mass === 0 || this.isStatic || this.mass === Infinity) {
-      return Infinity;
-    }
-    if (this.width === 0 || this.height === 0) {
-      // 기본값 (작은 값)
-      return this.mass * 0.1;
-    }
-    return (1 / 12) * this.mass * (this.width * this.width + this.height * this.height);
+    return this._calculateInertiaStatic(this.mass, this.width, this.height, this.isStatic);
   }
 
   /**
@@ -166,6 +320,7 @@ export class Body {
    */
   applyFriction(deltaTime) {
     if (this.isStatic) return;
+    if (this.friction === 0) return;
     
     // 선형 마찰 (공기 저항 효과 - 약함)
     const airResistance = 0.02; // 공기 저항 계수

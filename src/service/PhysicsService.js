@@ -207,7 +207,8 @@ export class PhysicsService {
             // 각도를 가장 가까운 0도 또는 90도로 정렬
             const nearestAngle = Math.round(angle / (Math.PI / 2)) * (Math.PI / 2);
             body.angle = nearestAngle;
-          } else {
+          }
+          if (normalizedAngle >= 0.1) {
             // 베이스와 접촉 중일 때는 각속도를 매우 강하게 감쇠
             body.angularVelocity *= 0.3; // 70% 감쇠 (더 강하게)
           }
@@ -232,20 +233,28 @@ export class PhysicsService {
           if (Math.abs(body.velocity.y) < 0.5 && body.velocity.y >= 0) {
             body.velocity.y = 0;
           }
-        } else {
-          // 일반 접촉에서의 감쇠
-          const contactDamping = 0.85; // 15% 감쇠 (더 강하게)
-          body.angularVelocity *= contactDamping;
-          
-          // 각속도가 작으면 추가 감쇠
-          if (Math.abs(body.angularVelocity) < 0.3) {
-            body.angularVelocity *= 0.7; // 추가 감쇠 (더 강하게)
-          }
-          
-          // 매우 작은 각속도는 0으로 설정
-          if (Math.abs(body.angularVelocity) < 0.05) {
-            body.angularVelocity = 0;
-          }
+          return;
+        }
+        // 일반 접촉에서의 감쇠
+        const contactDamping = 0.85; // 15% 감쇠 (더 강하게)
+        body.angularVelocity *= contactDamping;
+        
+        // 각속도가 작으면 추가 감쇠
+        if (Math.abs(body.angularVelocity) < 0.3) {
+          body.angularVelocity *= 0.7; // 추가 감쇠 (더 강하게)
+        }
+        
+        // 매우 작은 각속도는 0으로 설정
+        if (Math.abs(body.angularVelocity) < 0.05) {
+          body.angularVelocity = 0;
+        }
+        
+        // 속도가 매우 작으면 0으로 (수치 안정성)
+        if (Math.abs(body.velocity.x) < 0.1) {
+          body.velocity.x = 0;
+        }
+        if (Math.abs(body.velocity.y) < 0.1 && body.velocity.y >= 0) {
+          body.velocity.y = 0;
         }
       }
     });
@@ -305,7 +314,8 @@ export class PhysicsService {
       if (otherBody === body) return;
       if (otherBody.isStatic) {
         // 정적 블록(베이스)은 항상 지지할 수 있음
-      } else if (otherBody.isFalling && otherBody.velocity.y > 50) {
+      }
+      if (otherBody.isFalling && otherBody.velocity.y > 50) {
         // 빠르게 떨어지는 중인 블록은 지지할 수 없음
         return;
       }

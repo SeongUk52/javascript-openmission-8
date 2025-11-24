@@ -281,7 +281,8 @@ export class CanvasRenderer {
     bodies.forEach(body => {
       if (body instanceof Block) {
         this.drawBlock(body);
-      } else {
+      }
+      if (!(body instanceof Block)) {
         // 일반 Body는 간단하게 그리기
         this._drawBody(body);
       }

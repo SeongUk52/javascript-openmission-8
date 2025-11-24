@@ -117,7 +117,7 @@ describe('Body', () => {
     });
 
     test('각속도에 따라 각도가 변경된다', () => {
-      const body = new Body({ angularVelocity: 1 });
+      const body = new Body({ angularVelocity: 1, friction: 0 });
       body.update(1);
       expect(body.angle).toBeCloseTo(1, 5);
     });

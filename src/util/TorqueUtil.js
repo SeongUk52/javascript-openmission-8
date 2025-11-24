@@ -57,8 +57,10 @@ export class TorqueUtil {
     
     // 각속도 감쇠 (공기 저항 효과만 - 실제 마찰은 충돌 시에만 적용)
     // 공기 저항은 약하게만 적용
-    const airResistance = 0.98; // 공기 저항 계수 (매우 약함)
-    body.angularVelocity *= airResistance;
+    if (body.friction > 0) {
+      const airResistance = 0.98; // 공기 저항 계수 (매우 약함)
+      body.angularVelocity *= airResistance;
+    }
     
     // 매우 작은 각속도는 즉시 멈춤
     if (Math.abs(body.angularVelocity) < 0.01) {
