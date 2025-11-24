@@ -68,6 +68,9 @@ export class GameController {
     // 연속 배치 횟수
     this.consecutivePlacements = 0;
 
+    // 최대 타워 높이 (한 게임 내에서 쌓은 최대 높이, 픽셀 단위)
+    this.maxTowerHeight = 0;
+
     // 이벤트 콜백
     this.onBlockPlaced = null;
     this.onGameOver = null;
@@ -106,14 +109,11 @@ export class GameController {
       const supportBody = baseBody || placedBody;
       const dynamicBody = fallingBody;
       
-      // 블록이 베이스 또는 배치된 블록과 충돌
-      // 중요: 떨어지는 블록이 타워 최상단에 닿았는지 확인
-      // 가장 위에 있는 블록과만 충돌해야 함 (중간 블록과 충돌하면 안 됨)
-      // placedBlocks는 이미 92번째 줄에서 선언되었으므로 재사용
+      // 블록이 베이스 또는 배치된 블록과 충돌했는지 확인
       let shouldFix = false;
       
       if (baseBody) {
-        // 베이스와 충돌: 모든 블록이 베이스와 충돌 가능 (첫 번째 블록 특별 처리 제거)
+        // 베이스와 충돌: 모든 블록이 베이스와 충돌 가능
         // X 위치 확인: 블록이 타워 범위 내에 있어야 함
         const baseLeft = this.basePosition.x - this.baseWidth / 2;
         const baseRight = this.basePosition.x + this.baseWidth / 2;
@@ -123,27 +123,19 @@ export class GameController {
           shouldFix = true;
         }
       } else if (placedBody) {
-        // 배치된 블록과 충돌: 모든 블록과 충돌 가능 (하드코딩 없음)
-        // 모든 블록에 대해 동일한 로직 적용
-        
+        // 배치된 블록과 충돌: 모든 블록과 충돌 가능
         // X 위치 확인: 블록이 타워 범위 내에 있어야 함
         const baseLeft = this.basePosition.x - this.baseWidth / 2;
         const baseRight = this.basePosition.x + this.baseWidth / 2;
         const isInBaseRangeX = dynamicBody.position.x >= baseLeft && dynamicBody.position.x <= baseRight;
         
-        if (!isInBaseRangeX) {
-          // X 범위를 벗어났으면 무시
-          return;
+        if (isInBaseRangeX) {
+          shouldFix = true;
         }
-        
-        // 블록이 배치된 블록과 충돌했고 X 범위 내에 있으면 고정
-        // 충돌이 감지되었다는 것은 이미 타워에 닿았다는 의미
-        shouldFix = true;
       }
       
       // 블록이 충돌하고 속도가 충분히 느려졌을 때 타워에 고정
-      // (update 메서드에서도 확인하므로 여기서는 플래그만 설정)
-      // 실제 고정은 update 메서드에서 처리
+      // (실제 고정은 update 메서드에서 처리하므로 여기서는 플래그만 설정)
     };
     
     this.physicsService.onTopple = (body, result) => {
@@ -238,6 +230,7 @@ export class GameController {
     this.gameState.start();
     // 물리 엔진의 배치된 블록들은 게임 재시작 시 자동으로 제거됨
     this.consecutivePlacements = 0;
+    this.maxTowerHeight = 0; // 최대 높이 초기화
     this.nextBlockX = this.canvasWidth / 2;
     this.blockMoveDirection = 1; // 오른쪽으로 시작
     this.blockMoveTime = 0;
@@ -454,14 +447,22 @@ export class GameController {
    */
   _fixBlockToTower(block) {
     if (!block) {
+      console.warn('[Score] _fixBlockToTower: block is null');
       return;
     }
     
     // 블록이 이미 배치되었으면 무시 (_getPlacedBlocks로 확인)
     const placedBlocks = this._getPlacedBlocks();
     if (placedBlocks.includes(block)) {
+      console.log('[Score] _fixBlockToTower: 블록이 이미 배치됨', block.id.substring(0, 8));
       return;
     }
+    
+    console.log('[Score] _fixBlockToTower: 블록 배치 시작', {
+      blockId: block.id.substring(0, 8),
+      position: { x: block.position.x, y: block.position.y },
+      placedBlocksCount: placedBlocks.length,
+    });
     
     // currentBlock이 이 블록이면 초기화 (다음 블록을 위해)
     // currentBlock이 아니어도 정상 동작 (떨어지는 블록일 수 있음)
@@ -492,7 +493,8 @@ export class GameController {
       this._spawnNextBlock();
     }
 
-    // 점수 계산 및 추가
+    // 점수 계산 및 추가 (블록이 배치되고 안정화된 후)
+    // 블록이 배치된 직후 바로 계산
     this._calculateAndAddScore();
 
     // 라운드 증가
@@ -506,27 +508,94 @@ export class GameController {
   }
 
   /**
-   * 점수 계산 및 추가
-   * 점수는 타워의 최대 높이로 계산 (블록 높이 1개 = 1점)
+   * 현재 타워 높이 계산 (좌표값 기반)
+   * 가장 높은 블록의 상단 Y 좌표를 기준으로 계산
+   * @returns {number} 타워 높이 (픽셀)
    * @private
    */
-  _calculateAndAddScore() {
-    // 베이스 상단부터 타워 최상단까지의 높이 계산
-    const baseTopY = this.basePosition.y - 30; // 베이스 높이 30
-    const towerTopY = this._getTopY();
+  _calculateCurrentTowerHeight() {
+    const placedBlocks = this._getPlacedBlocks();
     
-    // 타워 높이 = 타워 최상단 Y - 베이스 상단 Y
-    const towerHeight = towerTopY - baseTopY;
+    // 블록이 없으면 높이는 0
+    if (placedBlocks.length === 0) {
+      return 0;
+    }
     
-    // 점수 = 타워 높이 / 블록 높이 (블록 높이 1개 = 1점)
-    const score = Math.floor(towerHeight / this.blockHeight);
+    // 베이스 상단 Y 좌표 (베이스 높이 30)
+    const baseTopY = this.basePosition.y - 30;
+    
+    // 가장 높은 블록의 상단 Y 좌표 찾기
+    // Y 좌표는 아래로 갈수록 커지므로, 가장 높은 블록은 Y 좌표가 가장 작은 블록
+    // 블록 상단 = position.y - height/2
+    let minBlockTopY = Infinity;
+    placedBlocks.forEach(block => {
+      const blockTopY = block.position.y - block.height / 2;
+      minBlockTopY = Math.min(minBlockTopY, blockTopY);
+    });
+    
+    // 타워 높이 = 베이스 상단 Y - 가장 높은 블록 상단 Y
+    // Y 좌표는 아래로 갈수록 커지므로, baseTopY가 minBlockTopY보다 크면 높이가 생김
+    const towerHeight = baseTopY - minBlockTopY;
+    
+    // 높이는 0 이상이어야 함
+    return Math.max(0, towerHeight);
+  }
 
-    // 점수를 직접 설정 (매번 전체 높이 기준으로 계산)
+  /**
+   * 최대 높이 업데이트 및 점수 계산 (좌표값 기반)
+   * 블록이 배치되고 안정화된 후에 한 번만 호출됨
+   * @private
+   */
+  _updateMaxHeightAndScore() {
+    // 현재 타워 높이 계산 (좌표값 기반)
+    const currentHeight = this._calculateCurrentTowerHeight();
+    
+    // 최대 높이 업데이트 (현재 높이가 최대 높이보다 크면 업데이트)
+    if (currentHeight > this.maxTowerHeight) {
+      this.maxTowerHeight = currentHeight;
+    }
+    
+    // 점수 = 최대 높이 / 블록 높이 (블록 높이 1개 = 1점)
+    // 좌표값 차이를 블록 높이로 나눠서 점수 계산
+    const score = Math.floor(this.maxTowerHeight / this.blockHeight);
+
+    // 디버깅: 점수 계산 로그
+    const placedBlocks = this._getPlacedBlocks();
+    if (placedBlocks.length > 0) {
+      const baseTopY = this.basePosition.y - 30;
+      let minBlockTopY = Infinity;
+      placedBlocks.forEach(block => {
+        const blockTopY = block.position.y - block.height / 2;
+        minBlockTopY = Math.min(minBlockTopY, blockTopY);
+      });
+      
+      console.log('[Score] 점수 계산:', {
+        currentHeight,
+        maxTowerHeight: this.maxTowerHeight,
+        blockHeight: this.blockHeight,
+        score,
+        placedBlocksCount: placedBlocks.length,
+        baseTopY,
+        minBlockTopY,
+        towerHeight: baseTopY - minBlockTopY,
+      });
+    }
+
+    // 점수를 최대 높이 기준으로 설정
     this.gameState.setScore(score);
 
     if (this.onScoreChanged) {
       this.onScoreChanged(this.gameState.score);
     }
+  }
+
+  /**
+   * 점수 계산 및 추가 (블록 배치 시 호출)
+   * @private
+   */
+  _calculateAndAddScore() {
+    // 최대 높이 업데이트 및 점수 계산
+    this._updateMaxHeightAndScore();
   }
 
   /**
@@ -671,30 +740,54 @@ export class GameController {
       
       // 베이스 위치 확인 (베이스는 isStatic만으로 충분)
       const baseBlock = this.physicsService.bodies.find(b => b.isStatic);
-      let isNearTower = false;
-      let isInBaseRangeX = false;
-      
       const placedBlocks = this._getPlacedBlocks();
       
-      // 모든 블록에 대해 동일한 로직 적용 (첫 번째 블록 특별 처리 제거)
-      // 타워 최상단과 충돌 확인 (블록이 없으면 베이스 상단)
-      const towerTopY = this._getTopY();
-      const blockBottom = aabb.max.y; // 블록 하단
-      const distanceY = blockBottom - towerTopY;
+      // 베이스 상단 Y 좌표
+      const baseTopY = this.basePosition.y - 30;
       
-      // X 위치도 확인 (베이스 범위 내에 있어야 함)
+      // 가장 높은 블록의 상단 Y 좌표 찾기 (블록이 없으면 베이스 상단)
+      let minBlockTopY = baseTopY;
+      if (placedBlocks.length > 0) {
+        placedBlocks.forEach(placedBlock => {
+          const blockTopY = placedBlock.position.y - placedBlock.height / 2;
+          minBlockTopY = Math.min(minBlockTopY, blockTopY);
+        });
+      }
+      
+      // 현재 블록의 하단 Y 좌표
+      const blockBottom = aabb.max.y; // 블록 하단
+      const blockTop = aabb.min.y; // 블록 상단
+      
+      // X 위치 확인 (베이스 범위 내에 있어야 함)
       const blockCenterX = block.position.x;
       const baseLeft = this.basePosition.x - this.baseWidth / 2;
       const baseRight = this.basePosition.x + this.baseWidth / 2;
-      isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
+      const isInBaseRangeX = blockCenterX >= baseLeft && blockCenterX <= baseRight;
       
-      // 타워 위 200픽셀 이내 또는 겹침 (더 넓은 범위로 허용)
-      isNearTower = distanceY <= 200 && distanceY >= -50 && isInBaseRangeX;
+      // 블록이 타워에 닿았는지 확인
+      // 블록 하단이 가장 높은 블록 상단 근처에 있고, 속도가 충분히 느려졌을 때
+      // 또는 블록이 베이스 위에 있고 속도가 충분히 느려졌을 때
+      const distanceToTop = blockBottom - minBlockTopY;
+      const isNearTop = distanceToTop <= 5 && distanceToTop >= -5 && isInBaseRangeX;
+      const isSlowEnough = Math.abs(block.velocity.y) < 100 && Math.abs(block.velocity.x) < 100;
       
       // 블록이 타워에 닿았고 속도가 충분히 느려졌을 때 고정
-      if (isNearTower && Math.abs(block.velocity.y) < 50 && Math.abs(block.velocity.x) < 50) {
+      if (isNearTop && isSlowEnough) {
         // 블록이 이미 배치되었는지 확인 (중복 호출 방지)
         if (!placedBlocks.includes(block)) {
+          console.log('[Score] 블록 고정 시작:', {
+            blockId: block.id.substring(0, 8),
+            position: { x: block.position.x, y: block.position.y },
+            velocity: { x: block.velocity.x, y: block.velocity.y },
+            isNearTop,
+            distanceToTop,
+            minBlockTopY,
+            blockBottom,
+            blockTop,
+            isInBaseRangeX,
+            baseTopY,
+            placedBlocksCount: placedBlocks.length,
+          });
           this._fixBlockToTower(block);
           continue; // 고정했으면 다음 블록으로
         }
@@ -715,6 +808,9 @@ export class GameController {
     // 타워 안정성 평가는 하지 않음
     // 블록이 무너지는 것만으로는 게임 오버가 되지 않음
     // 블록이 베이스 바닥 아래로 떨어지면 게임 오버 (위에서 처리)
+
+    // 점수 계산은 블록이 배치되고 안정화된 후에만 수행 (_fixBlockToTower에서 처리)
+    // 매 프레임마다 계산하지 않음
 
     // 현재 블록이 타워에 닿았는지 확인 (자동 배치)
     // 주의: 자동 배치는 블록이 충분히 안정적으로 타워 위에 있을 때만 실행
@@ -830,9 +926,12 @@ export class GameController {
    */
   _getPlacedBlocks() {
     // 배치된 블록들만 반환 (베이스 제외, 빠르게 떨어지는 블록 제외)
-    return this.physicsService.bodies.filter(body => 
-      body instanceof Block && !body.isStatic && (!body.isFalling || body.velocity.y < 50)
-    );
+    return this.physicsService.bodies.filter(body => {
+      if (!(body instanceof Block)) return false;
+      if (body.isStatic) return false; // 베이스 제외
+      // isPlaced가 true이거나, isFalling이 false이거나, velocity.y가 작으면 배치된 것으로 간주
+      return body.isPlaced || !body.isFalling || body.velocity.y < 50;
+    });
   }
 
   /**
