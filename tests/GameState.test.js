@@ -161,6 +161,38 @@ describe('GameState', () => {
     });
   });
 
+  describe('setScore', () => {
+    test('점수를 설정한다', () => {
+      gameState.start();
+      gameState.setScore(100);
+
+      expect(gameState.score).toBe(100);
+
+      gameState.setScore(50);
+      expect(gameState.score).toBe(50);
+    });
+
+    test('음수 점수는 0으로 설정된다', () => {
+      gameState.start();
+      gameState.setScore(-10);
+
+      expect(gameState.score).toBe(0);
+    });
+
+    test('게임이 시작되지 않았으면 점수를 설정하지 않는다', () => {
+      gameState.setScore(100);
+      expect(gameState.score).toBe(0);
+    });
+
+    test('게임이 종료되었으면 점수를 설정하지 않는다', () => {
+      gameState.start();
+      gameState.end();
+      gameState.setScore(100);
+
+      expect(gameState.score).toBe(0);
+    });
+  });
+
   describe('incrementRound', () => {
     test('라운드를 증가시킨다', () => {
       gameState.start();
