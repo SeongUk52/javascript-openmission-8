@@ -254,7 +254,7 @@ export class GameController {
       restitution: 0, // 반발 없음 (완전 비탄성)
       friction: 0.8, // 높은 마찰 계수
     });
-    baseBlock.isPlaced = true; // 베이스는 항상 배치된 상태
+    // 베이스는 정적 객체이므로 isPlaced 설정 불필요
     baseBlock.isFalling = false;
     this.physicsService.addBody(baseBlock);
     
@@ -350,7 +350,7 @@ export class GameController {
     block.velocity.y = 0;
     block.angularVelocity = 0;
     block.isFalling = false; // 소환 시에는 떨어지지 않음
-    block.isPlaced = false; // 명시적으로 설정
+    // isPlaced는 place() 메서드에서 설정되므로 여기서는 설정하지 않음
 
     // 배치 전에는 물리 엔진에 추가하지 않음 (떨어지지 않도록)
     // 배치할 때 물리 엔진에 추가하여 떨어지도록 함
@@ -429,7 +429,7 @@ export class GameController {
     
     // 블록 상태 설정 (떨어지는 상태로 변경)
     blockToPlace.isFalling = true;
-    blockToPlace.isPlaced = false;
+    // isPlaced는 place() 메서드에서 설정되므로 여기서는 설정하지 않음
     
     // 블록이 타워 위에 떨어지도록 위치 설정
     // 블록을 타워 위에 배치하는 것이 아니라, 블록이 떨어져서 타워에 닿도록 함
@@ -508,12 +508,12 @@ export class GameController {
       return;
     }
     
-    // 블록이 이미 배치되었으면 무시
-    if (block.isPlaced) {
+    // 블록이 이미 배치되었으면 무시 (_getPlacedBlocks로 확인)
+    const placedBlocks = this._getPlacedBlocks();
+    if (placedBlocks.includes(block)) {
       console.warn('[GameController] _fixBlockToTower: block is already placed', {
         blockId: block.id,
         isFalling: block.isFalling,
-        isPlaced: block.isPlaced,
       });
       return;
     }
@@ -721,8 +721,8 @@ export class GameController {
       if (!block || !block.isFalling || !this.physicsService.bodies.includes(block)) continue;
       const aabb = block.getAABB();
       
-      // 베이스 위치 확인
-      const baseBlock = this.physicsService.bodies.find(b => b.isStatic && b.isPlaced);
+      // 베이스 위치 확인 (베이스는 isStatic만으로 충분)
+      const baseBlock = this.physicsService.bodies.find(b => b.isStatic);
       let isNearTower = false;
       let isInBaseRangeX = false;
       
