@@ -1,6 +1,8 @@
 # javascript-openmission-8
 우아한테크코스(Woowa Tech Course) 웹 프론트엔드 8기 오픈 미션: 프리코스 챌린지
 
+## 🎮 [게임 플레이하기](https://your-deployment-url.com) <!-- 배포 후 링크 업데이트 필요 -->
+
 ## 🎯 미션: 물리엔진 기반 타워 빌딩 게임
 
 ### 📋 프로젝트 개요
@@ -309,6 +311,59 @@ src/
    - 수정 완료 후 `main`과 `develop` 모두에 머지
 
 4. **커밋 메시지**: Conventional Commits 형식 사용
+
+---
+
+## 🚀 배포
+
+### 무료 배포 플랫폼
+
+이 프로젝트는 다음 무료 플랫폼에서 배포할 수 있습니다:
+
+#### 1. **Vercel** (추천) ⭐
+- **장점**: GitHub 연동 자동 배포, 무료, 빠른 CDN
+- **배포 링크**: [https://vercel.com](https://vercel.com)
+- **배포 방법**:
+  1. Vercel에 GitHub 계정으로 로그인
+  2. 프로젝트 import
+  3. Build Command: 없음 (정적 파일)
+  4. Output Directory: `web`
+  5. Deploy!
+
+#### 2. **Netlify**
+- **장점**: GitHub 연동 자동 배포, 무료, 쉬운 설정
+- **배포 링크**: [https://netlify.com](https://netlify.com)
+- **배포 방법**:
+  1. Netlify에 GitHub 계정으로 로그인
+  2. "Add new site" → "Import an existing project"
+  3. Publish directory: `web`
+  4. Deploy!
+
+#### 3. **GitHub Pages**
+- **장점**: 완전 무료, GitHub과 통합
+- **배포 링크**: [https://pages.github.com](https://pages.github.com)
+- **배포 방법**:
+  1. Settings → Pages
+  2. Source: `web` 폴더
+  3. Save
+
+#### 4. **Render** (서버 필요 시)
+- **장점**: Node.js 서버 지원, 무료 티어
+- **배포 링크**: [https://render.com](https://render.com)
+- **배포 방법**:
+  1. Render에 GitHub 계정으로 로그인
+  2. "New Web Service"
+  3. Build Command: 없음
+  4. Start Command: `node server.js`
+  5. Deploy!
+
+### 배포 링크
+
+배포 후 아래 링크를 업데이트해주세요:
+
+```
+🎮 [게임 플레이하기](https://your-deployment-url.com)
+```
 
 ---
 
