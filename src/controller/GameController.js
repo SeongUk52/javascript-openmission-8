@@ -475,7 +475,7 @@ export class GameController {
     
     // 블록 상태: 떨어지는 중
     blockToPlace.isFalling = true;
-    blockToPlace.isPlaced = false;
+    // isPlaced는 place() 메서드에서 설정되므로 여기서는 설정하지 않음
     
     // 떨어지는 블록 목록에 추가
     this.fallingBlocks.add(blockToPlace);
@@ -494,7 +494,7 @@ export class GameController {
       physicsBodiesCount: this.physicsService.bodies.length,
       fallingBlocksCount: this.fallingBlocks.size,
       isFalling: blockToPlace.isFalling,
-      isPlaced: blockToPlace.isPlaced,
+      // isPlaced는 로그에서 제거 (사용하지 않음)
     });
   }
 
